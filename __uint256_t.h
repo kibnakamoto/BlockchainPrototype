@@ -15,12 +15,6 @@ class IntTypes
                 arr128[c] = (__uint128_t)(((__uint128_t)mempoolSingleHash[c*2]<<
                                            64) | (mempoolSingleHash[c*2+1]));
             }
-            /*
-                w[i] = (int)((key[4*i]<<24) | (key[4*i+1]<<16) |
-                             (key[4*i+2]<<8) | key[4*i+3]);
-                i++;
-            } while(i < Nk);
-            */
             for(__uint128_t c : arr128) {
 
             }
