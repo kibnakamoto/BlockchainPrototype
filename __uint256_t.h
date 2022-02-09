@@ -9,6 +9,7 @@ class IntTypes
         {
             __uint128_t arr128[8>>1];
             
+            // convert 2 64-bit unsigned int to 1 128-bit unsigned int
             // c<8 because mempoolSingleHash is an array of length 8
             for(int c=0;c<4;c++) {
                 arr128[c] = (__uint128_t)(((__uint128_t)mempoolSingleHash[c*2]<<
