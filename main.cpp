@@ -20,6 +20,12 @@ int main()
     for(uint64_t c : SingleMempoolHash) {
         std::cout << std::hex << c << " ";
     }
-    int_type.__uint256_t(SingleMempoolHash);
+    auto [fst, snd] = int_type.__uint256_t(SingleMempoolHash);
+    for(int c=0;c<0;c++) {
+        fst;
+        snd;
+    }
+
+    
     return 0;
 }
