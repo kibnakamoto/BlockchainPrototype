@@ -4,27 +4,22 @@ class IntTypes
 {
     // make these a tuple so that concatinating more than 2 values is possible
     public:
-        /* this 256-bit unsigned int turns each transaction of the mempool 
-           into 1 numerical variable */
-        inline std::pair<__uint128_t, __uint128_t> __uint256_t(uint64_t mempoolSingleHash[8])
+        // This function is made for 256-bit sha256
+        inline std::pair<__uint128_t, __uint128_t> __uint256_t(uint32_t mempoolSingleHash[8])
         {
-            __uint128_t arr128[8>>1];
+            __uint128_t arr128[8>>2];
             
-            // convert 2 64-bit unsigned int to 1 128-bit unsigned int
-            // c<8 because mempoolSingleHash is an array of length 8
-            for(int c=0;c<4;c++) {
-                arr128[c] = (__uint128_t)(((__uint128_t)mempoolSingleHash[c*2]<<
-                                           64) | (mempoolSingleHash[c*2+1]));
+            // convert 4 32-bit unsigned int to 1 128-bit unsigned int
+            for(int c=0;c<2;c++) {
+                arr128[c] = (((__uint128_t)mempoolSingleHash[c*4]<<96) |
+                                          ((__uint128_t)mempoolSingleHash[c*4+1]<<64) |
+                                          ((__uint128_t)mempoolSingleHash[c*4+2]<<32) |
+                                          (__uint128_t)mempoolSingleHash[c*4+3]);
             }
-            for(__uint128_t c : arr128) {
-
-            }
-            // return 2 arr128 var at once
-            return {(arr128[0]<<64)|arr128[1], (arr128[2]<<64)|arr128[3]};
+            return {arr128[0], arr128[1]};
         }
-        /* this function converts uint64_t array[8] to a single __uint512_t variable
-           since there is no size of integers, I had to concatinate them to 
-           that size instead of creating a variable that size */
+        /* this creates a tuple of 4 variables that are 128-bit each and 
+           stores 512-bit unsigned int data */
         inline std::pair<__uint128_t, __uint128_t> __uint512_t(uint64_t mempoolSingleHash[8])
         {
             return {
