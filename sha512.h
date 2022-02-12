@@ -44,7 +44,7 @@ inline std::pair<uint64_t,uint64_t> to2_uint64(__uint128_t source) {
 
 class SHA512
 {
-    protected:
+    private:
         uint64_t W[80];
         
         // 80 64 bit unsigned constants for sha512 algorithm
@@ -85,44 +85,51 @@ class SHA512
             0x1f83d9abfb41bd6bULL, 0x5be0cd19137e2179ULL};
         
     public:
-        uint64_t* Sha512(std::string msg, bool csVar=0)
+        uint64_t* Sha512(std::string msg=NULL, uint64_t* tmempoolHash=nullptr)
         {
+            __uint128_t len, bitlen;
+            unsigned int padding;
+            if(tmempoolHash == nullptr)
+            {
+            	// length in bytes.
+                len = msg.length();
+                
+                // length is represented by a 128 bit unsigned integer
+                bitlen = len << 3;
+                
+                // padding with zeros
+                padding = ((1024-(bitlen+1)-128) % 1024)-7;
+                padding /= 8; // in bytes.
+                int blockBytesLen = padding+len+17;
+                uint8_t WordArray[blockBytesLen];
+                memset(WordArray, 0, blockBytesLen);
+                for (__uint128_t c=0;c<len;c++) {
+                    WordArray[c] = msg.c_str()[c];
+                }
+                WordArray[len] = (uint8_t)0x80; // append 10000000.
+                
+                // pad W with zeros
+                memset(W, 0, 80);
+                
+                // add WordArray to W array
+                // 8 bit array values to 64 bit array using 64 bit integer array.
+                for (int i=0; i<len/8+1; i++) {
+                    W[i] = (uint64_t)WordArray[i*8]<<56;
+                    for (int j=1; j<=6; j++)
+                        W[i] = W[i]|( (uint64_t)WordArray[i*8+j]<<(7-j)*8);
+                    W[i] = W[i]|( (uint64_t)WordArray[i*8+7] );
+                }
             
-        	// length in bytes.
-            __uint128_t len = msg.length();
-            
-            // length is represented by a 128 bit unsigned integer
-            __uint128_t bitlen = len << 3;
-            
-            // padding with zeros
-            unsigned int padding = ((1024-(bitlen+1)-128) % 1024)-7;
-            padding /= 8; // in bytes.
-            int blockBytesLen = padding+len+17;
-            uint8_t WordArray[blockBytesLen];
-            memset(WordArray, 0, blockBytesLen);
-            for (__uint128_t c=0;c<len;c++) {
-                WordArray[c] = msg.c_str()[c];
+                // append 128 bit length as 2 uint64_t's as a big endian
+                auto [fst, snd] = to2_uint64(bitlen);
+                W[Shr(padding+len+1,3)+1] = fst;
+                W[Shr(padding+len+1,3)+2] = snd;
+            } else { // if your hashing a concatinated transaction hash from Merkle Tree
+                memset(W, 0, 80);
+                for(int c=0;c<16;c++) {
+                    W[c] = tmempoolHash[c];
+                }
             }
-            WordArray[len] = (uint8_t)0x80; // append 10000000.
-            
-            // pad W with zeros
-            for (int c=0; c<80; c++) {
-                W[c] = 0x00; 
-            }
-            
-            // add WordArray to W array
-            // 8 bit array values to 64 bit array using 64 bit integer pointer.
-            for (int i=0; i<len/8+1; i++) {
-                W[i] = (uint64_t)WordArray[i*8]<<56;
-                for (int j=1; j<=6; j++)
-                    W[i] = W[i]|( (uint64_t)WordArray[i*8+j]<<(7-j)*8);
-                W[i] = W[i]|( (uint64_t)WordArray[i*8+7] );
-            }
-            
-            // append 128 bit length as 2 uint64_t's as a big endian
-            auto [fst, snd] = to2_uint64(bitlen);
-            W[Shr(padding+len+1,3)+1] = fst;
-            W[Shr(padding+len+1,3)+2] = snd;
             
             // create message schedule
             for (int c=16;c<80;c++)
@@ -138,7 +145,7 @@ class SHA512
                 W[c] = W[c-16] + s0 + W[c-7] + s1;
             }
             uint64_t V[8]; // initialize hash values
-            memcpy(V, H, sizeof(uint64_t)*8);
+            memcpy(V, H, sizeof(uint64_t)<<3);
             
             // transform
             for (int c=0;c<80;c++)
