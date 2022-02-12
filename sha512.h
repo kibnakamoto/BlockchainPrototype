@@ -85,7 +85,7 @@ class SHA512
             0x1f83d9abfb41bd6bULL, 0x5be0cd19137e2179ULL};
         
     public:
-        uint64_t* Sha512(std::string msg)
+        uint64_t* Sha512(std::string msg, bool csVar=0)
         {
             
         	// length in bytes.
