@@ -55,12 +55,14 @@ class IntTypes
                     arr128[5], arr128[6], arr128[7]};
         }
         
+        
+        uint8_t hashchArr[8<<4];
+        
         // uint64_t array of 8 to uint8_t array of 64. This is for the Merkle Tree
-        inline uint8_t* arr64ToCharArr(uint64_t mempoolSingleHash1[8], 
-                                   uint64_t mempoolSingleHash2[8])
+        inline uint8_t* arr64ToCharArr(uint64_t* mempoolSingleHash1, 
+                                   uint64_t* mempoolSingleHash2)
         {
             uint64_t hashArr[8<<1];
-            uint8_t hashchArr[8<<4];
             
             for(int c=0;c<8;c++) {
                 hashArr[c] = mempoolSingleHash1[c];
@@ -68,7 +70,7 @@ class IntTypes
             }
             
             // convert uint64_t array[16] to byte array[128]
-            for(int c=0;c<16;c++) { // define j in nested loop
+            for(int c=0;c<16;c++) {
                 hashchArr[c*8] = hashArr[c]>>56 & 0xff;
                 hashchArr[c*8+1] = hashArr[c]>>48 & 0xff;
                 hashchArr[c*8+2] = hashArr[c]>>40 & 0xff;
@@ -78,12 +80,6 @@ class IntTypes
                 hashchArr[c*8+6] = hashArr[c]>>8 & 0xff;
                 hashchArr[c*8+7] = hashArr[c] & 0xff;
             }
-            std::cout << "ans:\t" ;
-            for(int c : hashchArr)
-            {
-                std::cout <<  std::hex << c << " ";
-            }
-            
-            return nullptr;
+            return hashchArr;
         }
 };
