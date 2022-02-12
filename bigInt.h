@@ -54,4 +54,43 @@ class IntTypes
             return {arr128[0], arr128[1], arr128[2], arr128[3], arr128[4], 
                     arr128[5], arr128[6], arr128[7]};
         }
+        
+        // uint64_t array of 8 to uint8_t array of 64. This is for the Merkle Tree
+        inline uint8_t arr64ToCharArr(uint64_t mempoolSingleHash1[8], 
+                                   uint64_t mempoolSingleHash2[8])
+        {
+            uint64_t hashArr[8<<1];
+            uint8_t hashchArr[8<<3];
+            
+            // to avoid data loss
+            uint64_t hashcpyArr[8<<3];
+
+            for(int c=0;c<8;c++) {
+                hashArr[c] = mempoolSingleHash1[c];
+                hashArr[c+8] = mempoolSingleHash2[c];
+            }
+            
+            // convert uint64_t array[8] to byte array[64]
+            for(int c=0,k=8<<3,j=0;c<8,k>=0,j<8;c++,k-=8,j++) { // define j in nested loop
+                // for(int j=0;j<8;j++)
+                // {
+                //     hashcpyArr[c*8+j] = hashArr[c]>>k;
+                // }
+                hashcpyArr[c*8] = hashArr[c]>>56 & 0xff;
+                hashcpyArr[c*8+1] = hashArr[c]>>48 & 0xff;
+                hashcpyArr[c*8+2] = hashArr[c]>>40 & 0xff;
+                hashcpyArr[c*8+3] = hashArr[c]>>32 & 0xff;
+                hashcpyArr[c*8+4] = hashArr[c]>>24 & 0xff;
+                hashcpyArr[c*8+5] = hashArr[c]>>16 & 0xff;
+                hashcpyArr[c*8+6] = hashArr[c]>>8 & 0xff;
+                hashcpyArr[c*8+7] = hashArr[c] & 0xff;
+            }
+            std::cout << "ans:\t" ;
+            for(uint64_t c : hashcpyArr)
+            {
+                std::cout <<  std::hex << c << " ";
+            }
+            
+            return 0;
+        }
 };
