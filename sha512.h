@@ -19,7 +19,6 @@
 inline uint64_t Ch(uint64_t e, uint64_t f, uint64_t g) {
     return ((e bitand f)xor(~e bitand g));
 }
-// #define Ch(x,y,z) ((x bitand y)xor(~x bitand z))
 
 // // majority = (x ∧ y) ⊕ (x ∧ z) ⊕ (y ∧ z)
 inline uint64_t Maj(uint64_t a, uint64_t b, uint64_t c) {
@@ -85,7 +84,7 @@ class SHA512
             0x1f83d9abfb41bd6bULL, 0x5be0cd19137e2179ULL};
         
     public:
-        uint64_t* Sha512(std::string msg=NULL, uint64_t* tmempoolHash=nullptr)
+        uint64_t* Sha512(std::string msg, uint64_t* tmempoolHash=nullptr)
         {
             __uint128_t len, bitlen;
             unsigned int padding;
@@ -109,7 +108,9 @@ class SHA512
                 WordArray[len] = (uint8_t)0x80; // append 10000000.
                 
                 // pad W with zeros
-                memset(W, 0, 80);
+                for(int c=0x00;c<80;c++) {
+                    W[c] = 0x00;
+                }
                 
                 // add WordArray to W array
                 // 8 bit array values to 64 bit array using 64 bit integer array.
@@ -125,10 +126,10 @@ class SHA512
                 W[Shr(padding+len+1,3)+1] = fst;
                 W[Shr(padding+len+1,3)+2] = snd;
             } else { // if your hashing a concatinated transaction hash from Merkle Tree
-                memset(W, 0, 80);
-                for(int c=0;c<16;c++) {
-                    W[c] = tmempoolHash[c];
-                }
+                // memset(W, 0, 80);
+                // for(int c=0;c<16;c++) {
+                //     W[c] = tmempoolHash[c];
+                // }
             }
             
             // create message schedule
@@ -178,6 +179,9 @@ class SHA512
             {
                 H[c] += V[c];
             }
+            for(int c=0;c<8;c++) {
+                std::cout << std::hex << H[c] << " ";
+            }std::cout << std::endl;
         	return H;
         }
 };
