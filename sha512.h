@@ -127,10 +127,6 @@ class SHA512
                     V[2] = V[1];
                     V[1] = V[0];
                     V[0] = temp1 + temp2;
-                    for(int i=0;i<8;i++) {
-                        std::cout << "V[" << std::dec << i << "]:\t" << std::hex
-                                  << V[i] << "\tc:\t" << std::dec << c << std::endl;
-                    }
                 }
                 for(int c=0;c<8;c++) {
                     H[c] += V[c];
@@ -140,7 +136,7 @@ class SHA512
             }
         
     public:
-        std::string Sha512(std::string msg)
+        uint64_t* Sha512(std::string msg)
         {
             
         	// length in bytes.
@@ -192,16 +188,11 @@ class SHA512
                 transform(TMP);
             }
             
-            std::stringstream ss;
-            for (int c=0;c<8;c++)
-            {
-                ss << std::setfill('0') << std::setw(16) << std::hex << (H[c]|0);
-            }
-        	return ss.str();
+        	return H;
         }
 };
 
-std::string sha512(std::string input) {
+uint64_t* sha512(std::string input) {
     SHA512 hash;
     return hash.Sha512(input);
 }
