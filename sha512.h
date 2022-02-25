@@ -9,7 +9,6 @@
 #ifndef SHA512_H_
 #define SHA512_H_
 
-#include <iostream>
 #include <string>
 #include <cstring>
 #include <stdint.h>
@@ -189,6 +188,44 @@ class SHA512
             }
             
         	return H;
+        }
+        
+        // for hashing 2 concatinated uint64_t pointer hashes. For MerkleTree
+        uint64_t* sha512_ptr(uint64_t* hash1, uint64_t* hash2)
+        {
+            IntTypes data_types = IntTypes();
+            uint8_t WordArray[256]; // max len = 249
+            uint64_t W[32];
+            uint64_t TMP[80];
+            for(int c=0;c<80;c++) {
+                TMP[c] = 0x00;
+            }// ans = 7c9bdaa4f400fd13fd9c807f8a70aa0d54811262be08ef0fd1e3e3168f5cad4e05aa8bcfb43c06678fd24e9dfcb7e3c1f574cc87c5de1ec1a2cd850afe924259
+            // len of concatinated hash1 and hash2 = 16 uint64_t which is single block
+            // multi-block processing
+            WordArray[8<<4] = 0x80;
+            for(int c=(8<<4)+1;c<256;c++) {
+                WordArray[c] = 0x00;
+            }
+            data_types.arr64ToCharArr(hash1, hash2, WordArray);
+            
+            for (int i=0; i<16/8+1; i++) {
+                W[i] = (uint64_t)WordArray[i*8]<<56;
+                for (int j=1; j<=6; j++)
+                    W[i] = W[i]|( (uint64_t)WordArray[i*8+j]<<(7-j)*8);
+                W[i] = W[i]|( (uint64_t)WordArray[i*8+7] );
+            }
+            unsigned int padding = ((1024-(129)-128) % 1024)-7; // in bits
+            padding /= 8; // in bytes
+            
+            // append len
+            W[Shr(padding+17,3)+1] = 0x80;
+            for(int c=0;c<2;c++) {
+                for(int i=0;i<16;i++)
+                    TMP[i] = W[i+16*c]; // 16 indexes = 1 block of data
+                transform(TMP);
+            }
+            std::cout << std::hex << H[0];
+            return H;
         }
 };
 
