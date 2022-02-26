@@ -25,6 +25,7 @@ int main()
     IntTypes int_type = IntTypes();
     MerkleTree merkle_tree = MerkleTree();
     uint64_t SingleMempoolHash64[8];
+    uint64_t merkle_root[8];
     memcpy(SingleMempoolHash64, sha512("sender: N/A-receiver: N/A-amount: N/A"),
            sizeof(uint64_t)<<3);
     for(uint64_t c : SingleMempoolHash64) {
@@ -35,7 +36,7 @@ int main()
     
     memcpy(singleHash,sha512("sender: N/A-receiver: N/A-amount: N/A"), 64);
     mempool.push_back(singleHash);
-    merkle_tree.MerkleRoot(mempool);
+    merkle_tree.MerkleRoot(mempool, merkle_root);
     
     // 8x64 bit transaction hash into 4x128 transaction hash
     auto [fst, snd, trd, frd] = int_type.__uint512_t(SingleMempoolHash64);
@@ -45,7 +46,7 @@ int main()
         trd;
         frd;
     }
-
+    
     
     return 0;
 }
