@@ -55,12 +55,9 @@ class IntTypes
                     arr128[5], arr128[6], arr128[7]};
         }
         
-        
-        uint8_t hashchArr[8<<4];
-        
         // uint64_t array of 8 to uint8_t array of 64. This is for the Merkle Tree
         inline uint8_t* arr64ToCharArr(uint64_t* mempoolSingleHash1, 
-                                   uint64_t* mempoolSingleHash2)
+                                   uint64_t* mempoolSingleHash2, uint8_t* hashchArr)
         {
             uint64_t hashArr[8<<1];
             
