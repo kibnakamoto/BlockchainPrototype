@@ -193,53 +193,32 @@ class SHA512
         // for hashing 2 uint64_t pointer hashes. For MerkleTree
         uint64_t* sha512_ptr(uint64_t* hash1, uint64_t* hash2)
         {
-            IntTypes data_types = IntTypes();
-            uint8_t WordArray[256];
             uint64_t W[32];
             uint64_t TMP[80];
             for(int c=0;c<80;c++) {
                 TMP[c] = 0x00;
             }
             
-            // ans = 7c9bdaa4f400fd13fd9c807f8a70aa0d54811262be08ef0fd1e3e3168f5
-            //       cad4e05aa8bcfb43c06678fd24e9dfcb7e3c1f574cc87c5de1ec1a2cd85
-            //       0afe924259
-            
-            for(int c=(8<<4)+1;c<256;c++) {
-                WordArray[c] = 0x00;
-            }
-            
-            for(int c=0;c<32;c++) {
+            for(int c=16;c<32;c++) {
                 W[c] = 0x00;
             }
             
-            WordArray[8<<4] = 0x80; // append 10000000
-            data_types.arr64ToCharArr(hash1, hash2, WordArray);
-            
-            for (int i=0;i<17;i++) {
-                W[i] = (uint64_t)WordArray[i*8]<<56;
-                for (int j=1;j<=6;j++)
-                    W[i] = W[i]|( (uint64_t)WordArray[i*8+j]<<(7-j)*8 );
-                W[i] = W[i]|( (uint64_t)WordArray[i*8+7] );
+            for(int c=0;c<8;c++) {
+                W[c] = hash1[c];
+                W[c+8] = hash2[c];
             }
             
-            unsigned int padding = ((1024-(129)-128) % 1024)-7; // in bits
-            padding /= 8; // in bytes
+            // append 1 as 64-bit value
+            W[16] = 0x80ULL<<56;
             
             // append bitlen
-            W[31] = 0x400ULL;
-            std::cout << "\n";
-            for(int c=0;c<32;c++) {
-                std::cout << W[c] << " ";
-            }
+            W[32-1] = 0x400ULL;
+            
+            // multi-block processing
             for(int c=0;c<2;c++) {
                 for(int i=0;i<16;i++)
                     TMP[i] = W[i+16*c]; // 16 indexes = 1 block of data
                 transform(TMP);
-            }
-            std::cout << "\n\n\n";
-            for(uint64_t c : H) {
-                std::cout << std::hex << c << " ";
             }
             return H;
         }
