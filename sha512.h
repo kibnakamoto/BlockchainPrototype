@@ -194,7 +194,7 @@ class SHA512
         uint64_t* sha512_ptr(uint64_t* hash1, uint64_t* hash2)
         {
             IntTypes data_types = IntTypes();
-            uint8_t WordArray[256]; // max len = 249
+            uint8_t WordArray[256];
             uint64_t W[32];
             uint64_t TMP[80];
             for(int c=0;c<80;c++) {
@@ -212,9 +212,9 @@ class SHA512
             for(int c=0;c<32;c++) {
                 W[c] = 0x00;
             }
-
+            
             WordArray[8<<4] = 0x80; // append 10000000
-            data_types.arr64ToCharArr(hash1, hash2, WordArray); // function wrong
+            data_types.arr64ToCharArr(hash1, hash2, WordArray);
             
             for (int i=0;i<17;i++) {
                 W[i] = (uint64_t)WordArray[i*8]<<56;
@@ -227,14 +227,20 @@ class SHA512
             padding /= 8; // in bytes
             
             // append bitlen
-            W[Shr(padding+17,3)+1] = 0x400;
-            
+            W[31] = 0x400ULL;
+            std::cout << "\n";
+            for(int c=0;c<32;c++) {
+                std::cout << W[c] << " ";
+            }
             for(int c=0;c<2;c++) {
                 for(int i=0;i<16;i++)
                     TMP[i] = W[i+16*c]; // 16 indexes = 1 block of data
                 transform(TMP);
             }
-            std::cout << std::hex << H[0];
+            std::cout << "\n\n\n";
+            for(uint64_t c : H) {
+                std::cout << std::hex << c << " ";
+            }
             return H;
         }
 };
