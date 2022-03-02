@@ -15,6 +15,7 @@
 #include "bigInt.h"
 #include "sha512.h"
 #include "MerkleTree.h"
+#include "ECC.h" // 512-bit Elliptic Curve Encryption. For WalletAddress
 
 struct SingleMempoolHash {
     uint64_t* sender = new uint64_t[8];
@@ -41,6 +42,7 @@ struct SingleMempoolHash {
 class WalletAddress
 {
     private:
+        // 512-bit random number. Can be used for ECC private keys
         __uint128_t* GeneratePrivateKey(__uint128_t* private_key)
         {
             std::random_device randDev;
@@ -57,8 +59,25 @@ class WalletAddress
         {
             __uint128_t private_key[4];
             GeneratePrivateKey(private_key); // 512-bit
-            for(int c=0;c<0;c--){private_key[0];}
-            return nullptr;
+            /* TODO:
+            A bitcoin wallet contains a collection of key pairs, each consisting
+            of a private key and a public key. The private key (k) is a number,
+            usually picked at random. From the private key, we use elliptic
+            curve multiplication, a one-way cryptographic function, to generate
+            a public key (K). From the public key (K), we use a one-way 
+            cryptographic hash function to generate a bitcoin address (A)
+            */
+            // use sha512_ptr after bitmasking 1 __uint128_t* to uint64_t*
+            return nullptr; // return sha512 alg, parameter = public_key
+        }
+        
+        __uint128_t* dumpPrevKey(__uint128_t* private_key=nullptr)
+        {
+            if(private_key != nullptr) {
+                return private_key;
+            } else {
+                std::cout << "private_key not found in wallet";
+            }
         }
         /* TODO:
         create dump private_key function. Use Bitcoin's method for reference.
