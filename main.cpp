@@ -15,7 +15,8 @@
 #include "bigInt.h"
 #include "sha512.h"
 #include "MerkleTree.h"
-// #include "ECC.h" // 512-bit Elliptic Curve Encryption. For WalletAddress
+#include "ECC.h" // 512-bit Elliptic Curve Encryption
+#include "AES.h" // Symmetrical Encryption
 
 struct SingleMempoolHash {
     uint64_t* sender = new uint64_t[8];
@@ -58,6 +59,7 @@ class WalletAddress
                                            std::string askForPrivKey="")
         {
             IntTypes int_type = IntTypes();
+            SHA512 hash = SHA512();
             uint64_t private_key[8];
             GeneratePrivateKey(private_key); // 512-bit
             /* TODO:
@@ -81,15 +83,22 @@ class WalletAddress
                     private_key_8_bit[c*8+6] = private_key[c]>>8 & 0xff;
                     private_key_8_bit[c*8+7] = private_key[c] & 0xff;
                 }
-                                // convert uint8_t to char value
+                // convert uint8_t to char value
                 for(int c=0;c<64;c++) {
-                    // printf("%d", private_key_8_bit[c]);
                     std::cout << private_key_8_bit[c];
                 }
             }
-            // use sha512_ptr after bitmasking 1 __uint128_t* to uint64_t*
-            return nullptr; // return sha512 alg, parameter = public_key
+            
+            return nullptr; // hash.sha512_single_ptr(public_key);
         }
+        
+        protected:
+            std::vector<uint64_t*> private_keys;
+            std::vector<uint64_t*> public_keys;
+            struct wallet
+            {
+                
+            };
 };
 
 int main()
@@ -98,10 +107,12 @@ int main()
     IntTypes int_type = IntTypes();
     MerkleTree merkle_tree = MerkleTree();
     WalletAddress wallet_address = WalletAddress();
+    ECC ECC_Encryption = ECC();
     uint64_t SingleMempoolHash64[8];
     uint64_t merkle_root[8]; // declare Merkle Root
     uint64_t senderPtr[8];
     uint64_t receiverPtr[8];
+    uint64_t public_key[8];
     std::vector<uint64_t*> mempool; // declare mempool
     struct SingleMempoolHash transaction{int_type.avoidPtr(sha512("sender"),
                                                            senderPtr,8),
@@ -111,8 +122,8 @@ int main()
     mempool.push_back(transaction.Hash());
     merkle_tree.MerkleRoot(mempool, merkle_root);
     wallet_address.GenerateNewWalletAddress(sha512("public_key"),
-                                            "no dumpprivkey");
-    
+                                            "don\'t dumpprivkey");
+    ECC_Encryption.brainpoolp512r1(nullptr,nullptr); // ECC Encryption
     // 8x64 bit transaction hash into 4x128 transaction hash
     auto [fst, snd, trd, frd] = int_type.__uint512_t(SingleMempoolHash64);
     for(int c=0;c<0;c++) {
