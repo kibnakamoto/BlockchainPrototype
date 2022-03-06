@@ -198,11 +198,9 @@ class SHA512
             for(int c=0;c<80;c++) {
                 TMP[c] = 0x00;
             }
-            
             for(int c=16;c<32;c++) {
                 W[c] = 0x00;
             }
-            
             for(int c=0;c<8;c++) {
                 W[c] = hash1[c];
                 W[c+8] = hash2[c];
@@ -221,6 +219,30 @@ class SHA512
                 transform(TMP);
             }
             return H;
+        }
+        
+        // for wallet address and ECC
+        uint64_t* sha512_single_ptr(uint64_t* singleHash)
+        { /* NOT TESTED YET */
+            uint64_t W[80];
+            for(int c=9;c<80;c++) {
+                W[c] = 0x00;
+            }
+            for(int c=0;c<8;c++) {
+                W[c] = singleHash[c];
+            }
+            
+            // append 1 as 64-bit value
+            W[8] = 0x80ULL<<56;
+            
+            // append bitlen
+            W[16-1] = 0x200ULL;
+            
+            // single-block transform
+            transform(W);
+            
+            return H;
+            
         }
 };
 
