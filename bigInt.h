@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <tuple>
+#include <string.h> // for memcpy
 
 class IntTypes
 {
@@ -78,5 +79,9 @@ class IntTypes
                 hashchArr[c*8+7] = hashArr[c] & 0xff;
             }
             return hashchArr;
+        }
+        uint64_t* avoidPtr(uint64_t* hash, uint64_t* receiverPtr) {
+            memcpy(receiverPtr, hash, sizeof(uint64_t)<<3);
+            return receiverPtr;
         }
 };
