@@ -15,7 +15,6 @@
 #include "bigInt.h"
 #include "sha512.h"
 #include "MerkleTree.h"
-#include "ECC.h" // 512-bit Elliptic Curve Encryption
 #include "AES.h" // Symmetrical Encryption
 
 struct SingleMempoolHash {
@@ -107,7 +106,9 @@ int main()
     IntTypes int_type = IntTypes();
     MerkleTree merkle_tree = MerkleTree();
     WalletAddress wallet_address = WalletAddress();
-    ECC ECC_Encryption = ECC();
+    AES::AES128 aes128;
+    AES::AES192 aes192;
+    AES::AES256 aes256;
     uint64_t SingleMempoolHash64[8];
     uint64_t merkle_root[8]; // declare Merkle Root
     uint64_t senderPtr[8];
@@ -115,15 +116,19 @@ int main()
     uint64_t public_key[8];
     std::vector<uint64_t*> mempool; // declare mempool
     struct SingleMempoolHash transaction{int_type.avoidPtr(sha512("sender"),
-                                                           senderPtr,8),
+                                                           senderPtr),
                                          int_type.avoidPtr(sha512("receiver"),
-                                                           receiverPtr,8),
+                                                           receiverPtr),
                                          50000};
     mempool.push_back(transaction.Hash());
     merkle_tree.MerkleRoot(mempool, merkle_root);
     wallet_address.GenerateNewWalletAddress(sha512("public_key"),
                                             "don\'t dumpprivkey");
-    ECC_Encryption.brainpoolp512r1(nullptr,nullptr); // ECC Encryption
+    uint8_t aeskey[32];
+    for(int c=0;c<32;c++) {
+        aeskey[c] = 0x00U;
+    }
+    aes256.encrypt("msg", aeskey);
     // 8x64 bit transaction hash into 4x128 transaction hash
     auto [fst, snd, trd, frd] = int_type.__uint512_t(SingleMempoolHash64);
     for(int c=0;c<0;c++) {
