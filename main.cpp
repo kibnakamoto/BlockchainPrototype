@@ -160,7 +160,7 @@ class WalletAddress
 class Wallet
 {
     protected:
-        uint64_t* WalletAddress = nullptr;
+        uint64_t* walletAddress = nullptr;
         std::vector<uint8_t*> AESkeysWallet;
         std::vector<uint8_t*> AESkeysTr;
         std::vector<std::string> ciphertexts;
@@ -173,15 +173,32 @@ class Wallet
         void newTransaction(uint64_t* sender, uint64_t* receiver, 
                                  uint32_t amount, std::vector<uint64_t*> mempool)
         {
-            struct transaction trns{sender, receiver, amount};
-            transactionhashes.push_back(trns.Hash());
-            storedCrypto -= amount;
-            uint8_t* newAES_TrKey = nullptr;
-            newAES_TrKey = new uint8_t[32];
-            newAES_TrKey = GenerateAES256Key();
-            ciphertexts.push_back(trns.encryptTr(newAES_TrKey));
-            AESkeysTr.push_back(newAES_TrKey);
-            mempool.push_back(transactionhashes[transactionhashes.size()]);
+            WalletAddress wallet_address = WalletAddress();
+            if(walletAddress != nullptr) {
+                struct transaction trns{sender, receiver, amount};
+                transactionhashes.push_back(trns.Hash());
+                storedCrypto -= amount;
+                uint8_t* newAES_TrKey = nullptr;
+                newAES_TrKey = new uint8_t[32];
+                newAES_TrKey = GenerateAES256Key();
+                ciphertexts.push_back(trns.encryptTr(newAES_TrKey));
+                AESkeysTr.push_back(newAES_TrKey);
+                mempool.push_back(transactionhashes[transactionhashes.size()]);
+            } else {
+                std::cout << "No wallet address found!\n";
+                std::cout << "Generating Wallet Address\n";
+                auto [fst, snd] = wallet_address.GenerateNewWalletAddress();
+                walletAddress = fst;
+                AESkeysWallet = snd;
+                std::cout << "Wallet Address Generated\nWallet Address:\t";
+                for(int c=0;c<8;c++) {
+                    std::cout << std::hex << walletAddress[c];
+                }
+                std::cout << "\n\ntrying again";
+                newTransaction(sender, receiver, amount, mempool);
+                std::cout << "\ncomplete";
+                std::cout << std::endl << std::endl;
+            }
         }
 };
 
