@@ -157,34 +157,23 @@ class WalletAddress
         }
 };
 
-class Wallet
-{
-    protected:
-        uint64_t* walletAddress = nullptr;
-        std::vector<uint8_t*> AESkeysWallet;
-        std::vector<uint8_t*> AESkeysTr;
-        std::vector<std::string> ciphertexts;
-        std::vector<uint64_t*> transactionhashes;
-        int32_t storedCrypto; // not unsigned
-        std::map<std::vector<uint8_t*>,std::vector<uint64_t*>> transactionDict;
+union Wallet {
+    static uint64_t* walletAddress; // should be nullptr if WalletAddressNotFound
     
-    public:
-        // if new transaction added to the Wallet
-        void newTransaction(uint64_t* sender, uint64_t* receiver, 
-                                 uint32_t amount, std::vector<uint64_t*> mempool)
-        {
-            WalletAddress wallet_address = WalletAddress();
-            if(walletAddress != nullptr) {
-                struct transaction trns{sender, receiver, amount};
-                transactionhashes.push_back(trns.Hash());
-                storedCrypto -= amount;
-                uint8_t* newAES_TrKey = nullptr;
-                newAES_TrKey = new uint8_t[32];
-                newAES_TrKey = GenerateAES256Key();
-                ciphertexts.push_back(trns.encryptTr(newAES_TrKey));
-                AESkeysTr.push_back(newAES_TrKey);
-                mempool.push_back(transactionhashes[transactionhashes.size()]);
-            } else {
+    class WA
+    {
+        protected:
+            std::vector<uint8_t*> AESkeysWallet;
+            std::vector<uint8_t*> AESkeysTr;
+            std::vector<std::string> ciphertexts;
+            std::vector<uint64_t*> transactionhashes;
+            int32_t storedCrypto = 0; // not unsigned
+            std::map<std::vector<uint8_t*>,std::vector<uint64_t*>> transactionDict;
+        
+        public:
+            void WalletAddressNotFound()
+            {
+                WalletAddress wallet_address = WalletAddress();
                 std::cout << "No wallet address found!\n";
                 std::cout << "Generating Wallet Address\n";
                 auto [fst, snd] = wallet_address.GenerateNewWalletAddress();
@@ -195,13 +184,41 @@ class Wallet
                     std::cout << std::hex << walletAddress[c];
                 }
                 std::cout << "\n\ntrying again";
-                newTransaction(sender, receiver, amount, mempool);
-                std::cout << "\ncomplete";
-                std::cout << std::endl << std::endl;
+                
             }
-        }
+            // append crypto to the wallet
+            void appendCrypto(uint32_t amount)
+            {
+                if(walletAddress == nullptr) {
+                    WalletAddressNotFound();
+                }
+                storedCrypto = amount;
+            }
+            
+            // if new transaction added to the Wallet
+            void newTransaction(uint64_t* sender, uint64_t* receiver, 
+                                uint32_t amount, std::vector<uint64_t*> 
+                                mempool)
+            {
+                if(walletAddress != nullptr) {
+                    struct transaction trns{sender, receiver, amount};
+                    transactionhashes.push_back(trns.Hash());
+                    storedCrypto -= amount;
+                    uint8_t* newAES_TrKey = nullptr;
+                    newAES_TrKey = new uint8_t[32];
+                    newAES_TrKey = GenerateAES256Key();
+                    ciphertexts.push_back(trns.encryptTr(newAES_TrKey));
+                    AESkeysTr.push_back(newAES_TrKey);
+                    mempool.push_back(transactionhashes[transactionhashes.size()]);
+                } else {
+                    WalletAddressNotFound();
+                    newTransaction(sender, receiver, amount, mempool);
+                    std::cout << "\ncomplete";
+                    std::cout << std::endl << std::endl;
+                }
+            }
+    };
 };
-
 
 int main()
 {
