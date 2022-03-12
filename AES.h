@@ -2,7 +2,7 @@
 *  Github: Kibnakamoto
 *   Repisotory: AES
 *  Start Date: March, 5, 2022
-*  Finalized: March N/A, 2022
+*  Finalized: March 11, 2022
 */
 
 
@@ -191,7 +191,7 @@ class AES
                     for(int c=0;c<Nb;c++) {
                         uint8_t low_mask = state[r][c] & 0x0fU;
                         uint8_t high_mask = state[r][c] >> 4;
-                        state[r][c] = inv_sbox[r][c];
+                        state[r][c] = inv_sbox[high_mask][low_mask];
                     }
                 }
                 return state;
@@ -199,12 +199,14 @@ class AES
             
             uint8_t** inv_shiftrows(uint8_t** state, uint8_t Nb)
             {
-                // to stop values from overriding, duplicate array
-                uint8_t inv_pre_state[4][Nb];
-                for(int r=1;r<4;r++) {
-                    for(int c=0;c<Nb;c++)
-                        inv_pre_state[r][c] = state[r][c];
-                }
+                // to stop values from overriding, duplicate matrix
+               uint8_t inv_pre_state[4][Nb];
+               for(int r=1;r<4;r++) {
+                   for(int c=0;c<Nb;c++)
+                       inv_pre_state[r][c] = state[r][c];
+               }
+                
+
                 // shift rows. First row is not changed
                 for(int r=1;r<4;r++) {
                     for(int c=0;c<Nb;c++)
@@ -358,12 +360,13 @@ class AES
                 }
                 
                 addroundkey(state, w, Nr, Nb);
-                for(int rnd=14-1;rnd>0;rnd--) {
+                for(int rnd=Nr-1;rnd>0;rnd--) {
                     inv_shiftrows(state, Nb);
                     inv_subBytes(state, Nb);
                     addroundkey(state, w, rnd, Nb);
                     inv_mixcolumns(state, Nb);
                 }
+                
                 inv_shiftrows(state, Nb);
                 inv_subBytes(state, Nb);
                 addroundkey(state, w, 0, Nb);
@@ -439,9 +442,9 @@ class AES
                 int k=-1;
                 std::string final_val = "";
                 
-                // input length has to be a multiple of 16
-                if(user_in.length()%16 != 0) {
-                    std::cout << "length is not a multiple of 16\nERROR";
+                // input length has to be a multiple of 16 bytes
+                if(user_in.length()%32 != 0) {
+                    std::cout << "ERROR:\tlength is not a multiple of 32";
                     exit(EXIT_FAILURE);
                 }
                 
