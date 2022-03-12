@@ -12,6 +12,7 @@
 #include <iostream>
 #include <string>
 #include <random>
+#include <time.h>
 #include "bigInt.h"
 #include "sha512.h"
 #include "MerkleTree.h"
@@ -42,58 +43,50 @@ struct SingleMempoolHash {
 class WalletAddress
 {
     private:
-        // 512-bit random number. ECC private key
-        uint64_t* GeneratePrivateKey(uint64_t* private_key)
+        // 512-bit random number. half of AES private key
+        uint8_t* GenerateAES256Key(uint8_t* key)
         {
+            /* random byte using Mersenne Twister. Not recommended for 
+               cryptography but couldn't find a cryptographic random byte generator */
+            
             std::random_device randDev;
-            std::mt19937_64 gen(randDev());
-            std::uniform_int_distribution<uint64_t> randUint64;
-            for(int c=0;c<8;c++) {
-                private_key[c] = randUint64(gen);
+            std::mt19937 generator(randDev() ^ time(NULL));
+              std::uniform_int_distribution<uint32_t> distr;
+            for(int c=0;c<32-4;c++) {
+                key[c] = distr(generator)>>24 & 0xff;
+                key[c+1] = distr(generator)>>16 & 0xff;
+                key[c+2] = distr(generator)>>8 & 0xff;
+                key[c+3] = distr(generator) & 0xff;
             }
-            return private_key;
+            return key;
         }
     public:
-        uint64_t* GenerateNewWalletAddress(uint64_t* public_key,
-                                           std::string askForPrivKey="")
+        uint64_t* GenerateNewWalletAddress(std::string askForPrivKey="")
         {
+            std::string AES256_ciphertext;
             IntTypes int_type = IntTypes();
             SHA512 hash = SHA512();
-            uint64_t private_key[8];
-            GeneratePrivateKey(private_key); // 512-bit
-            /* TODO:
-            A bitcoin wallet contains a collection of key pairs, each consisting
-            of a private key and a public key. The private key (k) is a number,
-            usually picked at random. From the private key, we use elliptic
-            curve multiplication, a one-way cryptographic function, to generate
-            a public key (K). From the public key (K), we use a one-way 
-            cryptographic hash function to generate a bitcoin address (A)
-            */
-            if (askForPrivKey == "dumpprivkey") { // print as char
-                std::cout << std::endl << "private key:\t";
-                uint8_t private_key_8_bit[64];
-                for(int c=0;c<8;c++) {
-                    private_key_8_bit[c*8] = private_key[c]>>56 & 0xff;
-                    private_key_8_bit[c*8+1] = private_key[c]>>48 & 0xff;
-                    private_key_8_bit[c*8+2] = private_key[c]>>40 & 0xff;
-                    private_key_8_bit[c*8+3] = private_key[c]>>32 & 0xff;
-                    private_key_8_bit[c*8+4] = private_key[c]>>24 & 0xff;
-                    private_key_8_bit[c*8+5] = private_key[c]>>16 & 0xff;
-                    private_key_8_bit[c*8+6] = private_key[c]>>8 & 0xff;
-                    private_key_8_bit[c*8+7] = private_key[c] & 0xff;
-                }
-                // convert uint8_t to char value
-                for(int c=0;c<64;c++) {
-                    std::cout << private_key_8_bit[c];
+            AES::AES256 aes256;
+            uint8_t* AESkey = nullptr;
+            AESkey = new uint8_t[32];
+            GenerateAES256Key(AESkey); // 32 bytes
+            std::string AESkeyStr = "";
+            for(int c=0;c<32;c++) { /* plain text = Generated key in string */
+                AESkeyStr += std::to_string(AESkey[c]);
+            }
+            AES256_ciphertext = aes256.encrypt(AESkeyStr, AESkey);
+            if (askForPrivKey == "dump AES-key") {
+                std::cout << std::endl << "AES256 key:\t";
+                for(int c=0;c<32;c++) {
+                    std::cout << AESkey[c];
                 }
             }
-            
-            return nullptr; // hash.sha512_single_ptr(public_key);
+            return sha512(AES256_ciphertext);
         }
         
         protected:
             std::vector<uint64_t*> private_keys;
-            std::vector<uint64_t*> public_keys;
+            std::vector<uint64_t*> AESkeys;
             struct wallet
             {
                 
@@ -113,7 +106,8 @@ int main()
     uint64_t merkle_root[8]; // declare Merkle Root
     uint64_t senderPtr[8];
     uint64_t receiverPtr[8];
-    uint64_t public_key[8];
+    uint64_t* walletAddress = nullptr;
+    walletAddress = new uint64_t[8];
     std::vector<uint64_t*> mempool; // declare mempool
     struct SingleMempoolHash transaction{int_type.avoidPtr(sha512("sender"),
                                                            senderPtr),
@@ -122,13 +116,7 @@ int main()
                                          50000};
     mempool.push_back(transaction.Hash());
     merkle_tree.MerkleRoot(mempool, merkle_root);
-    wallet_address.GenerateNewWalletAddress(sha512("public_key"),
-                                            "don\'t dumpprivkey");
-    uint8_t aeskey[32];
-    for(int c=0;c<32;c++) {
-        aeskey[c] = 0x00U;
-    }
-    aes256.encrypt("msg", aeskey);
+    walletAddress = wallet_address.GenerateNewWalletAddress();
     // 8x64 bit transaction hash into 4x128 transaction hash
     auto [fst, snd, trd, frd] = int_type.__uint512_t(SingleMempoolHash64);
     for(int c=0;c<0;c++) {
