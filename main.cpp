@@ -45,6 +45,22 @@ struct transaction {
     uint64_t* receiver = new uint64_t[8];
     uint32_t amount;
     
+    std::string encryptTr(uint8_t* key)
+    {
+        AES::AES256 aes256;
+        std::string transactionData = "";
+        transactionData += "sender: ";
+        for(int c=0;c<8;c++) {
+            transactionData += std::to_string(sender[c]);
+        }
+        transactionData += ", receiver: ";
+        for(int c=0;c<8;c++) {
+            transactionData += std::to_string(receiver[c]);
+        }
+        transactionData += ", amount: " + std::to_string(amount);
+        return aes256.encrypt(transactionData, key);
+    }
+    
     // if owner of wallet(WalletAddress and keys)
     void dumptrdata(const std::map<uint64_t*,std::vector<uint8_t*>> walletData)
     {/* not tested */
@@ -141,11 +157,32 @@ class WalletAddress
         }
 };
 
-struct wallet
+class Wallet
 {
-    uint64_t* WalletAddress;
-    std::vector<uint8_t*> AESkeys;
-    std::map<uint64_t*,std::vector<uint8_t*>> walletData;
+    protected:
+        uint64_t* WalletAddress = nullptr;
+        std::vector<uint8_t*> AESkeysWallet;
+        std::vector<uint8_t*> AESkeysTr;
+        std::vector<std::string> ciphertexts;
+        std::vector<uint64_t*> transactionhashes;
+        int32_t storedCrypto; // not unsigned
+        std::map<std::vector<uint8_t*>,std::vector<uint64_t*>> transactionDict;
+    
+    public:
+        // if new transaction added to the Wallet
+        void newTransaction(uint64_t* sender, uint64_t* receiver, 
+                                 uint32_t amount, std::vector<uint64_t*> mempool)
+        {
+            struct transaction trns{sender, receiver, amount};
+            transactionhashes.push_back(trns.Hash());
+            storedCrypto -= amount;
+            uint8_t* newAES_TrKey = nullptr;
+            newAES_TrKey = new uint8_t[32];
+            newAES_TrKey = GenerateAES256Key();
+            ciphertexts.push_back(trns.encryptTr(newAES_TrKey));
+            AESkeysTr.push_back(newAES_TrKey);
+            mempool.push_back(transactionhashes[transactionhashes.size()]);
+        }
 };
 
 
@@ -173,6 +210,9 @@ int main()
     merkle_tree.MerkleRoot(mempool, merkle_root);
     auto [fst,snd] = wallet_address.GenerateNewWalletAddress();
     walletAddress = fst;
+    delete[] snd[0];
+    delete[] snd[1];
+    
     for(int c=0;c<8;c++) {
         std::cout << std::hex << walletAddress[c] << " ";
     }
