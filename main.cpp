@@ -154,7 +154,7 @@ class WalletAddress
             std::vector<uint8_t*> keys;
             keys.push_back(AESkey);
             keys.push_back(NewAESkey);
-            return {sha512(AES256_ciphertext), keys};
+            return {int_type.avoidPtr(sha512("abc")), keys}; // 2a9ac94fa54ca49f
         }
 };
 
@@ -188,8 +188,10 @@ union Wallet {
                     AES256_ciphertext = aes256.encrypt(AESkeyStr, val[0]);
                     for(int i=0;i<8;i++) {
                         if(sha512(AES256_ciphertext)[i] != key[i]) {
-                            std::cout << "wallet Data mismatch";
+                            std::cout << "\nwallet data mismatch";
                             exit(EXIT_FAILURE);
+                        } else {
+                            std::cout << "\n\nwallet data verified\n\n";
                         }
                     }
                 }
@@ -214,9 +216,17 @@ union Wallet {
             void appendCrypto(uint32_t amount)
             {
                 if(walletAddress == nullptr) {
-                    WalletAddressNotFound();
+                    WalletAddressNotFound(); // if wallet not created
+                } else {
+                    verifyOwnerData(verifyInfo);
                 }
-                storedCrypto = amount;
+                storedCrypto += amount;
+            }
+            
+            void sellCrypto(uint32_t amount)
+            {
+                verifyOwnerData(verifyInfo);
+                storedCrypto -= amount;
             }
             
             // if new transaction added to the Wallet
@@ -225,6 +235,7 @@ union Wallet {
                                 mempool)
             {
                 if(walletAddress != nullptr) {
+                    verifyOwnerData(verifyInfo);
                     struct transaction trns{sender, receiver, amount};
                     transactionhashes.push_back(trns.Hash());
                     storedCrypto -= amount;
@@ -235,9 +246,11 @@ union Wallet {
                     AESkeysTr.push_back(newAES_TrKey);
                     mempool.push_back(transactionhashes[transactionhashes.size()]);
                 } else {
+                    std::cout << "\nERR:\tWalletAddressNotFound\n";
                     WalletAddressNotFound();
+                    std::cout << "\nNew Wallet Address Created\n";
                     newTransaction(sender, receiver, amount, mempool);
-                    std::cout << "\ncomplete";
+                    std::cout << "\nTransaction complete";
                     std::cout << std::endl << std::endl;
                 }
             }
@@ -253,18 +266,15 @@ int main()
     AES::AES128 aes128;
     AES::AES192 aes192;
     AES::AES256 aes256;
-    uint64_t merkle_root[8]; // declare Merkle Root
-    uint64_t senderPtr[8];
-    uint64_t receiverPtr[8];
+    uint64_t* merkle_root = nullptr;
+    merkle_root = new uint64_t[8]; // declare Merkle Root
     uint64_t* walletAddress = nullptr;
     walletAddress = new uint64_t[8];
     std::vector<uint64_t*> mempool; // declare mempool
-    std::vector<uint64_t*> walletAddresses; // declare mempool
-    struct transaction trns{int_type.avoidPtr(sha512("sender"),
-                                              senderPtr),
-                                              int_type.avoidPtr(sha512("receiver"),
-                                                                receiverPtr),
-                                              50000};
+    std::vector<uint64_t*> walletAddresses; // All wallet addresses
+    struct transaction trns{int_type.avoidPtr(sha512("sender")),
+                            int_type.avoidPtr(sha512("receiver")),
+                            50000};
     mempool.push_back(trns.Hash());
     merkle_tree.MerkleRoot(mempool, merkle_root);
     auto [fst,snd] = wallet_address.GenerateNewWalletAddress();
@@ -272,9 +282,9 @@ int main()
     walletAddresses.push_back(fst);
     delete[] snd[0];
     delete[] snd[1];
-    
     for(int c=0;c<8;c++) {
-        std::cout << std::hex << walletAddress[c] << " ";
+        // std::cout << std::hex << walletAddress[c] << " ";
+        std::cout << std::hex << trns.Hash()[c] << " ";
     }
     return 0;
 }
