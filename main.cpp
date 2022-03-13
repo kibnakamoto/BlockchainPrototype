@@ -31,10 +31,11 @@ uint8_t* GenerateAES256Key()
     std::mt19937 generator(randDev() ^ time(NULL));
       std::uniform_int_distribution<uint32_t> distr;
     for(int c=0;c<32-4;c++) {
-        key[c] = distr(generator)>>24 & 0xff;
-        key[c+1] = distr(generator)>>16 & 0xff;
-        key[c+2] = distr(generator)>>8 & 0xff;
-        key[c+3] = distr(generator) & 0xff;
+        uint32_t tmp = distr(generator);
+        key[c] = tmp>>24 & 0xff;
+        key[c+1] = tmp>>16 & 0xff;
+        key[c+2] = tmp>>8 & 0xff;
+        key[c+3] = tmp & 0xff;
     }
     return key;
 }
@@ -158,19 +159,42 @@ class WalletAddress
 };
 
 union Wallet {
+    // parameters to verify owner of the wallet is modifying
     static uint64_t* walletAddress; // should be nullptr if WalletAddressNotFound
+    static std::vector<uint8_t*> AESkeysWallet; // can be empty if WalletAddressNotFound
     
+    /* verifyInfo includes password as third index, AESkeysWallet in the first 
+       and second index. If they don't match, don't change anything on the Wallet */
+    static std::map<uint64_t*, std::vector<uint8_t*>> verifyInfo;
     class WA
     {
         protected:
-            std::vector<uint8_t*> AESkeysWallet;
             std::vector<uint8_t*> AESkeysTr;
             std::vector<std::string> ciphertexts;
             std::vector<uint64_t*> transactionhashes;
-            int32_t storedCrypto = 0; // not unsigned
-            std::map<std::vector<uint8_t*>,std::vector<uint64_t*>> transactionDict;
+            int32_t storedCrypto = 0; // can be negative
         
         public:
+            void verifyOwnerData(const std::map<uint64_t*,std::vector<uint8_t*>>
+                                 walletData)
+            {
+                AES::AES256 aes256;
+                std::string AESkeyStr = "";
+                std::string AES256_ciphertext = "";
+                for (auto const& [key, val] : walletData) {
+                    for(int c=0;c<32;c++) {
+                        AESkeyStr += std::to_string(val[1][c]);
+                    }
+                    AES256_ciphertext = aes256.encrypt(AESkeyStr, val[0]);
+                    for(int i=0;i<8;i++) {
+                        if(sha512(AES256_ciphertext)[i] != key[i]) {
+                            std::cout << "wallet Data mismatch";
+                            exit(EXIT_FAILURE);
+                        }
+                    }
+                }
+            }
+            
             void WalletAddressNotFound()
             {
                 WalletAddress wallet_address = WalletAddress();
@@ -235,6 +259,7 @@ int main()
     uint64_t* walletAddress = nullptr;
     walletAddress = new uint64_t[8];
     std::vector<uint64_t*> mempool; // declare mempool
+    std::vector<uint64_t*> walletAddresses; // declare mempool
     struct transaction trns{int_type.avoidPtr(sha512("sender"),
                                               senderPtr),
                                               int_type.avoidPtr(sha512("receiver"),
@@ -244,6 +269,7 @@ int main()
     merkle_tree.MerkleRoot(mempool, merkle_root);
     auto [fst,snd] = wallet_address.GenerateNewWalletAddress();
     walletAddress = fst;
+    walletAddresses.push_back(fst);
     delete[] snd[0];
     delete[] snd[1];
     
