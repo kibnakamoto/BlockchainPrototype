@@ -18,7 +18,6 @@
 inline uint64_t Ch(uint64_t e, uint64_t f, uint64_t g) {
     return ((e bitand f)xor(~e bitand g));
 }
-// #define Ch(x,y,z) ((x bitand y)xor(~x bitand z))
 
 // // majority = (x ∧ y) ⊕ (x ∧ z) ⊕ (y ∧ z)
 inline uint64_t Maj(uint64_t a, uint64_t b, uint64_t c) {
@@ -221,22 +220,21 @@ class SHA512
             return H;
         }
         
-        // for wallet address and ECC
         uint64_t* sha512_single_ptr(uint64_t* singleHash)
         { /* NOT TESTED YET */
             uint64_t W[80];
-            for(int c=9;c<80;c++) {
+            for(int c=5;c<80;c++) {
                 W[c] = 0x00;
             }
-            for(int c=0;c<8;c++) {
+            for(int c=0;c<4;c++) {
                 W[c] = singleHash[c];
             }
             
             // append 1 as 64-bit value
-            W[8] = 0x80ULL<<56;
+            W[4] = 0x80ULL<<56;
             
             // append bitlen
-            W[16-1] = 0x200ULL;
+            W[16-1] = 0x100ULL;
             
             // single-block transform
             transform(W);
@@ -249,6 +247,14 @@ class SHA512
 uint64_t* sha512(std::string input) {
     SHA512 hash;
     return hash.Sha512(input);
+}
+
+std::string sha512_str(std::string input) {
+    std::stringstream ss;
+    for (int c=0;c<8;c++) {
+        ss << std::setfill('0') << std::setw(16) << std::hex << (sha512(input)[c]|0);
+    }
+	return ss.str();
 }
 
 #endif /* SHA512_H_ */
