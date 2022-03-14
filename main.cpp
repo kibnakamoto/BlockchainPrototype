@@ -41,7 +41,7 @@ uint8_t* GenerateAES256Key()
 }
 
 
-struct transaction {
+struct Transaction {
     uint64_t* sender = new uint64_t[8];
     uint64_t* receiver = new uint64_t[8];
     uint32_t amount;
@@ -223,9 +223,16 @@ union Wallet {
                 storedCrypto += amount;
             }
             
-            void sellCrypto(uint32_t amount)
+            void subtractCrypto(uint32_t amount)
             {
                 verifyOwnerData(verifyInfo);
+                if(amount > storedCrypto) {
+                    std::cout << "you do not own " << amount << ". Process failed";
+                    exit(EXIT_FAILURE);
+                } else if(walletAddress == nullptr) {
+                    std::cout << "\naccount not found\n";
+                    exit(EXIT_FAILURE);
+                }
                 storedCrypto -= amount;
             }
             
@@ -236,7 +243,7 @@ union Wallet {
             {
                 if(walletAddress != nullptr) {
                     verifyOwnerData(verifyInfo);
-                    struct transaction trns{sender, receiver, amount};
+                    struct Transaction trns{sender, receiver, amount};
                     transactionhashes.push_back(trns.Hash());
                     storedCrypto -= amount;
                     uint8_t* newAES_TrKey = nullptr;
@@ -272,8 +279,8 @@ int main()
     walletAddress = new uint64_t[8];
     std::vector<uint64_t*> mempool; // declare mempool
     std::vector<uint64_t*> walletAddresses; // All wallet addresses
-    struct transaction trns{int_type.avoidPtr(sha512("sender")),
-                            int_type.avoidPtr(sha512("receiver")),
+    struct Transaction trns{int_type.avoidPtr(sha512("sender")),
+                            int_type.avoidPtr(sha512("receiver")), // TODO: fix
                             50000};
     mempool.push_back(trns.Hash());
     merkle_tree.MerkleRoot(mempool, merkle_root);
