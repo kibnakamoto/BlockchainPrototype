@@ -19,6 +19,7 @@
 #include "sha512.h"
 #include "MerkleTree.h"
 #include "AES.h" // Symmetrical Encryption
+#include "block.h"
 
 // 256-bit random number. AES key
 uint8_t* GenerateAES256Key()
@@ -303,7 +304,7 @@ int main()
     mempool.push_back(trns1.Hash());
 
     /* TEST MERKLEROOT */
-    MerkleTree::MerkleRoot(mempool, merkle_root);
+    MerkleTree::merkleRoot(mempool, merkle_root);
     auto [fst,snd] = wallet_address.GenerateNewWalletAddress();
     walletAddress = fst;
     walletAddresses.push_back(fst);
