@@ -1,11 +1,13 @@
+
 #include <stdint.h>
 #include <vector>
 #include <string>
 #include "sha512.h"
 
-class MerkleTree
+namespace MerkleTree
 {
-    public:
+        std::vector<uint64_t*> merkleRoots;
+        
         void MerkleRoot(std::vector<uint64_t*> mempool, uint64_t* merkle_root)
         {
             IntTypes int_type = IntTypes();
@@ -21,26 +23,25 @@ class MerkleTree
                 len++;
             }
             uint64_t divCurrlen = len;
-            while(divisible != true) {
-                uint64_t* oddZfill = new uint64_t[8];
-                oddZfill = sha512("00000000");
-                divCurrlen/=2;
-                if(divCurrlen%2 != 0) {
+            bool divs;
+            int amountofLoop = 0;
+            while (divCurrlen != 0) {
+                divCurrlen /= 2;
+                amountofLoop++;
+                for(int c=0;c<amountofLoop*2;c++) {
+                    uint64_t* oddZfill = new uint64_t[8];
+                    oddZfill = sha512("00000000");
                     mempool.push_back(oddZfill);
-                    len++;
+                    len++; // update len
                 }
-                divisible = (divCurrlen == 0);
-                mempool.push_back(oddZfill);
-                len++;
-                std::cout << std::dec << divCurrlen << " ";
+                divs = (divCurrlen/2) % 2 == 0;
+                if(divs != true) {
+                    mempool.push_back(oddZfill);
+                    len++; // update len
+                }
+                std::cout << "\n\n" << divCurrlen << "\n\n";
             }
             std::cout << "\nlen:\t" << std::dec << len << "\n\n";
-            /*
-             * create newlen for adding zero hashes whenever there aren't enough
-             * leaves in the creation of the MerkleRoot. Do not add it to mempool
-             */
-            // if length not a multiple of 4, there aren't enough leaves
-            uint64_t j=0;
             
             // calculate MerkleRoot
             // while(currlen >= 0) {
@@ -51,4 +52,6 @@ class MerkleTree
             //     j++;
             // }
         }
-};
+}; // namespace MerkleTree
+
+
