@@ -80,7 +80,8 @@ class IntTypes
             }
             return hashchArr;
         }
-        uint64_t* avoidPtr(uint64_t* hash, uint64_t* receiverPtr) {
+        uint64_t* avoidPtr(uint64_t* hash) {
+            uint64_t* receiverPtr = new uint64_t[8];
             memcpy(receiverPtr, hash, sizeof(uint64_t)<<3);
             return receiverPtr;
         }
