@@ -268,22 +268,42 @@ int main()
 {
     /* need string hash values while comparing hashes */
     IntTypes int_type = IntTypes();
-    MerkleTree merkle_tree = MerkleTree();
     WalletAddress wallet_address = WalletAddress();
+    SHA512 hash = SHA512();
     AES::AES128 aes128;
     AES::AES192 aes192;
     AES::AES256 aes256;
-    uint64_t* merkle_root = nullptr;
-    merkle_root = new uint64_t[8]; // declare Merkle Root
-    uint64_t* walletAddress = nullptr;
-    walletAddress = new uint64_t[8];
+    uint64_t* merkle_root = new uint64_t[8]; // declare Merkle Root
+    uint64_t* walletAddress = new uint64_t[8];
     std::vector<uint64_t*> mempool; // declare mempool
     std::vector<uint64_t*> walletAddresses; // All wallet addresses
     struct Transaction trns{int_type.avoidPtr(sha512("sender")),
                             int_type.avoidPtr(sha512("receiver")), // TODO: fix
                             50000};
+    struct Transaction trns1{int_type.avoidPtr(sha512("sener")),
+                            int_type.avoidPtr(sha512("receiver")), // TODO: fix
+                            54000};
+    struct Transaction trns2{int_type.avoidPtr(sha512("sender")),
+                            int_type.avoidPtr(sha512("reciver")), // TODO: fix
+                            35600};
+    
+    struct Transaction trns3{int_type.avoidPtr(sha512("nder")),
+                            int_type.avoidPtr(sha512("receiver")), // TODO: fix
+                            50000};
+    struct Transaction trns4{int_type.avoidPtr(sha512("sender")),
+                            int_type.avoidPtr(sha512("receiver")), // TODO: fix
+                            40000};
     mempool.push_back(trns.Hash());
-    merkle_tree.MerkleRoot(mempool, merkle_root);
+    /* TEST MERKLEROOT */
+    mempool.push_back(trns1.Hash());
+    mempool.push_back(trns2.Hash());
+    mempool.push_back(trns3.Hash());
+    mempool.push_back(trns4.Hash()); // 5 transactions
+    mempool.push_back(trns.Hash());
+    mempool.push_back(trns1.Hash());
+
+    /* TEST MERKLEROOT */
+    MerkleTree::MerkleRoot(mempool, merkle_root);
     auto [fst,snd] = wallet_address.GenerateNewWalletAddress();
     walletAddress = fst;
     walletAddresses.push_back(fst);
