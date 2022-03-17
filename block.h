@@ -25,12 +25,17 @@ namespace Blockchain
         std::uniform_int_distribution<T> distr;
         return distr(generator);
     }
+    
+    inline double difficulty(double target)
+    {
+        return 0;
+    }
 };
 
 class Block
 {
     public:
-        std::string block(std::vector<uint64_t*> mempool)
+        std::string data(std::vector<uint64_t*> mempool)
         {
             uint64_t* merkle_root = new uint64_t[8];
             MerkleTree::merkleRoot(mempool, merkle_root);
@@ -39,8 +44,7 @@ class Block
             uint32_t blockchainsize = Blockchain::blockchain.size();
             std::string timestamp = Blockchain::generateTimestamp();
             uint64_t nonce = Blockchain::generateNonce<uint64_t>();
-            std::cout << Blockchain::generateTimestamp();
-            if(blockchainsize <= 1) {
+            if(blockchainsize > 1) {
                 prevBlockHash = Blockchain::Blockhashes[blockchainsize-1];
             }
             return std::string();
