@@ -233,8 +233,9 @@ union Wallet {
                 } else if(walletAddress == nullptr) {
                     std::cout << "\naccount not found\n";
                     exit(EXIT_FAILURE);
+                } else {
+                    storedCrypto -= amount;
                 }
-                storedCrypto -= amount;
             }
             
             // if new transaction added to the Wallet
@@ -271,6 +272,7 @@ int main()
     IntTypes int_type = IntTypes();
     WalletAddress wallet_address = WalletAddress();
     SHA512 hash = SHA512();
+    Block block = Block();
     AES::AES128 aes128;
     AES::AES192 aes192;
     AES::AES256 aes256;
@@ -295,7 +297,7 @@ int main()
                             int_type.avoidPtr(sha512("receiver")), // TODO: fix
                             40000};
     mempool.push_back(trns.Hash());
-    /* TEST MERKLEROOT */
+    /* TEST MERKLE_ROOT */
     mempool.push_back(trns1.Hash());
     mempool.push_back(trns2.Hash());
     mempool.push_back(trns3.Hash());
@@ -303,8 +305,8 @@ int main()
     mempool.push_back(trns.Hash());
     mempool.push_back(trns1.Hash());
 
-    /* TEST MERKLEROOT */
-    MerkleTree::merkleRoot(mempool, merkle_root);
+    /* TEST MERKLE_ROOT */
+    block.data(mempool);
     auto [fst,snd] = wallet_address.GenerateNewWalletAddress();
     walletAddress = fst;
     walletAddresses.push_back(fst);
