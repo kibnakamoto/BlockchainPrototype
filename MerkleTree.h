@@ -12,20 +12,13 @@ namespace MerkleTree
             return mempool.size();
         }
         
-        inline std::vector<uint64_t*> addleaf(uint64_t* concHash)
-        {
-            std::vector<uint64_t*> leaf;
-            leaf.push_back(concHash);
-            return leaf;
-        }
-        
         class Node
         {
             public:
                 
-        }
+        };
         
-        inline void MerkleRoot(std::vector<uint64_t*> Mempool, uint64_t* merkle_root)
+        inline void merkleRoot(std::vector<uint64_t*> Mempool, uint64_t* merkle_root)
         {
             IntTypes int_type = IntTypes();
             SHA512 hash = SHA512();
