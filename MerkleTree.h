@@ -7,12 +7,32 @@ namespace MerkleTree
 {
         std::vector<uint64_t*> merkleRoots;
         
-        void MerkleRoot(std::vector<uint64_t*> mempool, uint64_t* merkle_root)
+        inline uint64_t length(std::vector<uint64_t*> mempool)
+        {
+            return mempool.size();
+        }
+        
+        inline std::vector<uint64_t*> addleaf(uint64_t* concHash)
+        {
+            std::vector<uint64_t*> leaf;
+            leaf.push_back(concHash);
+            return leaf;
+        }
+        
+        class Node
+        {
+            public:
+                
+        }
+        
+        inline void MerkleRoot(std::vector<uint64_t*> Mempool, uint64_t* merkle_root)
         {
             IntTypes int_type = IntTypes();
             SHA512 hash = SHA512();
-            uint64_t len = mempool.size();
-            bool odd = true;
+            
+            // to avoid 0 hashes to be invalid transactions in Mempool
+            std::vector<uint64_t*> mempool = Mempool;
+            uint64_t len = mempool.size(); // amount of transactions in the block
             __uint128_t validlen = 2;
             while(validlen < len) {
                 validlen*=2;
@@ -24,16 +44,19 @@ namespace MerkleTree
                 mempool.push_back(oddZfill);
                 len++; // update len
             }
-                // std::cout << "\n\n" << divCurrlen << "\n\n";
-            std::cout << "\nlen:\t" << std::dec << len << "\n\n";
             
             // calculate MerkleRoot
             uint64_t currlen = len;
-            while(len/2 != 1) {
-                
-                
+            std::vector<uint64_t*> leaves;
+            while(currlen != 1) {
                 // update current length of leaves until MerkleRoot
                 currlen /= 2;
+                
+                // calculate leaf
+                for(int i=0;i<currlen;i++) {
+                    leaves.push_back(hash.sha512_ptr(mempool[i], mempool[i+1]));
+                }
             }
+            merkleRoots.push_back(merkle_root);
         }
 }; // namespace MerkleTree
