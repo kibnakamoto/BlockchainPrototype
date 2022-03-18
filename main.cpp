@@ -326,9 +326,8 @@ int main()
     transactionsEnc.insert (it, std::pair<std::string, uint8_t*>
                             (trns.encryptTr(AES_key_mining3), AES_key_mining3)); // 3
 
-    ProofofWork.mineBlock(transactionsEnc);
     /* TEST POW MINE */
-    block.data(mempool);
+    block.data(mempool, transactionsEnc);
     auto [fst,snd] = wallet_address.GenerateNewWalletAddress();
     walletAddress = fst;
     walletAddresses.push_back(fst);
