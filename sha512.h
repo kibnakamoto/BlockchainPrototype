@@ -15,22 +15,14 @@
 #include <iomanip>
 
 // choice = (x ∧ y) ⊕ (¯x ∧ z)
-inline uint64_t Ch(uint64_t e, uint64_t f, uint64_t g) {
-    return ((e bitand f)xor(~e bitand g));
-}
+inline uint64_t Ch(uint64_t e, uint64_t f, uint64_t g) { return ((e bitand f)xor(~e bitand g)); }
 
 // // majority = (x ∧ y) ⊕ (x ∧ z) ⊕ (y ∧ z)
-inline uint64_t Maj(uint64_t a, uint64_t b, uint64_t c) {
-    return ((a & b)^(a & c)^(b & c));
-}
+inline uint64_t Maj(uint64_t a, uint64_t b, uint64_t c) { return ((a & b)^(a & c)^(b & c)); }
 
 // // binary operators
-inline uint64_t Shr(uint64_t x, unsigned int n) {
-    return (x >> n);
-}
-inline uint64_t Rotr(uint64_t x, unsigned int n) {
-    return ( (x >> n)|(x << (sizeof(x)<<3)-n) );
-}
+inline uint64_t Shr(uint64_t x, unsigned int n) { return (x >> n); }
+inline uint64_t Rotr(uint64_t x, unsigned int n) { return ( (x >> n)|(x << (sizeof(x)<<3)-n) ); }
 
 
 // length which is __uint128_t in 2 uint64_t integers
