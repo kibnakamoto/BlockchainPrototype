@@ -164,8 +164,7 @@ union Wallet {
     static uint64_t* walletAddress; // should be nullptr if WalletAddressNotFound
     static std::vector<uint8_t*> AESkeysWallet; // can be empty if WalletAddressNotFound
     
-    /* verifyInfo includes password as third index, AESkeysWallet in the first 
-       and second index. If they don't match, don't change anything on the Wallet */
+    /* verifyInfo includes AESkeysWallet in the first and second index. If they don't match, don't change anything on the Wallet */
     static std::map<uint64_t*, std::vector<uint8_t*>> verifyInfo;
     class WA
     {
@@ -273,6 +272,7 @@ int main()
     WalletAddress wallet_address = WalletAddress();
     SHA512 hash = SHA512();
     Block block = Block();
+    PoW ProofofWork = PoW();
     AES::AES128 aes128;
     AES::AES192 aes192;
     AES::AES256 aes256;
@@ -304,8 +304,30 @@ int main()
     mempool.push_back(trns4.Hash()); // 5 transactions
     mempool.push_back(trns.Hash());
     mempool.push_back(trns1.Hash());
-
+    mempool.push_back(trns2.Hash()); // 8 transactions
     /* TEST MERKLE_ROOT */
+    /* TEST POW MINE */
+    uint8_t* AES_key_mining = new uint8_t[32];
+    uint8_t* AES_key_mining1 = new uint8_t[32];
+    uint8_t* AES_key_mining2 = new uint8_t[32];
+    uint8_t* AES_key_mining3 = new uint8_t[32];
+    AES_key_mining = GenerateAES256Key();
+    AES_key_mining1 = GenerateAES256Key();
+    AES_key_mining2 = GenerateAES256Key();
+    AES_key_mining3 = GenerateAES256Key();
+    std::map<std::string, uint8_t*> transactionsEnc;
+    std::map<std::string, uint8_t*>::iterator it = transactionsEnc.begin();
+    transactionsEnc.insert (it, std::pair<std::string, uint8_t*>
+                            (trns.encryptTr(AES_key_mining), AES_key_mining)); // 
+    transactionsEnc.insert (it, std::pair<std::string, uint8_t*>
+                            (trns.encryptTr(AES_key_mining1), AES_key_mining1)); // 1
+    transactionsEnc.insert (it, std::pair<std::string, uint8_t*>
+                            (trns.encryptTr(AES_key_mining2), AES_key_mining2)); // 2
+    transactionsEnc.insert (it, std::pair<std::string, uint8_t*>
+                            (trns.encryptTr(AES_key_mining3), AES_key_mining3)); // 3
+
+    ProofofWork.mineBlock(transactionsEnc);
+    /* TEST POW MINE */
     block.data(mempool);
     auto [fst,snd] = wallet_address.GenerateNewWalletAddress();
     walletAddress = fst;
