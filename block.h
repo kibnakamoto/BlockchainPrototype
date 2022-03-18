@@ -34,7 +34,7 @@ namespace Blockchain
     
     inline double difficulty(double target)
     {
-        return 0;
+        return 1;
     }
     
     /* hashes the bitcoin genesis block and adds to vector and length of vector is 
@@ -86,10 +86,10 @@ namespace Blockchain
         return ret;
     }
     
-    inline double nextBlockTime(double difficulty, 
+    inline double nextBlockTime(double difficulty,
                                 uint64_t hashrate=calcHashRateSha512())
     {
-        double timeM = difficulty * pow(2,64) / hashrate;
+        double timeM = difficulty * pow(2,32) / hashrate / 3600; // minutes
         return timeM;
     }
 };
@@ -97,6 +97,17 @@ namespace Blockchain
 class Block
 {
     public:
+        std::vector<uint64_t> hashrates;
+        
+        uint64_t averageHashRate()
+        {
+            uint64_t avHashrate = 0;
+            for(int c=0;c<hashrates.size();c++) {
+                avHashrate += hashrates[c];
+            }
+            return avHashrate;
+        }
+        
         std::string data(std::vector<uint64_t*> mempool)
         {
             uint64_t* merkle_root = new uint64_t[8];
@@ -106,6 +117,12 @@ class Block
             uint32_t blockchainsize = Blockchain::blockchain.size();
             std::string timestamp = Blockchain::generateTimestamp();
             uint64_t nonce = Blockchain::generateNonce<uint64_t>();
+            double difficulty = Blockchain::difficulty(5); // test target = 5
+            uint64_t hashrate = Blockchain::calcHashRateSha512(5);
+            hashrates.push_back(hashrate);
+            uint64_t avHashrate = averageHashRate();
+            double blockGenTime = Blockchain::nextBlockTime(difficulty, avHashrate);
+            std::cout << std::dec << blockGenTime << "\n\n";
             if(blockchainsize > 1) {
                 prevBlockHash = Blockchain::Blockhashes[blockchainsize-1];
             }
