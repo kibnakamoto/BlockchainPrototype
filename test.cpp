@@ -259,7 +259,6 @@ std::string sha512_str(std::string input) {
 #endif /* SHA512_H_ */
 
 
-
 #include <stdint.h>
 #include <tuple>
 #include <string.h> // for memcpy
@@ -348,6 +347,307 @@ class IntTypes
             return receiverPtr;
         }
 };
+
+
+#include <iostream>
+#include <vector>
+#include <ctime>
+#include <cmath>
+#include <string.h>
+#include <stdint.h>
+#include <chrono>
+#include <unistd.h>
+#include <climits>
+#include <algorithm>
+#include <functional>
+
+namespace Blockchain
+{
+    std::vector<std::string> blockchain;
+    std::vector<uint64_t*> Blockhashes;
+    
+    inline std::string generateTimestamp()
+    {
+        std::time_t Time = std::time(nullptr);
+        return std::asctime(std::localtime(&Time));
+    }
+    
+    template<class T>
+    inline T generateNonce()
+    {
+        /* random numerical type using Mersenne Twister. Not recommended for 
+           cryptography but couldn't find a cryptographic random byte generator */
+        std::random_device randDev;
+        std::mt19937 generator(randDev() ^ time(NULL));
+        std::uniform_int_distribution<T> distr;
+        return distr(generator);
+    }
+    
+    inline double difficulty(uint64_t nonce)
+    {
+        return 1;
+    }
+    
+    /* hashes the bitcoin genesis block and adds to vector and length of vector is 
+     * hashrate
+     */
+    inline uint64_t calchashRateSingle()
+    {
+        std::vector<std::string>hashes;
+        auto start = std::chrono::system_clock::now();
+        auto end_t = std::chrono::system_clock::now();
+        do
+        {
+            std::string genesisBlockBtc =
+            "GetHash()      = 0x000000000019d6689c085ae165831e934ff763ae46\
+            a2a6c172b3f1b60a8ce26f\nhashMerkleRoot = 0x4a5e1e4baab89f3a3251\
+            8a88c31bc87f618f76673e2cc77ab2127b7afdeda33b\ntxNew.vin[0].\
+            scriptSig     = 486604799 4 0x736B6E616220726F662074756F6C69616\
+            220646E6F63657320666F206B6E697262206E6F20726F6C6C65636E616843203\
+            93030322F6E614A2F33302073656D695420656854\ntxNew.vout[0].nValue\
+            = 5000000000\ntxNew.vout[0].scriptPubKey = 0x5F1DF16B2B704C8A57\
+            8D0BBAF74D385CDE12C11EE50455F3C438EF4C3FBCF649B6DE611FEAE06279A\
+            60939E028A8D65C10B73071A6F16719274855FEB0FD8A6704 OP_CHECKSIG\
+            block.nVersion = 1\nblock.nTime    = 1231006505\nblock.nBits    \
+            = 0x1d00ffff\nblock.nNonce   = 2083236893\nCBlock(hash=000000000\
+            019d6, ver=1, hashPrevBlock=00000000000000, hashMerkleRoot=4a5e1\
+            e, nTime=1231006505, nBits=1d00ffff, nNonce=2083236893, vtx=1)\n\
+              CTransaction(hash=4a5e1e, ver=1, vin.size=1, vout.size=1, \
+              nLockTime=0)\nCTxIn(COutPoint(000000, -1), coinbase 04ffff0\
+              01d0104455468652054696d65732030332f4a616e2f32303039204368616\
+              e63656c6c6f72206f6e206272696e6b206f66207365636f6e64206261696c\
+              6f757420666f722062616e6b73)\nCTxOut(nValue=50.00000000, script\
+              PubKey=0x5F1DF16B2B704C8A578D0B)\nvMerkleTree: 4a5e1e";
+            hashes.push_back(sha512_str(genesisBlockBtc));
+            end_t = std::chrono::system_clock::now();
+        } while (std::chrono::duration_cast<std::chrono::seconds>
+                 (end_t - start).count() != 1);
+        return hashes.size();
+    }
+    
+    inline uint64_t calcHashRateSha512(uint32_t accuracy=5)
+    {
+        std::vector<uint64_t> retvector;
+        uint64_t ret=0;
+        for(int c=0;c<accuracy;c++) {
+            retvector.push_back(calchashRateSingle());
+            ret += retvector[c];
+        }
+        ret/=accuracy;
+        return ret;
+    }
+    
+    inline double nextBlockTime(double difficulty,
+                                uint64_t hashrate=calcHashRateSha512())
+    {
+        double timeM = difficulty * pow(2,32) / hashrate / 3600; // minutes
+        return timeM;
+    }
+};
+
+class PoW
+{
+    protected:
+        bool mineSingleTr(std::string encryptedTr, uint8_t* key, uint64_t
+                          difficulty, std::vector<uint64_t*> mempool, uint64_t
+                          nonce, uint64_t* target)
+        {
+            std::cout << "calculating target...\n";
+            std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+            uint64_t newNonce = nonce;
+            for(int c=0;c<8;c++) {
+                while(target[c] > pow(2,30)) { // define target hash
+                    target[c] = sha512(encryptedTr +
+                                       std::to_string(newNonce+difficulty))[c];
+                    newNonce++;
+                }
+            }
+            // verify transaction data
+            std::cout << "verifying transaction...\n";
+            AES::AES256 aes256;
+            std::string transactionData = aes256.decrypt(encryptedTr, key);
+            uint64_t* hash = new uint64_t[8];
+            hash = sha512(transactionData);
+            bool valid;
+            if(std::find(mempool.begin(), mempool.end(), hash) != mempool.end()) {
+                valid = true;
+            } else {
+                valid = false;
+            }
+            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+            std::cout << "seconds it took to verify transaction: "
+                      << std::chrono::duration_cast<std::chrono::microseconds>
+                         (end - begin).count()
+                      << std::endl;
+
+            return valid;
+        }
+    public:
+        bool mineBlock(const std::map<std::string, uint8_t*> encryptedTs,
+                       uint64_t blockNonce, uint64_t difficulty, 
+                       std::vector<uint64_t*> mempool, uint64_t* v_merkle_root)
+        {
+            uint64_t* target = new uint64_t[8]; // each index >= 2^30
+            uint64_t loopt = 0;
+            uint64_t* merkle_root = new uint64_t[8];
+            MerkleTree::merkleRoot(mempool, merkle_root);
+            if(merkle_root != v_merkle_root) {
+                std::cout << "\nmerkle_root: false\n\n";
+                for (auto const& [key, val] : encryptedTs) {
+                    bool v = mineSingleTr(key, val, difficulty, mempool,
+                                          blockNonce, target);
+                    if(v == false) {
+                        std::cout << "transaction hash mismatch, transaction index:\t"
+                                  << loopt << "\n" << "transaction hash:\n";
+                        for(int c=0;c<8;c++) {
+                            std::cout << std::hex << mempool[loopt][c];
+                        }
+                        std::cout << std::endl;
+                        mempool.erase(mempool.begin() + loopt);
+                        std::cout << "\ntransaction deleted from mempool\n";
+                        
+                        loopt++; // mempool index
+                    } else {
+                        std::cout << "validated transaction:\t" << loopt
+                                  << " from mempool\n";
+                    }
+                }
+            } else {
+                std::cout << "\nmerkle_root: true\n\n";
+            }
+            return true;
+        }
+};
+
+class Block
+{
+    public:
+        std::vector<uint64_t> hashrates;
+        
+        uint64_t averageHashRate()
+        {
+            uint64_t avHashrate = 0;
+            for(int c=0;c<hashrates.size();c++) {
+                avHashrate += hashrates[c];
+            }
+            return avHashrate;
+        }
+        
+        // generate block
+        void genBlock(uint64_t* target, uint64_t nonce, uint64_t* merkle_root,
+                      double difficulty)
+        {
+            std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+            bool valid;
+            uint64_t newNonce = nonce;
+            std::string merkle_root_str = "";
+            for(int c=0;c<8;c++) {
+                merkle_root_str += std::to_string(merkle_root[c]);
+            }
+            
+            for(int c=0;c<8;c++) {
+                while(target[c] > pow(2,30)) {
+                    target[c] = sha512(merkle_root_str +
+                                       std::to_string(newNonce+difficulty))[c];
+                    newNonce++;
+                }
+            }
+            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+            std::cout << "seconds it took to generate block: " << std::chrono::duration_cast
+                                             <std::chrono::microseconds>
+                                             (end - begin).count() << std::endl;
+        }
+
+        
+        std::string data(std::vector<uint64_t*> mempool, const 
+                         std::map<std::string, uint8_t*> encryptedTs,
+                         std::string encryptedTr="", uint8_t* AESkey=nullptr)
+        {
+            SHA512 hash = SHA512();
+            PoW ProofofWork = PoW();
+            uint64_t* target = new uint64_t[8];
+            uint64_t* merkle_root = new uint64_t[8];
+            MerkleTree::merkleRoot(mempool, merkle_root);
+            MerkleTree::merkleRoots.push_back(merkle_root);
+            uint64_t* prevBlockHash = new uint64_t[8];
+            uint32_t blockchainsize = Blockchain::blockchain.size();
+            std::string timestamp = Blockchain::generateTimestamp();
+            uint64_t nonce = Blockchain::generateNonce<uint64_t>();
+            uint64_t randHashNonce = Blockchain::generateNonce<uint64_t>();
+            double difficulty = Blockchain::difficulty(randHashNonce);
+            uint64_t hashrate = Blockchain::calcHashRateSha512(5);
+            hashrates.push_back(hashrate); // put in different function in Node
+            uint64_t avHashrate = averageHashRate();
+            std::cout << "\ngenerating block\n";
+            genBlock(target, nonce, merkle_root, difficulty);
+            bool blockMined = ProofofWork.mineBlock(encryptedTs, nonce, difficulty,
+                                               mempool, merkle_root);
+            double blockGenTime = Blockchain::nextBlockTime(difficulty, avHashrate);
+            
+            if(blockchainsize > 1) {
+                prevBlockHash = Blockchain::Blockhashes[blockchainsize-1];
+            }
+            return std::string();
+        }
+};
+
+
+#include <stdint.h>
+#include <vector>
+#include <string>
+#include "sha512.h"
+
+namespace MerkleTree
+{
+        std::vector<uint64_t*> merkleRoots;
+        
+        inline uint64_t length(std::vector<uint64_t*> mempool)
+        {
+            return mempool.size();
+        }
+        
+        class Node
+        {
+            public:
+                
+        };
+        
+        inline void merkleRoot(std::vector<uint64_t*> Mempool, uint64_t* merkle_root)
+        {
+            IntTypes int_type = IntTypes();
+            SHA512 hash = SHA512();
+            
+            // to avoid 0 hashes to be invalid transactions in Mempool
+            std::vector<uint64_t*> mempool = Mempool;
+            uint64_t len = mempool.size(); // amount of transactions in the block
+            __uint128_t validlen = 2;
+            while(validlen < len) {
+                validlen*=2;
+            }
+            
+            while(len<validlen) { // append it 2, 4, 8... times
+                uint64_t* oddZfill = new uint64_t[8];
+                oddZfill = sha512("00000000");
+                mempool.push_back(oddZfill);
+                len++; // update len
+            }
+            
+            // calculate MerkleRoot
+            uint64_t currlen = len;
+            std::vector<uint64_t*> leaves;
+            while(currlen != 1) {
+                // update current length of leaves until MerkleRoot
+                currlen /= 2;
+                
+                // calculate leaf
+                for(int i=0;i<currlen;i++) {
+                    leaves.push_back(hash.sha512_ptr(mempool[i], mempool[i+1]));
+                }
+            }
+            merkleRoots.push_back(merkle_root);
+        }
+}; // namespace MerkleTree
+
 
 
 /* Author: Taha Canturk
@@ -880,61 +1180,6 @@ class AES
 };
 
 
-#include <stdint.h>
-#include <vector>
-#include <string>
-#include "sha512.h"
-
-namespace MerkleTree
-{
-        std::vector<uint64_t*> merkleRoots;
-        
-        void MerkleRoot(std::vector<uint64_t*> mempool, uint64_t* merkle_root)
-        {
-            IntTypes int_type = IntTypes();
-            SHA512 hash = SHA512();
-            uint64_t len = mempool.size();
-            uint64_t currlen = len;
-            bool odd = true;
-            bool divisible;
-            if(len%2 == odd) { // make sure len is not odd
-                uint64_t* oddZfill = new uint64_t[8];
-                oddZfill = sha512("00000000");
-                mempool.push_back(oddZfill);
-                len++;
-            }
-            uint64_t divCurrlen = len;
-            bool divs;
-            int amountofLoop = 0;
-            while (divCurrlen != 0) {
-                divCurrlen /= 2;
-                amountofLoop++;
-                for(int c=0;c<amountofLoop*2;c++) {
-                    uint64_t* oddZfill = new uint64_t[8];
-                    oddZfill = sha512("00000000");
-                    mempool.push_back(oddZfill);
-                    len++; // update len
-                }
-                divs = (divCurrlen/2) % 2 == 0;
-                if(divs != true) {
-                    mempool.push_back(oddZfill);
-                    len++; // update len
-                }
-                std::cout << "\n\n" << divCurrlen << "\n\n";
-            }
-            std::cout << "\nlen:\t" << std::dec << len << "\n\n";
-            
-            // calculate MerkleRoot
-            // while(currlen >= 0) {
-                
-                
-                // update current length of leaves until MerkleRoot
-            //     currlen /= 2;
-            //     j++;
-            // }
-        }
-}; // namespace MerkleTree
-
 
 /*
 * Author: Taha Canturk
@@ -957,6 +1202,7 @@ namespace MerkleTree
 #include "sha512.h"
 #include "MerkleTree.h"
 #include "AES.h" // Symmetrical Encryption
+#include "block.h"
 
 // 256-bit random number. AES key
 uint8_t* GenerateAES256Key()
@@ -1101,8 +1347,7 @@ union Wallet {
     static uint64_t* walletAddress; // should be nullptr if WalletAddressNotFound
     static std::vector<uint8_t*> AESkeysWallet; // can be empty if WalletAddressNotFound
     
-    /* verifyInfo includes password as third index, AESkeysWallet in the first 
-       and second index. If they don't match, don't change anything on the Wallet */
+    /* verifyInfo includes AESkeysWallet in the first and second index. If they don't match, don't change anything on the Wallet */
     static std::map<uint64_t*, std::vector<uint8_t*>> verifyInfo;
     class WA
     {
@@ -1170,8 +1415,9 @@ union Wallet {
                 } else if(walletAddress == nullptr) {
                     std::cout << "\naccount not found\n";
                     exit(EXIT_FAILURE);
+                } else {
+                    storedCrypto -= amount;
                 }
-                storedCrypto -= amount;
             }
             
             // if new transaction added to the Wallet
@@ -1208,6 +1454,8 @@ int main()
     IntTypes int_type = IntTypes();
     WalletAddress wallet_address = WalletAddress();
     SHA512 hash = SHA512();
+    Block block = Block();
+    PoW ProofofWork = PoW();
     AES::AES128 aes128;
     AES::AES192 aes192;
     AES::AES256 aes256;
@@ -1232,26 +1480,37 @@ int main()
                             int_type.avoidPtr(sha512("receiver")), // TODO: fix
                             40000};
     mempool.push_back(trns.Hash());
-    /* TEST MERKLEROOT */
+    /* TEST MERKLE_ROOT */
     mempool.push_back(trns1.Hash());
     mempool.push_back(trns2.Hash());
     mempool.push_back(trns3.Hash());
     mempool.push_back(trns4.Hash()); // 5 transactions
     mempool.push_back(trns.Hash());
     mempool.push_back(trns1.Hash());
-    mempool.push_back(trns2.Hash());
-    mempool.push_back(trns3.Hash());
-    mempool.push_back(trns4.Hash()); // 10 transactions
-    mempool.push_back(trns1.Hash());
-    mempool.push_back(trns2.Hash());
-    mempool.push_back(trns3.Hash());
-    mempool.push_back(trns4.Hash()); // 14 transactions
-    mempool.push_back(trns1.Hash());
-    mempool.push_back(trns2.Hash());
-    mempool.push_back(trns3.Hash());
-    mempool.push_back(trns4.Hash()); // 18 transactions
-    /* TEST MERKLEROOT */
-    MerkleTree::MerkleRoot(mempool, merkle_root);
+    mempool.push_back(trns2.Hash()); // 8 transactions
+    /* TEST MERKLE_ROOT */
+    /* TEST POW MINE */
+    uint8_t* AES_key_mining = new uint8_t[32];
+    uint8_t* AES_key_mining1 = new uint8_t[32];
+    uint8_t* AES_key_mining2 = new uint8_t[32];
+    uint8_t* AES_key_mining3 = new uint8_t[32];
+    AES_key_mining = GenerateAES256Key();
+    AES_key_mining1 = GenerateAES256Key();
+    AES_key_mining2 = GenerateAES256Key();
+    AES_key_mining3 = GenerateAES256Key();
+    std::map<std::string, uint8_t*> transactionsEnc;
+    std::map<std::string, uint8_t*>::iterator it = transactionsEnc.begin();
+    transactionsEnc.insert (it, std::pair<std::string, uint8_t*>
+                            (trns.encryptTr(AES_key_mining), AES_key_mining)); // 
+    transactionsEnc.insert (it, std::pair<std::string, uint8_t*>
+                            (trns.encryptTr(AES_key_mining1), AES_key_mining1)); // 1
+    transactionsEnc.insert (it, std::pair<std::string, uint8_t*>
+                            (trns.encryptTr(AES_key_mining2), AES_key_mining2)); // 2
+    transactionsEnc.insert (it, std::pair<std::string, uint8_t*>
+                            (trns.encryptTr(AES_key_mining3), AES_key_mining3)); // 3
+
+    /* TEST POW MINE */
+    block.data(mempool, transactionsEnc);
     auto [fst,snd] = wallet_address.GenerateNewWalletAddress();
     walletAddress = fst;
     walletAddresses.push_back(fst);
