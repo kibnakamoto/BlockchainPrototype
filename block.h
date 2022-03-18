@@ -125,12 +125,23 @@ class PoW
         }
     public:
         bool mineBlock(const std::map<std::string, uint8_t*> encryptedTs,
-                              uint64_t blockNonce, difficulty)
+                       uint64_t blockNonce, uint64_t difficulty,
+                       std::vector<uint64_t*> mempool)
         {
+            uint64_t loopt = 0;
             for (auto const& [key, val] : encryptedTs) {
-                mineSingleTr(difficulty, )
+                auto [trg,v] = mineSingleTr(difficulty, key, val, blockNonce,
+                                            mempool);
+                if(v == false) {
+                    std::cout << "transaction hash mismatch, transaction index:\t"
+                              << loopt << "\n";
+                    mempool.erase(mempool.begin() + loopt);
+                    std::cout << "transaction deleted from mempool";
+                    loopt++; // mempool index
+                    exit(EXIT_FAILURE);
+                }
             }
-            return 0;
+            return true;
         }
 };
 
@@ -150,7 +161,7 @@ class Block
         
         std::string data(std::vector<uint64_t*> mempool, std::string
                          encryptedTr="", uint8_t* AESkey=nullptr)
-        {
+        { // use this to access data from main file to mine
             SHA512 hash = SHA512();
             uint64_t* merkle_root = new uint64_t[8];
             MerkleTree::merkleRoot(mempool, merkle_root);
