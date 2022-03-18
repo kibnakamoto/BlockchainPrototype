@@ -32,9 +32,14 @@ namespace Blockchain
         return distr(generator);
     }
     
-    inline double difficulty(double target)
+    inline double difficulty(uint64_t nonce, encryptedTr, key)
     {
-        return 1;
+        
+        std::string base = "";
+        incrN = nonce;
+        while (base += std::to_string(incrN) != )
+        base += std::to_string(nonce);
+        return ;
     }
     
     /* hashes the bitcoin genesis block and adds to vector and length of vector is 
@@ -108,8 +113,10 @@ class Block
             return avHashrate;
         }
         
-        std::string data(std::vector<uint64_t*> mempool)
+        std::string data(std::vector<uint64_t*> mempool, std::string
+                         encryptedTr="", uint8_t* AESkey=nullptr)
         {
+            SHA512 hash = SHA512();
             uint64_t* merkle_root = new uint64_t[8];
             MerkleTree::merkleRoot(mempool, merkle_root);
             MerkleTree::merkleRoots.push_back(merkle_root);
@@ -117,9 +124,10 @@ class Block
             uint32_t blockchainsize = Blockchain::blockchain.size();
             std::string timestamp = Blockchain::generateTimestamp();
             uint64_t nonce = Blockchain::generateNonce<uint64_t>();
-            double difficulty = Blockchain::difficulty(5); // test target = 5
+            uint64_t randHashNonce = Blockchain::generateNonce<uint64_t>();
+            double difficulty = Blockchain::difficulty(randHashNonce);
             uint64_t hashrate = Blockchain::calcHashRateSha512(5);
-            hashrates.push_back(hashrate);
+            hashrates.push_back(hashrate); // put in different function in Node
             uint64_t avHashrate = averageHashRate();
             double blockGenTime = Blockchain::nextBlockTime(difficulty, avHashrate);
             std::cout << std::dec << blockGenTime << "\n\n";
