@@ -32,14 +32,9 @@ namespace Blockchain
         return distr(generator);
     }
     
-    inline double difficulty(uint64_t nonce, encryptedTr, key)
+    inline double difficulty(uint64_t nonce)
     {
-        
-        std::string base = "";
-        incrN = nonce;
-        while (base += std::to_string(incrN) != )
-        base += std::to_string(nonce);
-        return ;
+        return 1;
     }
     
     /* hashes the bitcoin genesis block and adds to vector and length of vector is 
@@ -97,6 +92,46 @@ namespace Blockchain
         double timeM = difficulty * pow(2,32) / hashrate / 3600; // minutes
         return timeM;
     }
+};
+
+class PoW
+{
+    protected:
+        std::pair<uint64_t*, bool> mineSingleTr(double difficulty, std::string 
+                                                encryptedTr, uint8_t* key,
+                                                uint64_t nonce, std::vector<uint64_t*> mempool)
+        {
+            AES::AES256 aes256;
+            std::string transactionData = aes256.decrypt(encryptedTr, key);
+            uint64_t* target = new uint64_t[8]; // each index >= 2^30
+            bool valid;
+            uint64_t newNonce = nonce;
+            for(int c=0;c<8;c++) {
+                while(target[c] > pow(2,30)) {
+                    target[c] = sha512(transactionData + std::to_string(newNonce))[c];
+                    newNonce++;
+                }
+            }
+            
+            // verify transaction data
+            uint64_t* hash = new uint64_t[8];
+            hash = sha512(transactionData);
+            if(std::find(mempool.begin(), mempool.end(), hash) != mempool.end()) {
+                valid = true;
+            } else {
+                valid = false;
+            }
+            return {target, valid};
+        }
+    public:
+        bool mineBlock(const std::map<std::string, uint8_t*> encryptedTs,
+                              uint64_t blockNonce, difficulty)
+        {
+            for (auto const& [key, val] : encryptedTs) {
+                mineSingleTr(difficulty, )
+            }
+            return 0;
+        }
 };
 
 class Block
