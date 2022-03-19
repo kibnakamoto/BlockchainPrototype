@@ -306,7 +306,7 @@ int main()
     mempool.push_back(trns1.Hash());
     mempool.push_back(trns2.Hash()); // 8 transactions
     /* TEST MERKLE_ROOT */
-    /* TEST POW MINE */
+    /* TEST PoW MINE */
     uint8_t* AES_key_mining = new uint8_t[32];
     uint8_t* AES_key_mining1 = new uint8_t[32];
     uint8_t* AES_key_mining2 = new uint8_t[32];
@@ -326,13 +326,15 @@ int main()
     transactionsEnc.insert (it, std::pair<std::string, uint8_t*>
                             (trns.encryptTr(AES_key_mining3), AES_key_mining3)); // 3
 
-    /* TEST POW MINE */
-    block.data(mempool, transactionsEnc);
+    /* TEST PoW MINE */
+    // block.data(mempool, transactionsEnc);
+    MerkleTree::merkleRoot(mempool, merkle_root);
     auto [fst,snd] = wallet_address.GenerateNewWalletAddress();
     walletAddress = fst;
     walletAddresses.push_back(fst);
     delete[] snd[0];
     delete[] snd[1];
+    std::cout << "\n\n";
     for(int c=0;c<8;c++) {
         // std::cout << std::hex << walletAddress[c] << " ";
         std::cout << std::hex << trns.Hash()[c] << " ";
