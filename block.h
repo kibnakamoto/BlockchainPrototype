@@ -206,16 +206,23 @@ class Block
                                              <std::chrono::microseconds>
                                              (end - begin).count() << std::endl;
         }
-
+        /* make a tuple function that returns block components */
+        std::tuple</* prevBlockHash */std::unique_ptr<uint64_t>, 
+                   /* timestamp */std::string, /* blockchain size */ uint32_t,
+                   /* nonce */uint64_t, /* block difficulty */double,
+                   /* merkle_root */std::unique_ptr<uint64_t>,
+                   /* next block generation time*/double,
+                   /* average hashrate */double, /* block hash */std::unique_ptr<uint64_t>>
+                   data() {}
         
-        std::string data(std::vector<uint64_t*> mempool, const 
+        std::string data_str(std::vector<uint64_t*> mempool, const 
                          std::map<std::string, uint8_t*> encryptedTs,
                          std::string encryptedTr="", uint8_t* AESkey=nullptr)
         {
             SHA512 hash = SHA512();
             PoW ProofofWork = PoW();
             uint64_t* target = new uint64_t[8];
-            uint64_t* merkle_root = new uint64_t[8];
+            std::unique_ptr<uint64_t> merkle_root;
             MerkleTree::merkleRoot(mempool, merkle_root);
             MerkleTree::merkleRoots.push_back(merkle_root);
             uint64_t* prevBlockHash = new uint64_t[8];
@@ -224,15 +231,16 @@ class Block
             uint64_t nonce = Blockchain::generateNonce<uint64_t>();
             uint64_t randHashNonce = Blockchain::generateNonce<uint64_t>();
             double difficulty = Blockchain::difficulty(randHashNonce);
-            uint64_t hashrate = Blockchain::calcHashRateSha512(5);
-            hashrates.push_back(hashrate); // put in different function in Node
+            uint64_t hashrate = Blockchain::calcHashRateSha512(5); // accuracy=5
+            hashrates.push_back(hashrate);
             uint64_t avHashrate = averageHashRate();
             std::cout << "\ngenerating block\n";
             genBlock(target, nonce, merkle_root, difficulty);
             bool blockMined = ProofofWork.mineBlock(encryptedTs, nonce, difficulty,
                                                mempool, merkle_root);
             double blockGenTime = Blockchain::nextBlockTime(difficulty, avHashrate);
-            
+            std::cout << "next block will be generated in " << blockGenTime
+                      << std::endl;
             if(blockchainsize > 1) {
                 prevBlockHash = Blockchain::Blockhashes[blockchainsize-1];
             }
