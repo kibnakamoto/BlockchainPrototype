@@ -23,7 +23,7 @@
 
 // 256-bit random number. AES key
 uint8_t* GenerateAES256Key()
-{ // make shared_ptr
+{
     /* random byte using Mersenne Twister. Not recommended for 
        cryptography but couldn't find a cryptographic random byte generator */
     uint8_t* key = nullptr;
@@ -156,7 +156,7 @@ class WalletAddress
             std::vector<uint8_t*> keys;
             keys.push_back(AESkey);
             keys.push_back(NewAESkey);
-            return {sha512("abc"), keys}; // 2a9ac94fa54ca49f // SHA512(CIPHERTEXT)
+            return {sha512(AES256_ciphertext), keys};
         }
 };
 
@@ -165,7 +165,8 @@ union Wallet {
     static std::shared_ptr<uint64_t> walletAddress; // should be nullptr if WalletAddressNotFound
     static std::vector<uint8_t*> AESkeysWallet; // can be empty if WalletAddressNotFound
     
-    /* verifyInfo includes AESkeysWallet in the first and second index. If they don't match, don't change anything on the Wallet */
+    /* verifyInfo includes AESkeysWallet in the first and second index. 
+       If they don't match, don't change anything on the Wallet */
     static std::map<std::shared_ptr<uint64_t>, std::vector<uint8_t*>> verifyInfo;
     class WA
     {
@@ -336,10 +337,9 @@ int main()
     walletAddresses.push_back(fst);
     delete[] snd[0];
     delete[] snd[1];
-    std::cout << "\n\n";
+    std::cout << "\n\nline 339, main.cpp:\t";
     for(int c=0;c<8;c++) {
-        // std::cout << std::hex << walletAddress[c] << " ";
-        std::cout << std::hex << trns.Hash().get()[c] << " ";
+        std::cout << std::hex << walletAddress.get()[c] << " ";
     }
     return 0;
 }
