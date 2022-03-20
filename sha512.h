@@ -12,6 +12,7 @@
 #include <string>
 #include <cstring>
 #include <stdint.h>
+#include <memory>
 #include <iomanip>
 
 // choice = (x ∧ y) ⊕ (¯x ∧ z)
@@ -126,7 +127,7 @@ class SHA512
             }
         
     public:
-        uint64_t* Sha512(std::string msg)
+        std::shared_ptr<uint64_t> Sha512(std::string msg)
         {
         	// length in bytes.
             __uint128_t len = msg.length();
@@ -176,12 +177,17 @@ class SHA512
                     TMP[i] = W[i+16*c];
                 transform(TMP);
             }
-            
-        	return H;
+            // convert raw pointer to shared_ptr
+            std::shared_ptr<uint64_t> shared_H(new uint64_t[8]);
+            for(int c=0;c<8;c++) {
+                shared_H.get()[c] = H[c];
+            }
+        	return shared_H;
         }
         
         // for hashing 2 uint64_t pointer hashes. For MerkleTree
-        uint64_t* sha512_ptr(uint64_t* hash1, uint64_t* hash2)
+        std::shared_ptr<uint64_t> sha512_ptr(std::shared_ptr<uint64_t> hash1, 
+                                             std::shared_ptr<uint64_t> hash2)
         {
             uint64_t W[32];
             uint64_t TMP[80];
@@ -192,8 +198,8 @@ class SHA512
                 W[c] = 0x00;
             }
             for(int c=0;c<8;c++) {
-                W[c] = hash1[c];
-                W[c+8] = hash2[c];
+                W[c] = hash1.get()[c];
+                W[c+8] = hash2.get()[c];
             }
             
             // append 1 as 64-bit value
@@ -208,7 +214,13 @@ class SHA512
                     TMP[i] = W[i+16*c]; // 16 indexes = 1 block of data
                 transform(TMP);
             }
-            return H;
+            
+            // convert raw pointer to shared_ptr
+            std::shared_ptr<uint64_t> shared_H(new uint64_t);
+            for(int c=0;c<8;c++) {
+                shared_H.get()[c] = H[c];
+            }
+            return shared_H;
         }
         
         uint64_t* sha512_single_ptr(uint64_t* singleHash)
@@ -235,7 +247,7 @@ class SHA512
         }
 };
 
-uint64_t* sha512(std::string input) {
+std::shared_ptr<uint64_t> sha512(std::string input) {
     SHA512 hash;
     return hash.Sha512(input);
 }
@@ -243,7 +255,8 @@ uint64_t* sha512(std::string input) {
 std::string sha512_str(std::string input) {
     std::stringstream ss;
     for (int c=0;c<8;c++) {
-        ss << std::setfill('0') << std::setw(16) << std::hex << (sha512(input)[c]|0);
+        ss << std::setfill('0') << std::setw(16) << std::hex
+           << (sha512(input).get()[c]|0);
     }
 	return ss.str();
 }
