@@ -23,7 +23,7 @@
 
 // 256-bit random number. AES key
 uint8_t* GenerateAES256Key()
-{
+{ // make shared_ptr
     /* random byte using Mersenne Twister. Not recommended for 
        cryptography but couldn't find a cryptographic random byte generator */
     uint8_t* key = nullptr;
@@ -43,31 +43,32 @@ uint8_t* GenerateAES256Key()
 
 
 struct Transaction {
-    uint64_t* sender = new uint64_t[8];
-    uint64_t* receiver = new uint64_t[8];
+    std::shared_ptr<uint64_t> sender;
+    std::shared_ptr<uint64_t> receiver;
     uint32_t amount;
     
     std::string encryptTr(uint8_t* key)
-    {
+    { // decrypted hashed data should equal hash in mempool. TEST
         AES::AES256 aes256;
         std::string transactionData = "";
         transactionData += "sender: ";
         for(int c=0;c<8;c++) {
-            transactionData += std::to_string(sender[c]);
+            transactionData += std::to_string(sender.get()[c]);
         }
         transactionData += ", receiver: ";
         for(int c=0;c<8;c++) {
-            transactionData += std::to_string(receiver[c]);
+            transactionData += std::to_string(receiver.get()[c]);
         }
         transactionData += ", amount: " + std::to_string(amount);
         return aes256.encrypt(transactionData, key);
     }
     
     // if owner of wallet(WalletAddress and keys)
-    void dumptrdata(const std::map<uint64_t*,std::vector<uint8_t*>> walletData)
+    void dumptrdata(const std::map<std::shared_ptr<uint64_t>,std::vector<uint8_t*>>
+                    walletData)
     {/* not tested */
         /* walletData = map to verify if owner of the wallet is requesting data dump
-           uint64_t* is WalletAddress and vector of uint8_t* is the string AES key
+           std::shared_ptr<uint64_t> is WalletAddress and vector of uint8_t* is the string AES key
            used as plain text and the AES key used as an AES key.
            walletData vector has length 2 and key used as key is first and 
            string key as uint8_t* is second
@@ -83,7 +84,7 @@ struct Transaction {
             }
             AES256_ciphertext = aes256.encrypt(AESkeyStr, val[0]);
             for(int i=0;i<8;i++) {
-                if(sha512(AES256_ciphertext)[i] != key[i]) {
+                if(sha512(AES256_ciphertext).get()[i] != key.get()[i]) {
                     std::cout << "wallet Data mismatch";
                     exit(EXIT_FAILURE);
                 }
@@ -96,12 +97,12 @@ struct Transaction {
         }
         std::cout << "sender\'s wallet address:\t";
         for(int c=0;c<8;c++) {
-            std::cout << std::hex << sender[c];
+            std::cout << std::hex << sender.get()[c];
         }
         std::cout << std::endl << std::endl;
         std::cout << "receiver\'s wallet address:\t";
         for(int c=0;c<8;c++) {
-            std::cout << std::hex << receiver[c];
+            std::cout << std::hex << receiver.get()[c];
         }
         std::cout << std::endl << std::endl;
         std::cout << "amount:\t" << amount;
@@ -109,16 +110,16 @@ struct Transaction {
     }
     
     // A single hashed transaction data
-    uint64_t* Hash()
-    { /* if parameter is a raw pointer instead of array. It's wrong */
+    std::shared_ptr<uint64_t> Hash()
+    {
         std::string transactionData = "";
         transactionData += "sender: ";
         for(int c=0;c<8;c++) {
-            transactionData += std::to_string(sender[c]);
+            transactionData += std::to_string(sender.get()[c]);
         }
         transactionData += ", receiver: ";
         for(int c=0;c<8;c++) {
-            transactionData += std::to_string(receiver[c]);
+            transactionData += std::to_string(receiver.get()[c]);
         }
         transactionData += ", amount: " + std::to_string(amount);
         return sha512(transactionData);
@@ -128,9 +129,9 @@ struct Transaction {
 class WalletAddress
 {
     public:
-        std::pair<uint64_t*, std::vector<uint8_t*>> 
+        std::pair<std::shared_ptr<uint64_t>, std::vector<uint8_t*>> 
         GenerateNewWalletAddress(std::string askForPrivKey="")
-        { // make it a pair function that returns both aes key and ciphertext hash
+        {
             std::string AES256_ciphertext;
             IntTypes int_type = IntTypes();
             AES::AES256 aes256;
@@ -155,28 +156,28 @@ class WalletAddress
             std::vector<uint8_t*> keys;
             keys.push_back(AESkey);
             keys.push_back(NewAESkey);
-            return {int_type.avoidPtr(sha512("abc")), keys}; // 2a9ac94fa54ca49f
+            return {sha512("abc"), keys}; // 2a9ac94fa54ca49f // SHA512(CIPHERTEXT)
         }
 };
 
 union Wallet {
     // parameters to verify owner of the wallet is modifying
-    static uint64_t* walletAddress; // should be nullptr if WalletAddressNotFound
+    static std::shared_ptr<uint64_t> walletAddress; // should be nullptr if WalletAddressNotFound
     static std::vector<uint8_t*> AESkeysWallet; // can be empty if WalletAddressNotFound
     
     /* verifyInfo includes AESkeysWallet in the first and second index. If they don't match, don't change anything on the Wallet */
-    static std::map<uint64_t*, std::vector<uint8_t*>> verifyInfo;
+    static std::map<std::shared_ptr<uint64_t>, std::vector<uint8_t*>> verifyInfo;
     class WA
     {
         protected:
             std::vector<uint8_t*> AESkeysTr;
             std::vector<std::string> ciphertexts;
-            std::vector<uint64_t*> transactionhashes;
+            std::vector<std::shared_ptr<uint64_t>> transactionhashes;
             int32_t storedCrypto = 0; // can be negative
         
         public:
-            void verifyOwnerData(const std::map<uint64_t*,std::vector<uint8_t*>>
-                                 walletData)
+            void verifyOwnerData(const std::map<std::shared_ptr<uint64_t>,
+                                 std::vector<uint8_t*>> walletData)
             {
                 AES::AES256 aes256;
                 std::string AESkeyStr = "";
@@ -187,7 +188,7 @@ union Wallet {
                     }
                     AES256_ciphertext = aes256.encrypt(AESkeyStr, val[0]);
                     for(int i=0;i<8;i++) {
-                        if(sha512(AES256_ciphertext)[i] != key[i]) {
+                        if(sha512(AES256_ciphertext).get()[i] != key.get()[i]) {
                             std::cout << "\nwallet data mismatch";
                             exit(EXIT_FAILURE);
                         } else {
@@ -207,7 +208,7 @@ union Wallet {
                 AESkeysWallet = snd;
                 std::cout << "Wallet Address Generated\nWallet Address:\t";
                 for(int c=0;c<8;c++) {
-                    std::cout << std::hex << walletAddress[c];
+                    std::cout << std::hex << walletAddress.get()[c];
                 }
                 std::cout << "\n\ntrying again";
                 
@@ -238,9 +239,10 @@ union Wallet {
             }
             
             // if new transaction added to the Wallet
-            void newTransaction(uint64_t* sender, uint64_t* receiver, 
-                                uint32_t amount, std::vector<uint64_t*> 
-                                mempool)
+            void newTransaction(std::shared_ptr<uint64_t> sender,
+                                std::shared_ptr<uint64_t> receiver, 
+                                uint32_t amount, std::vector<std::shared_ptr<
+                                uint64_t>> mempool)
             {
                 if(walletAddress != nullptr) {
                     verifyOwnerData(verifyInfo);
@@ -276,25 +278,25 @@ int main()
     AES::AES128 aes128;
     AES::AES192 aes192;
     AES::AES256 aes256;
-    uint64_t* merkle_root = new uint64_t[8]; // declare Merkle Root
-    uint64_t* walletAddress = new uint64_t[8];
-    std::vector<uint64_t*> mempool; // declare mempool
-    std::vector<uint64_t*> walletAddresses; // All wallet addresses
-    struct Transaction trns{int_type.avoidPtr(sha512("sender")),
-                            int_type.avoidPtr(sha512("receiver")), // TODO: fix
+    std::shared_ptr<uint64_t> merkle_root(new uint64_t[8]); // declare Merkle Root
+    std::shared_ptr<uint64_t> walletAddress(new uint64_t[8]);
+    std::vector<std::shared_ptr<uint64_t>> mempool; // declare mempool
+    std::vector<std::shared_ptr<uint64_t>> walletAddresses; // All wallet addresses
+    struct Transaction trns{sha512("sender"),
+                            sha512("receiver"), // TODO: fix
                             50000};
-    struct Transaction trns1{int_type.avoidPtr(sha512("sener")),
-                            int_type.avoidPtr(sha512("receiver")), // TODO: fix
+    struct Transaction trns1{sha512("sener"),
+                            sha512("receiver"), // TODO: fix
                             54000};
-    struct Transaction trns2{int_type.avoidPtr(sha512("sender")),
-                            int_type.avoidPtr(sha512("reciver")), // TODO: fix
+    struct Transaction trns2{sha512("sender"),
+                            sha512("reciver"), // TODO: fix
                             35600};
     
-    struct Transaction trns3{int_type.avoidPtr(sha512("nder")),
-                            int_type.avoidPtr(sha512("receiver")), // TODO: fix
+    struct Transaction trns3{sha512("nder"),
+                            sha512("receiver"), // TODO: fix
                             50000};
-    struct Transaction trns4{int_type.avoidPtr(sha512("sender")),
-                            int_type.avoidPtr(sha512("receiver")), // TODO: fix
+    struct Transaction trns4{sha512("sender"),
+                            sha512("receiver"), // TODO: fix
                             40000};
     mempool.push_back(trns.Hash());
     /* TEST MERKLE_ROOT */
@@ -337,7 +339,7 @@ int main()
     std::cout << "\n\n";
     for(int c=0;c<8;c++) {
         // std::cout << std::hex << walletAddress[c] << " ";
-        std::cout << std::hex << trns.Hash()[c] << " ";
+        std::cout << std::hex << trns.Hash().get()[c] << " ";
     }
     return 0;
 }
