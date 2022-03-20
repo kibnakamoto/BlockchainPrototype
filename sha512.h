@@ -216,7 +216,7 @@ class SHA512
             }
             
             // convert raw pointer to shared_ptr
-            std::shared_ptr<uint64_t> shared_H(new uint64_t);
+            std::shared_ptr<uint64_t> shared_H(new uint64_t[8]);
             for(int c=0;c<8;c++) {
                 shared_H.get()[c] = H[c];
             }
