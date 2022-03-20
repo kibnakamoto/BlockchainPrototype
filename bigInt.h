@@ -7,7 +7,7 @@ class IntTypes
     // make these a tuple so that concatinating more than 2 values is possible
     public:
         // This function is made for 256-bit sha256
-        inline std::pair<__uint128_t, __uint128_t> __uint256_t(uint32_t mempoolSingleHash[8])
+        inline std::pair<__uint128_t, __uint128_t> __uint256_pair(uint32_t mempoolSingleHash[8])
         {
             __uint128_t arr128[8>>2];
             
@@ -23,7 +23,7 @@ class IntTypes
         /* this creates a tuple of 4 variables that are 128-bit each and 
            stores 512-bit unsigned int data */
         inline std::tuple<__uint128_t, __uint128_t,__uint128_t, __uint128_t>
-        __uint512_t(uint64_t mempoolSingleHash[8])
+        __uint512_tuple(uint64_t mempoolSingleHash[8])
         {
             __uint128_t arr128[8>>1];
             
@@ -38,7 +38,7 @@ class IntTypes
         // converts 2 array[8] of 64-bit unsigned int into 1 1024 bit tuple
         inline std::tuple<__uint128_t, __uint128_t,__uint128_t, __uint128_t,
                           __uint128_t, __uint128_t,__uint128_t, __uint128_t>
-        __uint1024_t(uint64_t mempoolSingleHash1[8], uint64_t mempoolSingleHash2[8])
+        __uint1024_tuple(uint64_t mempoolSingleHash1[8], uint64_t mempoolSingleHash2[8])
         {
             // test function
             __uint128_t arr128[8];
@@ -79,10 +79,5 @@ class IntTypes
                 hashchArr[c*8+7] = hashArr[c] & 0xff;
             }
             return hashchArr;
-        }
-        uint64_t* avoidPtr(uint64_t* hash) {
-            uint64_t* receiverPtr = new uint64_t[8];
-            memcpy(receiverPtr, hash, sizeof(uint64_t)<<3);
-            return receiverPtr;
         }
 };
