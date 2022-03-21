@@ -160,112 +160,133 @@ class WalletAddress
         }
 };
 
-union Wallet {
-    // parameters to verify owner of the wallet is modifying
-    static std::shared_ptr<uint64_t> walletAddress; // should be nullptr if WalletAddressNotFound
-    static std::vector<uint8_t*> AESkeysWallet; // can be empty if WalletAddressNotFound
+class Address
+{
+    public:
+        void verifyOwnerData(const std::map<std::shared_ptr<uint64_t>,
+                             std::vector<uint8_t*>> walletData)
+        {
+            AES::AES256 aes256;
+            std::string AESkeyStr = "";
+            std::string AES256_ciphertext = "";
+            for (auto const& [key, val] : walletData) {
+                for(int c=0;c<32;c++) {
+                    AESkeyStr += std::to_string(val[1][c]);
+                }
+                AES256_ciphertext = aes256.encrypt(AESkeyStr, val[0]);
+                for(int i=0;i<8;i++) {
+                    if(sha512(AES256_ciphertext).get()[i] != key.get()[i]) {
+                        std::cout << "\nwallet data mismatch";
+                        exit(EXIT_FAILURE);
+                    } else {
+                        std::cout << "\n\nwallet data verified\n\n";
+                    }
+                }
+            }
+        }
+        
+        void WalletAddressNotFound(std::shared_ptr<uint64_t> walletAddress,
+                                   std::vector<uint8_t*> AESkeysWallet,
+                                   std::string askForPrivKey="")
+        {
+            WalletAddress wallet_address = WalletAddress();
+            std::cout << "No wallet address found!\n";
+            std::cout << "Generating Wallet Address\n";
+            auto [fst, snd] = wallet_address.GenerateNewWalletAddress(askForPrivKey);
+            walletAddress = fst;
+            AESkeysWallet = snd;
+            std::cout << "Wallet Address Generated\nWallet Address:\t";
+            for(int c=0;c<8;c++) {
+                std::cout << std::hex << walletAddress.get()[c];
+            }
+            std::cout << "\n\ntrying again";
+            
+        }
+
+        // if new transaction added to the Wallet
+        void newTransaction(std::shared_ptr<uint64_t> sender,
+                            std::shared_ptr<uint64_t> receiver, 
+                            uint32_t amount, std::vector<std::shared_ptr<
+                            uint64_t>> mempool, std::map<std::shared_ptr
+                            <uint64_t>, std::vector<uint8_t*>> verifyInfo,
+                            std::string sellorbuy, std::vector<uint8_t*> AESkeysTr,
+                            std::vector<std::shared_ptr<uint64_t>> transactionhashes,
+                            std::vector<std::string> ciphertexts, int32_t storedCrypto,
+                            std::vector<uint8_t*> AESkeysWallet, std::shared_ptr
+                            <uint64_t> walletAddress=nullptr,
+                            std::string askForPrivKey="")
+        {
+            Address address = Address();
+            if(walletAddress != nullptr) {
+                verifyOwnerData(verifyInfo);
+                if(sellorbuy=="sell") {
+                    if(amount > storedCrypto) {
+                        std::cout << "you do not own " << amount << ". Process failed";
+                        exit(EXIT_FAILURE);
+                    } else {
+                        storedCrypto -= amount;
+                    }
+                } else if(sellorbuy=="buy") {
+                    storedCrypto += amount;
+                }
+                struct Transaction trns{sender, receiver, amount};
+                transactionhashes.push_back(trns.Hash());
+                uint8_t* newAES_TrKey = nullptr;
+                newAES_TrKey = new uint8_t[32];
+                newAES_TrKey = GenerateAES256Key();
+                ciphertexts.push_back(trns.encryptTr(newAES_TrKey));
+                AESkeysTr.push_back(newAES_TrKey);
+                mempool.push_back(transactionhashes[transactionhashes.size()]);
+            } else {
+                std::cout << "\nERR:\tWalletAddressNotFound\n";
+                WalletAddressNotFound(walletAddress, AESkeysWallet, askForPrivKey);
+                std::cout << "\nNew Wallet Address Created";
+                newTransaction(sender, receiver, amount, mempool, verifyInfo,
+                               sellorbuy, AESkeysTr, transactionhashes,
+                               ciphertexts, storedCrypto, AESkeysWallet, nullptr);
+                std::cout << "\nTransaction complete" << std::endl << std::endl;
+            }
+        }
+};
+
+struct Wallet {
+    /* parameters to verify when owner of the wallet is modifying */
+    // should be nullptr if WalletAddressNotFound
+    std::shared_ptr<uint64_t> walletAddress;
+    
+    // can be empty if WalletAddressNotFound
+    std::vector<uint8_t*> AESkeysWallet;  // length of 2
     
     /* verifyInfo includes AESkeysWallet in the first and second index. 
-       If they don't match, don't change anything on the Wallet */
-    static std::map<std::shared_ptr<uint64_t>, std::vector<uint8_t*>> verifyInfo;
-    class WA
+      If they don't match, don't change anything on the Wallet */
+    std::map<std::shared_ptr<uint64_t>, std::vector<uint8_t*>> verifyInfo;
+    void new_transaction(std::shared_ptr<uint64_t> sender,
+                            std::shared_ptr<uint64_t> receiver, 
+                            uint32_t amount, std::vector<std::shared_ptr<
+                            uint64_t>> mempool, std::string sellorbuy,
+                            std::vector<uint8_t*> AESkeysTr, std::vector<
+                            std::shared_ptr<uint64_t>> transactionhashes,
+                            std::vector<std::string> ciphertexts, int32_t
+                            storedCrypto, std::string askForPrivKey="")
+
     {
-        protected:
-            std::vector<uint8_t*> AESkeysTr;
-            std::vector<std::string> ciphertexts;
-            std::vector<std::shared_ptr<uint64_t>> transactionhashes;
-            int32_t storedCrypto = 0; // can be negative
-        
-        public:
-            void verifyOwnerData(const std::map<std::shared_ptr<uint64_t>,
-                                 std::vector<uint8_t*>> walletData)
-            {
-                AES::AES256 aes256;
-                std::string AESkeyStr = "";
-                std::string AES256_ciphertext = "";
-                for (auto const& [key, val] : walletData) {
-                    for(int c=0;c<32;c++) {
-                        AESkeyStr += std::to_string(val[1][c]);
-                    }
-                    AES256_ciphertext = aes256.encrypt(AESkeyStr, val[0]);
-                    for(int i=0;i<8;i++) {
-                        if(sha512(AES256_ciphertext).get()[i] != key.get()[i]) {
-                            std::cout << "\nwallet data mismatch";
-                            exit(EXIT_FAILURE);
-                        } else {
-                            std::cout << "\n\nwallet data verified\n\n";
-                        }
-                    }
-                }
-            }
-            
-            void WalletAddressNotFound()
-            {
-                WalletAddress wallet_address = WalletAddress();
-                std::cout << "No wallet address found!\n";
-                std::cout << "Generating Wallet Address\n";
-                auto [fst, snd] = wallet_address.GenerateNewWalletAddress();
-                walletAddress = fst;
-                AESkeysWallet = snd;
-                std::cout << "Wallet Address Generated\nWallet Address:\t";
-                for(int c=0;c<8;c++) {
-                    std::cout << std::hex << walletAddress.get()[c];
-                }
-                std::cout << "\n\ntrying again";
-                
-            }
-            // append crypto to the wallet
-            void appendCrypto(uint32_t amount)
-            {
-                if(walletAddress == nullptr) {
-                    WalletAddressNotFound(); // if wallet not created
-                } else {
-                    verifyOwnerData(verifyInfo);
-                }
-                storedCrypto += amount;
-            }
-            
-            void subtractCrypto(uint32_t amount)
-            {
-                verifyOwnerData(verifyInfo);
-                if(amount > storedCrypto) {
-                    std::cout << "you do not own " << amount << ". Process failed";
-                    exit(EXIT_FAILURE);
-                } else if(walletAddress == nullptr) {
-                    std::cout << "\naccount not found\n";
-                    exit(EXIT_FAILURE);
-                } else {
-                    storedCrypto -= amount;
-                }
-            }
-            
-            // if new transaction added to the Wallet
-            void newTransaction(std::shared_ptr<uint64_t> sender,
-                                std::shared_ptr<uint64_t> receiver, 
-                                uint32_t amount, std::vector<std::shared_ptr<
-                                uint64_t>> mempool)
-            {
-                if(walletAddress != nullptr) {
-                    verifyOwnerData(verifyInfo);
-                    struct Transaction trns{sender, receiver, amount};
-                    transactionhashes.push_back(trns.Hash());
-                    storedCrypto -= amount;
-                    uint8_t* newAES_TrKey = nullptr;
-                    newAES_TrKey = new uint8_t[32];
-                    newAES_TrKey = GenerateAES256Key();
-                    ciphertexts.push_back(trns.encryptTr(newAES_TrKey));
-                    AESkeysTr.push_back(newAES_TrKey);
-                    mempool.push_back(transactionhashes[transactionhashes.size()]);
-                } else {
-                    std::cout << "\nERR:\tWalletAddressNotFound\n";
-                    WalletAddressNotFound();
-                    std::cout << "\nNew Wallet Address Created\n";
-                    newTransaction(sender, receiver, amount, mempool);
-                    std::cout << "\nTransaction complete";
-                    std::cout << std::endl << std::endl;
-                }
-            }
-    };
+        Address address = Address();
+        address.newTransaction(sender, receiver, amount, mempool, verifyInfo, 
+                               sellorbuy, AESkeysTr, transactionhashes, 
+                               ciphertexts, storedCrypto, AESkeysWallet,
+                               walletAddress, askForPrivKey);
+    }
+    void verifyOwnerData()
+    {
+        Address address = Address();
+        address.verifyOwnerData(verifyInfo);
+    }
+    
+    void WalletAddressNotFound(std::string askForPrivKey="")
+    {
+        Address address = Address();
+        address.WalletAddressNotFound(walletAddress, AESkeysWallet, askForPrivKey);
+    }
 };
 
 int main()
@@ -283,22 +304,11 @@ int main()
     std::shared_ptr<uint64_t> walletAddress(new uint64_t[8]);
     std::vector<std::shared_ptr<uint64_t>> mempool; // declare mempool
     std::vector<std::shared_ptr<uint64_t>> walletAddresses; // All wallet addresses
-    struct Transaction trns{sha512("sender"),
-                            sha512("receiver"), // TODO: fix
-                            50000};
-    struct Transaction trns1{sha512("sener"),
-                            sha512("receiver"), // TODO: fix
-                            54000};
-    struct Transaction trns2{sha512("sender"),
-                            sha512("reciver"), // TODO: fix
-                            35600};
-    
-    struct Transaction trns3{sha512("nder"),
-                            sha512("receiver"), // TODO: fix
-                            50000};
-    struct Transaction trns4{sha512("sender"),
-                            sha512("receiver"), // TODO: fix
-                            40000};
+    struct Transaction trns{sha512("sender"), sha512("receiver"), 50000};
+    struct Transaction trns1{sha512("sener"), sha512("receiver"), 54000};
+    struct Transaction trns2{sha512("sender"), sha512("reciver"), 35600};
+    struct Transaction trns3{sha512("nder"), sha512("receiver"), 50000};
+    struct Transaction trns4{sha512("sender"), sha512("receiver"), 40000};
     mempool.push_back(trns.Hash());
     /* TEST MERKLE_ROOT */
     mempool.push_back(trns1.Hash());
@@ -323,11 +333,11 @@ int main()
     transactionsEnc.insert (it, std::pair<std::string, uint8_t*>
                             (trns.encryptTr(AES_key_mining), AES_key_mining)); // 
     transactionsEnc.insert (it, std::pair<std::string, uint8_t*>
-                            (trns.encryptTr(AES_key_mining1), AES_key_mining1)); // 1
+                            (trns1.encryptTr(AES_key_mining1), AES_key_mining1)); // 1
     transactionsEnc.insert (it, std::pair<std::string, uint8_t*>
-                            (trns.encryptTr(AES_key_mining2), AES_key_mining2)); // 2
+                            (trns2.encryptTr(AES_key_mining2), AES_key_mining2)); // 2
     transactionsEnc.insert (it, std::pair<std::string, uint8_t*>
-                            (trns.encryptTr(AES_key_mining3), AES_key_mining3)); // 3
+                            (trns3.encryptTr(AES_key_mining3), AES_key_mining3)); // 3
 
     /* TEST PoW MINE */
     // block.data(mempool, transactionsEnc);
@@ -335,11 +345,19 @@ int main()
     auto [fst,snd] = wallet_address.GenerateNewWalletAddress();
     walletAddress = fst;
     walletAddresses.push_back(fst);
-    delete[] snd[0];
-    delete[] snd[1];
     std::cout << "\n\nline 339, main.cpp:\t";
     for(int c=0;c<8;c++) {
         std::cout << std::hex << walletAddress.get()[c] << " ";
     }
+    /* TEST walletAddress */
+    std::map<std::shared_ptr<uint64_t>, std::vector<uint8_t*>> testMap;
+    std::map<std::shared_ptr<uint64_t>, std::vector<uint8_t*>>::iterator
+    itMap = testMap.begin();
+    testMap.insert(itMap, std::pair<std::shared_ptr<uint64_t>, 
+                   std::vector<uint8_t*>>(walletAddress, snd));
+    struct Wallet TestWallet{walletAddress, snd, testMap};
+    
+    delete[] snd[0];
+    delete[] snd[1];
     return 0;
 }
