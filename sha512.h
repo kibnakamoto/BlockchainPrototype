@@ -148,7 +148,7 @@ class SHA512
             
             uint64_t W[blockBytesLen/8];
             // pad W with zeros
-            for (int c=0; c<blockBytesLen/8; c++) {
+            for (int c=0;c<blockBytesLen/8;c++) {
                 W[c] = 0x00;
             }
             
@@ -202,8 +202,8 @@ class SHA512
             alignas(uint8_t) std::shared_ptr<uint8_t> wordArray(new uint8_t[128]);
             wordArray = int_type.arr64ToCharArr(hash1, hash2);
             
-            // 8 bit array values to 64 bit array using 64 bit integer array.
-            for(int i=0;i<16/8;i++) {
+            // 8 bit array values to 64 bit array using 64 bit integer array
+            for(int i=0;i<128/8;i++) {
                 W[i] = (uint64_t)wordArray.get()[i*8]<<56;
                 for(int j=1;j<=6;j++)
                     W[i] = W[i]|( (uint64_t)wordArray.get()[i*8+j]<<(7-j)*8);
@@ -253,7 +253,7 @@ class SHA512
             }
             
             // put orginized bytearray into 64-bit W array
-            for (int i=0;i<8/8;i++) {
+            for (int i=0;i<64/8;i++) {
                 W[i] = (uint64_t)wordArray.get()[i*8]<<56;
                 for (int j=1;j<=6;j++)
                     W[i] = W[i]|( (uint64_t)wordArray.get()[i*8+j]<<(7-j)*8);
