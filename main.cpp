@@ -30,7 +30,7 @@ uint8_t* GenerateAES256Key()
     key = new uint8_t[32];
     std::random_device randDev;
     std::mt19937 generator(randDev() ^ time(NULL));
-      std::uniform_int_distribution<uint32_t> distr;
+     std::uniform_int_distribution<uint32_t> distr;
     for(int c=0;c<32-4;c++) {
         uint32_t tmp = distr(generator);
         key[c] = tmp>>24 & 0xff;
@@ -341,14 +341,24 @@ int main()
 
     /* TEST PoW MINE */
     // block.data(mempool, transactionsEnc);
-    MerkleTree::merkleRoot(mempool, merkle_root);
+    // MerkleTree::merkleRoot(mempool, merkle_root);
     auto [fst,snd] = wallet_address.GenerateNewWalletAddress();
     walletAddress = fst;
     walletAddresses.push_back(fst);
     std::cout << "\n\nline 339, main.cpp:\t";
+    std::shared_ptr<uint64_t> TMPa = sha512("a");
+    std::shared_ptr<uint64_t> TMPb = sha512("b");
+    hash.sha512_ptr(TMPa,TMPb);
     for(int c=0;c<8;c++) {
-        std::cout << std::hex << walletAddress.get()[c] << " ";
+        // for(int i=0;i<8;i++) {
+            // std::cout << std::hex << walletAddress.get()[c] << " ";
+            // std::cout << std::hex << hash.sha512_ptr(TMPa,TMPb).get()[c] << " ";
+            // if(i==7) {
+            //     std::cout << "\n\n";
+            // }
+        // }
     }
+    std::cout << "\nline 339, main.cpp complete";
     /* TEST walletAddress */
     std::map<std::shared_ptr<uint64_t>, std::vector<uint8_t*>> testMap;
     std::map<std::shared_ptr<uint64_t>, std::vector<uint8_t*>>::iterator
