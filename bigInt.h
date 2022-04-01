@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <tuple>
 #include <string.h> // for memcpy
+#include <memory>
 
 class IntTypes
 {
@@ -57,27 +58,37 @@ class IntTypes
         }
         
         // uint64_t array of 8 to uint8_t array of 64. This is for the Merkle Tree
-        inline uint8_t* arr64ToCharArr(uint64_t* mempoolSingleHash1, 
-                                   uint64_t* mempoolSingleHash2, uint8_t* hashchArr)
+        inline std::shared_ptr<uint8_t> arr64ToCharArr(std::shared_ptr<uint64_t>
+                                                       mempoolSingleHash1,
+                                                       std::shared_ptr<uint64_t>
+                                                       mempoolSingleHash2)
         {
-            uint64_t hashArr[8<<1];
+            std::shared_ptr<uint64_t> hashArr(new uint64_t[16]);
+            std::shared_ptr<uint8_t> hashchArr(new uint8_t[128]);
             
             for(int c=0;c<8;c++) {
-                hashArr[c] = mempoolSingleHash1[c];
-                hashArr[c+8] = mempoolSingleHash2[c];
+                hashArr.get()[c] = mempoolSingleHash1.get()[c];
+                hashArr.get()[c+8] = mempoolSingleHash2.get()[c];
             }
             
             // convert uint64_t array[16] to byte array[128]
+            // for(int c=0;c<16;c++) {
+            //     hashchArr.get()[c*8] = hashArr.get()[c]>>56 & 0xff;
+            //     hashchArr.get()[c*8+1] = hashArr.get()[c]>>48 & 0xff;
+            //     hashchArr.get()[c*8+2] = hashArr.get()[c]>>40 & 0xff;
+            //     hashchArr.get()[c*8+3] = hashArr.get()[c]>>32 & 0xff;
+            //     hashchArr.get()[c*8+4] = hashArr.get()[c]>>24 & 0xff;
+            //     hashchArr.get()[c*8+5] = hashArr.get()[c]>>16 & 0xff;
+            //     hashchArr.get()[c*8+6] = hashArr.get()[c]>>8 & 0xff;
+            //     hashchArr.get()[c*8+7] = hashArr.get()[c] & 0xff;
+            // }
+            
             for(int c=0;c<16;c++) {
-                hashchArr[c*8] = hashArr[c]>>56 & 0xff;
-                hashchArr[c*8+1] = hashArr[c]>>48 & 0xff;
-                hashchArr[c*8+2] = hashArr[c]>>40 & 0xff;
-                hashchArr[c*8+3] = hashArr[c]>>32 & 0xff;
-                hashchArr[c*8+4] = hashArr[c]>>24 & 0xff;
-                hashchArr[c*8+5] = hashArr[c]>>16 & 0xff;
-                hashchArr[c*8+6] = hashArr[c]>>8 & 0xff;
-                hashchArr[c*8+7] = hashArr[c] & 0xff;
+                for(int i=56,k=0;i>=0,k<8;i-=8,k++) {
+                    hashchArr.get()[c*8+k] = hashArr.get()[c]>>i & 0xff;
+                }
             }
+
             return hashchArr;
         }
 };
