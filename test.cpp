@@ -11,6 +11,23 @@
 #include <string.h>
 #include <sstream>
 #include <iomanip>
+#include <random>
+#include <time.h>
+#include <tuple>
+#include <map>
+#include <cstring>
+#include <iomanip>
+#include <stdint.h>
+#include <vector>
+#include <string>
+#include <memory>
+#include <ctime>
+#include <cmath>
+#include <chrono>
+#include <unistd.h>
+#include <climits>
+#include <algorithm>
+#include <functional>
 
 class AES
 {
@@ -530,131 +547,6 @@ class AES
 
 
 
-
-#include <stdint.h>
-#include <vector>
-#include <string>
-#include <memory>
-#include "sha512.h"
-
-namespace MerkleTree
-{
-        std::vector<std::shared_ptr<uint64_t>> merkleRoots;
-        
-        inline uint64_t length(std::vector<std::shared_ptr<uint64_t>> mempool)
-        {
-            return mempool.size();
-        }
-        
-        class Node
-        {
-            private:
-                std::vector<std::shared_ptr<uint64_t>> append_level(std::vector
-                                                                    <std::shared_ptr
-                                                                    <uint64_t>>
-                                                                    Plevel,
-                                                                    uint64_t len)
-                {
-                    SHA512 hash = SHA512();
-                    std::vector<std::shared_ptr<uint64_t>> nodes;
-                    for(double c=0;c<len/2;c++) {
-                            nodes.push_back(hash.sha512_ptr(Plevel[(uint64_t)(c*2)],
-                                                            Plevel[(uint64_t)(c*2+1)]));
-                    }
-                    
-////////////////// Layer 1
-// a3d36d02d43fb871ec5d8cc215238bf6a524b113b9c1e3e442f64a4a7ffe4e775041bfc4ece909ad48331da88e2faff5c244bbdfbe09263f4138bf1a39da6afd
-// b6a64328f5c7855802f9a0675f8c39481856eb16a90144f8f61be6988bd3fa2d7d51761e96786449fe535c9796c4f9e48ebb8d1d5e62b7f4e3d073ecb6b110bc
-// 1e85143d6d6512bc6b37327df3ad595aa8e07c83e9b5a5271a793a4ec5e4694d15008c840c1641091f983c2d41957ddbe36c317180cd8ab6f424e264165a86dd
-// 4c0eca97e6c46a4141cd624570e83070b55d0cd139cda6bce406fa0ce594bfe6864d4942e99675290ce7825adf6c18723a227263e02e07b2578f853188f544ec
-////////////////// Layer 2
-// 57920167e6b0c5d2d6fc80590f161988eb89516a21aec25b2633aac24003a62e3ad665e94bbbb7e7b885baeadecca8abad77ce810d4dab9ab2a029ac77953c59
-// 33c709af44fd3e363ee91118d9d95e255fecb86981db515755e07476f33dfdcbfac36d7e4a245801b441a636123f79d31e387d40fff4b7a4b1a65e8e8f4b3a97
-////////////////// MERKLE ROOT
-// c03892c2b9b71691959172ae83a5c601a53d815c2fe2b0afdfcc6024e4038c740d031b3b2e02dd49d64ad8e4c5fcffd7135d6c2b0c1b8e690c379287da75e03d
-                    for(int c=0;c<len/2;c++) {
-                        for(int i=0;i<8;i++) {
-                            std::cout << std::hex << nodes[c].get()[i] << "";
-                            if(i==7) {
-                                std::cout << std::endl << std::endl;
-                                std::cout << c << "\n\n";
-                            }
-                        }
-                    }
-                    /* nodes are single a layer of the MerkleTree */
-                    return nodes;
-                }
-            public:
-                void append_levels(std::vector<std::shared_ptr<uint64_t>> mempool, 
-                                   uint64_t len, std::shared_ptr<uint64_t>
-                                   merkle_root)
-                {
-                    uint64_t currlen = len;
-                    std::vector<std::shared_ptr<uint64_t>> level = mempool;
-                    while(currlen != 1) {
-                        level = append_level(level, currlen);
-                        currlen/=2;
-                    } if(level.size() == 1) {
-                        merkle_root = std::move(std::shared_ptr<uint64_t>
-                                                (level[0]));
-                        std::cout << "merkleRoot: "; 
-                        // c03892c2b9b71691959172ae83a5c601a53d815c2fe2b0afdfcc
-                        // 6024e4038c740d031b3b2e02dd49d64ad8e4c5fcffd7135d6c2b
-                        // 0c1b8e690c379287da75e03d
-                        for(int c=0;c<8;c++) {
-                            std::cout << std::hex << merkle_root.get()[c] << " ";
-                        }
-                        
-                        std::cout << "\nMERKLE_ROOT condition met\n";
-                    } else {
-                        std::cout << "ERROR, MERKLE_ROOT condition not met";
-                        exit(EXIT_FAILURE);
-                    }
-                }
-        };
-        
-        inline void merkleRoot(std::vector<std::shared_ptr<uint64_t>> Mempool,
-                               std::shared_ptr<uint64_t> merkle_root)
-        {
-            IntTypes int_type = IntTypes();
-            SHA512 hash = SHA512();
-            Node node = Node();
-            
-            // to avoid 0 hashes to be invalid transactions in Mempool
-            std::vector<std::shared_ptr<uint64_t>> mempool = Mempool;
-            
-            uint64_t len = mempool.size(); // amount of transactions in the block
-            uint64_t validlen = 2;
-            while(validlen < len) {
-                validlen*=2;
-            }
-            
-            while(len<validlen) { // append it 2, 4, 8... times
-                std::shared_ptr<uint64_t> oddZfill(new uint64_t[8]);
-                oddZfill = sha512("00000000");
-                mempool.push_back(oddZfill);
-                len++; // update len
-            }
-            
-            // calculate amount of layers
-            while(validlen != 0) {
-                validlen/=2;
-                /* validlen gets set to zero so don't use it after this loop */
-            }
-            // calculate MerkleRoot
-            node.append_levels(mempool, len, merkle_root);
-            
-            // store merkle_root in vector merkleRoots
-            merkleRoots.push_back(merkle_root);
-        }
-}; // namespace MerkleTree
-
-
-#include <stdint.h>
-#include <tuple>
-#include <string.h> // for memcpy
-#include <memory>
-
 class IntTypes
 {
     // make these a tuple so that concatinating more than 2 values is possible
@@ -716,7 +608,7 @@ class IntTypes
                                                        mempoolSingleHash2)
         {
             std::shared_ptr<uint64_t> hashArr(new uint64_t[16]);
-             std::shared_ptr<uint8_t> hashchArr(new uint8_t[128]);
+            std::shared_ptr<uint8_t> hashchArr(new uint8_t[128]);
             
             for(int c=0;c<8;c++) {
                 hashArr.get()[c] = mempoolSingleHash1.get()[c];
@@ -724,23 +616,26 @@ class IntTypes
             }
             
             // convert uint64_t array[16] to byte array[128]
+            // for(int c=0;c<16;c++) {
+            //     hashchArr.get()[c*8] = hashArr.get()[c]>>56 & 0xff;
+            //     hashchArr.get()[c*8+1] = hashArr.get()[c]>>48 & 0xff;
+            //     hashchArr.get()[c*8+2] = hashArr.get()[c]>>40 & 0xff;
+            //     hashchArr.get()[c*8+3] = hashArr.get()[c]>>32 & 0xff;
+            //     hashchArr.get()[c*8+4] = hashArr.get()[c]>>24 & 0xff;
+            //     hashchArr.get()[c*8+5] = hashArr.get()[c]>>16 & 0xff;
+            //     hashchArr.get()[c*8+6] = hashArr.get()[c]>>8 & 0xff;
+            //     hashchArr.get()[c*8+7] = hashArr.get()[c] & 0xff;
+            // }
+            
             for(int c=0;c<16;c++) {
-                hashchArr.get()[c*8] = hashArr.get()[c]>>56 & 0xff;
-                hashchArr.get()[c*8+1] = hashArr.get()[c]>>48 & 0xff;
-                hashchArr.get()[c*8+2] = hashArr.get()[c]>>40 & 0xff;
-                hashchArr.get()[c*8+3] = hashArr.get()[c]>>32 & 0xff;
-                hashchArr.get()[c*8+4] = hashArr.get()[c]>>24 & 0xff;
-                hashchArr.get()[c*8+5] = hashArr.get()[c]>>16 & 0xff;
-                hashchArr.get()[c*8+6] = hashArr.get()[c]>>8 & 0xff;
-                hashchArr.get()[c*8+7] = hashArr.get()[c] & 0xff;
+                for(int i=56,k=0;i>=0,k<8;i-=8,k++) {
+                    hashchArr.get()[c*8+k] = hashArr.get()[c]>>i & 0xff;
+                }
             }
+
             return hashchArr;
         }
 };
-
-
-
-
 
 
 
@@ -751,15 +646,6 @@ class IntTypes
  *       Finalized: Jan. 5 2022
  *        More Info: github.com/kibnakamoto/sha512.cpp/blob/main/README.md
  */
-
-#ifndef SHA512_H_
-#define SHA512_H_
-
-#include <string>
-#include <cstring>
-#include <stdint.h>
-#include <memory>
-#include <iomanip>
 
 // choice = (x ∧ y) ⊕ (¯x ∧ z)
 inline uint64_t Ch(uint64_t e, uint64_t f, uint64_t g) { return ((e bitand f)xor(~e bitand g)); }
@@ -894,7 +780,7 @@ class SHA512
             
             uint64_t W[blockBytesLen/8];
             // pad W with zeros
-            for (int c=0; c<blockBytesLen/8; c++) {
+            for (int c=0;c<blockBytesLen/8;c++) {
                 W[c] = 0x00;
             }
             
@@ -945,19 +831,19 @@ class SHA512
                 W[c] = 0x00;
             }
             
-            // for(int c=0;c<8;c++) {
-            //     W[c] = hash1.get()[c];
-            //     W[c+8] = hash2.get()[c];
-            // }
-            std::shared_ptr<uint8_t> wordArray(new uint8_t[128]);
-            wordArray = int_type.arr64ToCharArr(hash1, hash2);
+            alignas(uint8_t) std::shared_ptr<uint8_t> wordArray(new uint8_t[128]);
+            // wordArray = int_type.arr64ToCharArr(hash1, hash2);
             
-            // 8 bit array values to 64 bit array using 64 bit integer array.
-            for (int i=0;i<16/8+1;i++) {
-                W[i] = (uint64_t)wordArray.get()[i*8]<<56;
-                for (int j=1;j<=6;j++)
-                    W[i] = W[i]|( (uint64_t)wordArray.get()[i*8+j]<<(7-j)*8);
-                W[i] = W[i]|( (uint64_t)wordArray.get()[i*8+7] );
+            // 8 bit array values to 64 bit array using 64 bit integer array
+            // for(int i=0;i<128/8;i++) {
+            //     W[i] = (uint64_t)wordArray.get()[i*8]<<56;
+            //     for(int j=1;j<=6;j++)
+            //         W[i] = W[i]|( (uint64_t)wordArray.get()[i*8+j]<<(7-j)*8);
+            //     W[i] = W[i]|( (uint64_t)wordArray.get()[i*8+7] );
+            // }
+            for(int c=0;c<8;c++) {
+                W[c] = hash1.get()[c];
+                W[c+8] = hash2.get()[c];
             }
             
             // append 1 as 64-bit value
@@ -978,6 +864,7 @@ class SHA512
             for(int c=0;c<8;c++) {
                 shared_H.get()[c] = H[c];
             }
+            
             return shared_H;
         }
         
@@ -988,8 +875,23 @@ class SHA512
             for(int c=9;c<80;c++) {
                 W[c] = 0x00;
             }
+            
+            /* to avoid hash smaller than 512-bit (e.g. 511-bit) to be rehashed
+             * with no leading zeros
+             */
+            std::shared_ptr<uint8_t> wordArray(new uint8_t[64]);
             for(int c=0;c<8;c++) {
-                W[c] = singleHash.get()[c];
+                for(int i=56,k=0;i>=0,k<8;i-=8,k++) {
+                    wordArray.get()[c*8+k] = singleHash.get()[c]>>i & 0xff;
+                }
+            }
+            
+            // put orginized bytearray into 64-bit W array
+            for (int i=0;i<64/8;i++) {
+                W[i] = (uint64_t)wordArray.get()[i*8]<<56;
+                for (int j=1;j<=6;j++)
+                    W[i] = W[i]|( (uint64_t)wordArray.get()[i*8+j]<<(7-j)*8);
+                W[i] = W[i]|( (uint64_t)wordArray.get()[i*8+7] );
             }
             
             // append 1 as 64-bit value
@@ -1024,25 +926,117 @@ std::string sha512_str(std::string input) {
 	return ss.str();
 }
 
-#endif /* SHA512_H_ */
-
-
-
-
-
-
-
-#include <iostream>
-#include <vector>
-#include <ctime>
-#include <cmath>
-#include <string.h>
-#include <stdint.h>
-#include <chrono>
-#include <unistd.h>
-#include <climits>
-#include <algorithm>
-#include <functional>
+namespace MerkleTree
+{
+        std::vector<std::shared_ptr<uint64_t>> merkleRoots;
+        
+        inline uint64_t length(std::vector<std::shared_ptr<uint64_t>> mempool)
+        {
+            return mempool.size();
+        }
+        
+        class Node
+        {
+            private:
+                std::vector<std::shared_ptr<uint64_t>> append_level(std::vector
+                                                                    <std::shared_ptr
+                                                                    <uint64_t>>
+                                                                    Plevel,
+                                                                    uint64_t len)
+                {
+                    SHA512 hash = SHA512();
+                    std::vector<std::shared_ptr<uint64_t>> nodes;
+                    for(double c=0;c<len/2;c++) {
+                            nodes.push_back(hash.sha512_ptr(Plevel[(uint64_t)(c*2)],
+                                                            Plevel[(uint64_t)(c*2+1)]));
+                    }
+                    
+////////////////// Layer 1
+// a3d36d02d43fb871ec5d8cc215238bf6a524b113b9c1e3e442f64a4a7ffe4e775041bfc4ece909ad48331da88e2faff5c244bbdfbe09263f4138bf1a39da6afd
+// b6a64328f5c7855802f9a0675f8c39481856eb16a90144f8f61be6988bd3fa2d7d51761e96786449fe535c9796c4f9e48ebb8d1d5e62b7f4e3d073ecb6b110bc
+// 1e85143d6d6512bc6b37327df3ad595aa8e07c83e9b5a5271a793a4ec5e4694d15008c840c1641091f983c2d41957ddbe36c317180cd8ab6f424e264165a86dd
+// 4c0eca97e6c46a4141cd624570e83070b55d0cd139cda6bce406fa0ce594bfe6864d4942e99675290ce7825adf6c18723a227263e02e07b2578f853188f544ec
+////////////////// Layer 2
+// 57920167e6b0c5d2d6fc80590f161988eb89516a21aec25b2633aac24003a62e3ad665e94bbbb7e7b885baeadecca8abad77ce810d4dab9ab2a029ac77953c59
+// 33c709af44fd3e363ee91118d9d95e255fecb86981db515755e07476f33dfdcbfac36d7e4a245801b441a636123f79d31e387d40fff4b7a4b1a65e8e8f4b3a97
+////////////////// MERKLE ROOT
+// c03892c2b9b71691959172ae83a5c601a53d815c2fe2b0afdfcc6024e4038c740d031b3b2e02dd49d64ad8e4c5fcffd7135d6c2b0c1b8e690c379287da75e03d
+                    for(int c=0;c<len/2;c++) {
+                        for(int i=0;i<8;i++) {
+                            std::cout << std::hex << nodes[c].get()[i] << "";
+                            if(i==7) {
+                                std::cout << std::endl << std::endl;
+                                std::cout << c << "\n\n";
+                            }
+                        }
+                    }
+                    /* nodes are single a layer of the MerkleTree */
+                    return nodes;
+                }
+            public:
+                void append_levels(std::vector<std::shared_ptr<uint64_t>> mempool, 
+                                   uint64_t len, std::shared_ptr<uint64_t>
+                                   merkle_root)
+                {
+                    uint64_t currlen = len;
+                    std::vector<std::shared_ptr<uint64_t>> level = mempool;
+                    while(currlen != 1) {
+                        level = append_level(level, currlen);
+                        currlen/=2;
+                    } if(level.size() == 1) {
+                        merkle_root = std::move(std::shared_ptr<uint64_t>
+                                                (level[0]));
+                        std::cout << "merkleRoot: "; 
+                        // c03892c2b9b71691959172ae83a5c601a53d815c2fe2b0afdfcc
+                        // 6024e4038c740d031b3b2e02dd49d64ad8e4c5fcffd7135d6c2b
+                        // 0c1b8e690c379287da75e03d
+                        for(int c=0;c<8;c++) {
+                            std::cout << std::hex << merkle_root.get()[c] << " ";
+                        }
+                        
+                        std::cout << "\nMERKLE_ROOT condition met\n";
+                    } else {
+                        std::cout << "ERROR, MERKLE_ROOT condition not met";
+                        exit(EXIT_FAILURE);
+                    }
+                }
+        };
+        
+        inline void merkleRoot(std::vector<std::shared_ptr<uint64_t>> Mempool,
+                               std::shared_ptr<uint64_t> merkle_root)
+        {
+            IntTypes int_type = IntTypes();
+            SHA512 hash = SHA512();
+            Node node = Node();
+            
+            // to avoid 0 hashes to be invalid transactions in Mempool
+            std::vector<std::shared_ptr<uint64_t>> mempool = Mempool;
+            
+            uint64_t len = mempool.size(); // amount of transactions in the block
+            uint64_t validlen = 2;
+            while(validlen < len) {
+                validlen*=2;
+            }
+            
+            while(len<validlen) { // append it 2, 4, 8... times
+                std::shared_ptr<uint64_t> oddZfill(new uint64_t[8]);
+                oddZfill = sha512("00000000");
+                mempool.push_back(oddZfill);
+                len++; // update len
+            }
+            
+            // calculate amount of layers
+            while(validlen != 0) {
+                validlen/=2;
+                /* validlen gets set to zero so don't use it after this loop */
+            }
+            // calculate MerkleRoot
+            node.append_levels(mempool, len, merkle_root);
+            
+            // store merkle_root in vector merkleRoots
+            merkleRoots.push_back(merkle_root);
+        }
+}; // namespace MerkleTree
 
 namespace Blockchain
 {
@@ -1066,7 +1060,7 @@ namespace Blockchain
         return distr(generator);
     }
     
-    inline double difficulty(uint64_t nonce)
+    inline double difficulty(uint64_t nonce) // nonce not necesarry for version 1
     {
         return 1;
     }
@@ -1259,7 +1253,8 @@ class Block
                          std::map<std::string, uint8_t*> encryptedTs,
                          std::string encryptedTr="", uint8_t* AESkey=nullptr)
         {
-            /* use this to represent block in blockchain */
+            /* use this to represent block in blockchain, use tuple data to 
+               compare values in block for testing */
             SHA512 hash = SHA512();
             PoW ProofofWork = PoW();
             std::shared_ptr<uint64_t> target(new uint64_t);
@@ -1285,6 +1280,9 @@ class Block
             if(blockchainsize > 1) {
                 prevBlockHash = Blockchain::Blockhashes[blockchainsize-1];
             }
+            /* put everything to tuple and convert to string here to print and
+             * represent in block
+             */
             return std::string();
         }
 };
@@ -1301,18 +1299,6 @@ class Block
 * 
 */
 
-#include <iostream>
-#include <string>
-#include <random>
-#include <time.h>
-#include <tuple>
-#include <map>
-#include "bigInt.h"
-#include "sha512.h"
-#include "MerkleTree.h"
-#include "AES.h" // Symmetrical Encryption
-#include "block.h"
-
 // 256-bit random number. AES key
 uint8_t* GenerateAES256Key()
 {
@@ -1322,7 +1308,7 @@ uint8_t* GenerateAES256Key()
     key = new uint8_t[32];
     std::random_device randDev;
     std::mt19937 generator(randDev() ^ time(NULL));
-      std::uniform_int_distribution<uint32_t> distr;
+     std::uniform_int_distribution<uint32_t> distr;
     for(int c=0;c<32-4;c++) {
         uint32_t tmp = distr(generator);
         key[c] = tmp>>24 & 0xff;
@@ -1633,23 +1619,34 @@ int main()
 
     /* TEST PoW MINE */
     // block.data(mempool, transactionsEnc);
-    // MerkleTree::merkleRoot(mempool, merkle_root);
+    MerkleTree::merkleRoot(mempool, merkle_root);
     auto [fst,snd] = wallet_address.GenerateNewWalletAddress();
     walletAddress = fst;
     walletAddresses.push_back(fst);
     std::cout << "\n\nline 339, main.cpp:\t";
-    std::shared_ptr<uint64_t> TMPa = sha512("a");
-    std::shared_ptr<uint64_t> TMPb = sha512("b");
     for(int c=0;c<8;c++) {
         for(int i=0;i<8;i++) {
             // std::cout << std::hex << walletAddress.get()[c] << " ";
-            std::cout << std::hex << hash.sha512_ptr(TMPa,TMPb).get()[i] << " ";
+            std::cout << std::hex << mempool[c].get()[i] << "";
             if(i==7) {
                 std::cout << "\n\n";
             }
         }
     }
-
+    ///// LAYER 1
+//c0458810c14f6fc333bbf366c10036cf2708e64dae0bfc7ee8f789b9b91d0a1ab36feb40b7d5922715f093dbfb7cf34bded5a2edbf6325fdf251ad11b0626d4
+//c248a81388e1c37c4f429d4c901ffb7a6384aea90b6dba464e6d846aeeea7dabc61e4dba220a5d3fecb31abb2a1ca013450c451146411403c7e7502a68f99de
+//ce38f08578bc2354324c354a9319ffe84ca785b59b40f682f6632a451cf87d485f5b68866f03ddb79865784e6448e0e381bb3bfe7d48fe0bd761190efbf9c6ee
+//9d7fbec69a94b388b29912bd559d9d976e5f262ce99acf03180e724ab88522da492cf558b3dbd055b8ab0b4d26a08951b5a9ad9aa73149fd91608d134c504b2
+//56a6e31e8e000b98c94d56c6778f065eb64e91711774aeaba4d858108046938fb373c931a7a696aa4ff13e38ab4753a682f53ac3bf8b27b31e4d60780151fc87
+//c0458810c14f6fc333bbf366c10036cf2708e64dae0bfc7ee8f789b9b91d0a1ab36feb40b7d5922715f093dbfb7cf34bded5a2edbf6325fdf251ad11b0626d4
+//c248a81388e1c37c4f429d4c901ffb7a6384aea90b6dba464e6d846aeeea7dabc61e4dba220a5d3fecb31abb2a1ca013450c451146411403c7e7502a68f99de
+//ce38f08578bc2354324c354a9319ffe84ca785b59b40f682f6632a451cf87d485f5b68866f03ddb79865784e6448e0e381bb3bfe7d48fe0bd761190efbf9c6ee
+    ///////////// LAYER 2
+//
+    
+    
+    std::cout << "\nline 339, main.cpp complete";
     /* TEST walletAddress */
     std::map<std::shared_ptr<uint64_t>, std::vector<uint8_t*>> testMap;
     std::map<std::shared_ptr<uint64_t>, std::vector<uint8_t*>>::iterator
