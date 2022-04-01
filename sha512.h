@@ -189,6 +189,7 @@ class SHA512
         std::shared_ptr<uint64_t> sha512_ptr(std::shared_ptr<uint64_t> hash1, 
                                              std::shared_ptr<uint64_t> hash2)
         {
+            IntTypes int_type = IntTypes();
             uint64_t W[32];
             uint64_t TMP[80];
             for(int c=0;c<80;c++) {
@@ -197,9 +198,16 @@ class SHA512
             for(int c=16;c<32;c++) {
                 W[c] = 0x00;
             }
-            for(int c=0;c<8;c++) {
-                W[c] = hash1.get()[c];
-                W[c+8] = hash2.get()[c];
+            
+            alignas(uint8_t) std::shared_ptr<uint8_t> wordArray(new uint8_t[128]);
+            wordArray = int_type.arr64ToCharArr(hash1, hash2);
+            
+            // 8 bit array values to 64 bit array using 64 bit integer array.
+            for(int i=0;i<16/8;i++) {
+                W[i] = (uint64_t)wordArray.get()[i*8]<<56;
+                for(int j=1;j<=6;j++)
+                    W[i] = W[i]|( (uint64_t)wordArray.get()[i*8+j]<<(7-j)*8);
+                W[i] = W[i]|( (uint64_t)wordArray.get()[i*8+7] );
             }
             
             // append 1 as 64-bit value
@@ -220,17 +228,36 @@ class SHA512
             for(int c=0;c<8;c++) {
                 shared_H.get()[c] = H[c];
             }
+            for(int c=0;c<8;c++) {
+                std::cout << std::hex << H[c] << " ";
+            }
             return shared_H;
         }
         
-        uint64_t* sha512_single_ptr(uint64_t* singleHash)
+        std::shared_ptr<uint64_t> sha512_single_ptr(std::shared_ptr<uint64_t>
+                                                    singleHash)
         {
             uint64_t W[80];
             for(int c=9;c<80;c++) {
                 W[c] = 0x00;
             }
+            
+            /* to avoid hash smaller than 512-bit (e.g. 511-bit) to be rehashed
+             * with no leading zeros
+             */
+            std::shared_ptr<uint8_t> wordArray(new uint8_t[64]);
             for(int c=0;c<8;c++) {
-                W[c] = singleHash[c];
+                for(int i=56,k=0;i>=0,k<8;i-=8,k++) {
+                    wordArray.get()[c*8+k] = singleHash.get()[c]>>i & 0xff;
+                }
+            }
+            
+            // put orginized bytearray into 64-bit W array
+            for (int i=0;i<8/8;i++) {
+                W[i] = (uint64_t)wordArray.get()[i*8]<<56;
+                for (int j=1;j<=6;j++)
+                    W[i] = W[i]|( (uint64_t)wordArray.get()[i*8+j]<<(7-j)*8);
+                W[i] = W[i]|( (uint64_t)wordArray.get()[i*8+7] );
             }
             
             // append 1 as 64-bit value
@@ -242,8 +269,12 @@ class SHA512
             // single-block transform
             transform(W);
             
-            return H;
-            
+            // convert raw pointer to shared_ptr
+            std::shared_ptr<uint64_t> shared_H(new uint64_t[8]);
+            for(int c=0;c<8;c++) {
+                shared_H.get()[c] = H[c];
+            }
+            return shared_H;
         }
 };
 
