@@ -331,9 +331,9 @@ int main()
     AES_key_mining2 = GenerateAES256Key();
     AES_key_mining3 = GenerateAES256Key();
     std::map<std::string, uint8_t*> transactionsEnc;
-    std::map<std::string, uint8_t*>::iterator it = transactionsEnc.begin();
+    std::map<std::string, uint8_t*>::iterator it = transactionsEnc.begin(); ///// add all mempool transactions in order
     transactionsEnc.insert (it, std::pair<std::string, uint8_t*>
-                            (trns.encryptTr(AES_key_mining), AES_key_mining)); // 
+                            (trns.encryptTr(AES_key_miningA), AES_key_mining)); // 
     transactionsEnc.insert (it, std::pair<std::string, uint8_t*>
                             (trns1.encryptTr(AES_key_mining1), AES_key_mining1)); // 1
     transactionsEnc.insert (it, std::pair<std::string, uint8_t*>
@@ -343,10 +343,18 @@ int main()
     
     /* TEST PoW MINE */
     std::vector<std::shared_ptr<uint64_t>> mempool2;
-    mempool2.push_back(trns4.Hash());
     mempool2.push_back(trns.Hash());
     mempool2.push_back(trns1.Hash());
-    mempool2.push_back(trns2.Hash()); // 4 transactions
+    mempool2.push_back(trns2.Hash());
+    mempool2.push_back(trns3.Hash());
+    mempool2.push_back(trns4.Hash()); // 5 transactions
+    mempool2.push_back(trns.Hash());
+    mempool2.push_back(trns1.Hash());
+    mempool2.push_back(trns2.Hash()); // 8 transactions
+    mempool2.push_back(trns1.Hash()); // false from here
+    mempool2.push_back(trns2.Hash()); // 10 transactions
+
+
     // block.data(mempool, transactionsEnc);
     auto [fst,snd] = wallet_address.GenerateNewWalletAddress();
     walletAddress = fst;
@@ -369,7 +377,7 @@ int main()
                  merkle_root,nextBlockGenTime, avHashrate) = unverified_block_data;
         auto [isblockmined,clean_mempool] = ProofofWork.mineBlock(transactionsEnc,
                                                                   nonce, difficulty,
-                                                                  mempool2,
+                                                                  mempool,
                                                                   merkle_root);
         std::cout << "\nmempool cleaned";
         blockMined = isblockmined;
@@ -378,7 +386,9 @@ int main()
             std::cout << "\nblock mined successfully";
             std::cout << "\nrepresenting correct block in blockhain...\n";
             std::cout << block.data_str(clean_mempool,blockchain_version);
-            std::cout << "\nblock added to blockchain";
+            std::cout << "\n\nblock added to blockchain";
+            /* wrong mempool cannot have less than correct mempool since wrong
+             * mempool has new false transaction */
         }
     }
     std::cout << "\nline 339, main.cpp complete";
