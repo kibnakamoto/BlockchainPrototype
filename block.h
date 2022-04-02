@@ -33,7 +33,7 @@ namespace Blockchain
         return distr(generator);
     }
     
-    inline double difficulty(uint64_t nonce) // nonce not necesarry for version 1
+    inline double difficulty(uint64_t nonce) // use algorithm to generate difficulty
     {
         return 1;
     }
@@ -137,33 +137,48 @@ class PoW
                        std::vector<std::shared_ptr<uint64_t>> mempool, std::shared_ptr<uint64_t>
                        v_merkle_root)
         {
-            std::shared_ptr<uint64_t> target(new uint64_t); // each index >= 2^30
+            std::shared_ptr<uint64_t> target(new uint64_t[8]); // each index >= 2^30
             uint64_t loopt = 0;
-            std::shared_ptr<uint64_t> merkle_root;
-            MerkleTree::merkleRoot(mempool, merkle_root);
-            if(merkle_root != v_merkle_root) {
-                std::cout << "\nmerkle_root: false\n\n";
+            std::shared_ptr<uint64_t> merkle_root(new uint64_t[8]);
+            merkle_root = MerkleTree::merkleRoot(mempool);
+            bool merkle_validity;
+            for(int c=0;c<8;c++) {
+                merkle_validity = (merkle_root.get()[c] == v_merkle_root.get()[c]);
+            }
+            std::cout << "\nmerkle_root: ";
+            for(int c=0;c<8;c++) {
+                std::cout << std::hex << merkle_root.get()[c];
+            }
+
+            if(merkle_validity == false) {
+                std::cout << "\nmerkle_root: false";
+                std::cout << "\nfalse merkle_root: ";
+                for(int c=0;c<8;c++) {
+                    std::cout << std::hex << v_merkle_root.get()[c];
+                }
+                exit(EXIT_FAILURE); /// TEST
+                std::cout << "\nchecking false transaction(s)...";
                 for (auto const& [key, val] : encryptedTs) {
                     bool v = mineSingleTr(key, val, difficulty, mempool,
                                           blockNonce, target);
                     if(v == false) {
-                        std::cout << "transaction hash mismatch, transaction index:\t"
+                        std::cout << "\ntransaction hash mismatch, transaction index:\t"
                                   << loopt << "\n" << "transaction hash:\n";
                         for(int c=0;c<8;c++) {
                             std::cout << std::hex << mempool[loopt].get()[c];
                         }
                         std::cout << std::endl;
                         mempool.erase(mempool.begin() + loopt);
-                        std::cout << "\ntransaction deleted from mempool\n";
+                        std::cout << "\ntransaction deleted from mempool";
                         
                         loopt++; // mempool index
                     } else {
-                        std::cout << "validated transaction:\t" << loopt
+                        std::cout << "\nvalidated transaction:\t" << loopt
                                   << " from mempool\n";
                     }
                 }
             } else {
-                std::cout << "\nmerkle_root: true\n\n";
+                std::cout << "\nmerkle_root: true";
             }
             return true;
         }
@@ -225,9 +240,9 @@ class Block
                compare values in block for testing */
             SHA512 hash = SHA512();
             PoW ProofofWork = PoW();
-            std::shared_ptr<uint64_t> target(new uint64_t);
-            std::shared_ptr<uint64_t> merkle_root;
-            MerkleTree::merkleRoot(mempool, merkle_root);
+            std::shared_ptr<uint64_t> target(new uint64_t[8]);
+            std::shared_ptr<uint64_t> merkle_root(new uint64_t[8]);
+            merkle_root = MerkleTree::merkleRoot(mempool);
             MerkleTree::merkleRoots.push_back(merkle_root);
             std::shared_ptr<uint64_t> prevBlockHash(new uint64_t);
             uint32_t blockchainsize = Blockchain::blockchain.size();
