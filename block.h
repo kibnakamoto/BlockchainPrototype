@@ -125,7 +125,7 @@ class PoW
                 valid = false;
             }
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-            std::cout << "seconds it took to verify transaction: "
+            std::cout << "microseconds it took to verify transaction: "
                       << std::chrono::duration_cast<std::chrono::microseconds>
                          (end - begin).count()
                       << std::endl;
@@ -178,7 +178,7 @@ class PoW
                     }
                 }
             } else {
-                std::cout << "\nmerkle_root: true";
+                std::cout << "\nmerkle_root: true\n\n";
             }
             return true;
         }
@@ -200,28 +200,37 @@ class Block
         }
         
         // generate block
-        void genBlock(std::shared_ptr<uint64_t> target, uint64_t nonce, std::shared_ptr<uint64_t>
-                      merkle_root, double difficulty)
+        std::shared_ptr<uint64_t> genBlock(std::shared_ptr<uint64_t> target,
+                                           uint64_t nonce, std::shared_ptr
+                                           <uint64_t> merkle_root, double
+                                           difficulty)
         {
             std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
             bool valid;
-            uint64_t newNonce = nonce;
+            __uint128_t newNonce = (__uint128_t)nonce;
             std::string merkle_root_str = "";
             for(int c=0;c<8;c++) {
                 merkle_root_str += std::to_string(merkle_root.get()[c]);
             }
-            
             for(int c=0;c<8;c++) {
-                while(target.get()[c] > pow(2,30)) {
+                target.get()[c] = sha512(merkle_root_str + std::to_string(newNonce+difficulty)).get()[c];
+            }
+            for(int c=0;c<8;c++) {
+                while(target.get()[c] >= pow(2,56)) {
                     target.get()[c] = sha512(merkle_root_str +
                                              std::to_string(newNonce+difficulty)).get()[c];
                     newNonce++;
                 }
             }
+            std::cout << "\ntarget: ";
+            for(int c=0;c<8;c++) {
+                std::cout << std::hex << target.get()[c] << "";
+            }
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-            std::cout << "seconds it took to generate block: " << std::chrono::duration_cast
-                                             <std::chrono::microseconds>
-                                             (end - begin).count() << std::endl;
+            std::cout << "\nmicroseconds it took to generate block: " << std::dec
+                      << std::chrono::duration_cast<std::chrono::microseconds>
+                         (end - begin).count() << std::endl;
+            return target;
         }
         /* make a tuple function that returns block components */
         std::tuple</* prevBlockHash */std::shared_ptr<uint64_t>, 
@@ -244,7 +253,7 @@ class Block
             std::shared_ptr<uint64_t> merkle_root(new uint64_t[8]);
             merkle_root = MerkleTree::merkleRoot(mempool);
             MerkleTree::merkleRoots.push_back(merkle_root);
-            std::shared_ptr<uint64_t> prevBlockHash(new uint64_t);
+            std::shared_ptr<uint64_t> prevBlockHash(new uint64_t[8]);
             uint32_t blockchainsize = Blockchain::blockchain.size();
             std::string timestamp = Blockchain::generateTimestamp();
             uint64_t nonce = Blockchain::generateNonce<uint64_t>();
@@ -261,16 +270,24 @@ class Block
             std::cout << "next block will be generated in " << blockGenTime
                       << std::endl;
             if(blockchainsize > 1) {
-                prevBlockHash = Blockchain::Blockhashes[blockchainsize-1];
+                for(int c=0;c<8;c++) {
+                    prevBlockHash.get()[c] = Blockchain::Blockhashes
+                                             [blockchainsize-1].get()[c];
+                }
+            } else {
+                for(int c=0;c<8;c++) {
+                    prevBlockHash.get()[c] = 0x00ULL;
+                }
             }
             
            return {prevBlockHash,timestamp,blockchainsize,nonce,difficulty,
                    merkle_root,blockGenTime,avHashrate};
        }
         
-        std::string data_str(std::vector<std::shared_ptr<uint64_t>> mempool, const 
-                         std::map<std::string, uint8_t*> encryptedTs,
-                         std::string encryptedTr="", uint8_t* AESkey=nullptr)
+        std::string data_str(std::vector<std::shared_ptr<uint64_t>> mempool,
+                             std::string blockchain_version, const std::map<
+                             std::string, uint8_t*> encryptedTs, std::string
+                             encryptedTr="", uint8_t* AESkey=nullptr)
         {
             /* use this to represent block in blockchain, use tuple data to 
                compare values in block for testing */
@@ -278,7 +295,7 @@ class Block
                        double,std::shared_ptr<uint64_t>, double, double>
             block_data = data(mempool, encryptedTs, encryptedTr, AESkey);
             std::stringstream BLOCKCHAIN_BLOCKDATA;
-            std::shared_ptr<uint64_t> prevBlockHash;
+            std::shared_ptr<uint64_t> prevBlockHash(new uint64_t[8]);
             std::string timestamp;
             uint32_t blockchainSize;
             uint64_t nonce;
@@ -286,13 +303,13 @@ class Block
             std::shared_ptr<uint64_t> merkle_root;
             std::tie(prevBlockHash, timestamp, blockchainSize, nonce, difficulty,
                      merkle_root,nextBlockGenTime, avHashrate) = block_data;
-            BLOCKCHAIN_BLOCKDATA << "\nprev_block_data: ";
+            BLOCKCHAIN_BLOCKDATA << "previous block hash: ";
             for(int c=0;c<8;c++) {
                 BLOCKCHAIN_BLOCKDATA << std::hex
                                      << prevBlockHash.get()[c];
             }
             BLOCKCHAIN_BLOCKDATA << "\ntimestamp: " << timestamp;
-            BLOCKCHAIN_BLOCKDATA << "\nblockchain size: "
+            BLOCKCHAIN_BLOCKDATA << "blockchain size: "
                                  << std::dec << blockchainSize;
             BLOCKCHAIN_BLOCKDATA << "\nnonce: "
                                  << std::dec << nonce;
@@ -306,9 +323,10 @@ class Block
                                  << nextBlockGenTime;
             BLOCKCHAIN_BLOCKDATA << "\nAverage hashrate of miners: "
                                  << avHashrate;
+            BLOCKCHAIN_BLOCKDATA << "\nblockchain version: " << blockchain_version;
             std::shared_ptr<uint64_t> blockHash;
             blockHash = sha512(BLOCKCHAIN_BLOCKDATA.str());
-            BLOCKCHAIN_BLOCKDATA << "block hash: ";
+            BLOCKCHAIN_BLOCKDATA << "\nblock hash: ";
             for(int c=0;c<8;c++) {
                 BLOCKCHAIN_BLOCKDATA << std::hex << blockHash.get()[c];
             }
