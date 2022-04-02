@@ -24,17 +24,17 @@ namespace MerkleTree
                 {
                     SHA512 hash = SHA512();
                     std::vector<std::shared_ptr<uint64_t>> nodes;
-                    for(double r=0;r<len/2;r++) {
-                            nodes.push_back(hash.sha512_ptr(Plevel[(uint64_t)(r*2)],
-                                                            Plevel[(uint64_t)(r*2+1)]));
+                    for(double c=0;c<len/2;c++) {
+                            nodes.push_back(hash.sha512_ptr(Plevel[(uint64_t)(c*2)],
+                                                            Plevel[(uint64_t)(c*2+1)]));
                     }
                     /* nodes are single a layer of the MerkleTree */
-                    /* update Plevel to level in another function until len = 1 */
                     return nodes;
                 }
             public:
-                void append_levels(std::vector<std::shared_ptr<uint64_t>> mempool, uint64_t len,
-                                   std::shared_ptr<uint64_t> merkle_root)
+                void append_levels(std::vector<std::shared_ptr<uint64_t>> mempool, 
+                                   uint64_t len, std::shared_ptr<uint64_t>
+                                   merkle_root)
                 {
                     uint64_t currlen = len;
                     std::vector<std::shared_ptr<uint64_t>> level = mempool;
@@ -44,10 +44,6 @@ namespace MerkleTree
                     } if(level.size() == 1) {
                         merkle_root = std::move(std::shared_ptr<uint64_t>
                                                 (level[0]));
-                        std::cout << "\ncondition met\n"; /* test a few times */
-                    } else {
-                        std::cout << "error, condition not met";
-                        exit(EXIT_FAILURE);
                     }
                 }
         };
@@ -64,7 +60,6 @@ namespace MerkleTree
             
             uint64_t len = mempool.size(); // amount of transactions in the block
             uint64_t validlen = 2;
-            uint32_t amountofLayers = 0;
             while(validlen < len) {
                 validlen*=2;
             }
@@ -79,7 +74,6 @@ namespace MerkleTree
             // calculate amount of layers
             while(validlen != 0) {
                 validlen/=2;
-                amountofLayers++;
                 /* validlen gets set to zero so don't use it after this loop */
             }
             // calculate MerkleRoot
