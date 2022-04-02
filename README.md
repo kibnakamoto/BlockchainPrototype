@@ -9,3 +9,5 @@ By: Taha Canturk
 Email: kibnakanoto@protonmail.com
 
 This is a blockchain prototype I'm creating for a future blockchain I will create.
+
+More than 1600 lines of code.
