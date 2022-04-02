@@ -304,12 +304,14 @@ int main()
     std::shared_ptr<uint64_t> walletAddress(new uint64_t[8]);
     std::vector<std::shared_ptr<uint64_t>> mempool; // declare mempool
     std::vector<std::shared_ptr<uint64_t>> walletAddresses; // All wallet addresses
+    std::string blockchain_version = "1.0";
     struct Transaction trns{sha512("sender"), sha512("receiver"), 50000};
     struct Transaction trns1{sha512("sener"), sha512("receiver"), 54000};
     struct Transaction trns2{sha512("sender"), sha512("reciver"), 35600};
     struct Transaction trns3{sha512("nder"), sha512("receiver"), 50000};
     struct Transaction trns4{sha512("sender"), sha512("receiver"), 40000};
     mempool.push_back(trns.Hash());
+    
     /* TEST MERKLE_ROOT */
     mempool.push_back(trns1.Hash());
     mempool.push_back(trns2.Hash());
@@ -338,25 +340,46 @@ int main()
                             (trns2.encryptTr(AES_key_mining2), AES_key_mining2)); // 2
     transactionsEnc.insert (it, std::pair<std::string, uint8_t*>
                             (trns3.encryptTr(AES_key_mining3), AES_key_mining3)); // 3
-
+    
     /* TEST PoW MINE */
+    std::vector<std::shared_ptr<uint64_t>> mempool2;
+    mempool2.push_back(trns4.Hash());
+    mempool2.push_back(trns.Hash());
+    mempool2.push_back(trns1.Hash());
+    mempool2.push_back(trns2.Hash()); // 4 transactions
     // block.data(mempool, transactionsEnc);
-    // MerkleTree::merkleRoot(mempool, merkle_root);
     auto [fst,snd] = wallet_address.GenerateNewWalletAddress();
     walletAddress = fst;
     walletAddresses.push_back(fst);
     std::cout << "\n\nline 339, main.cpp:\t";
-    std::shared_ptr<uint64_t> TMPa = sha512("a");
-    std::shared_ptr<uint64_t> TMPb = sha512("b");
-    hash.sha512_ptr(TMPa,TMPb);
     for(int c=0;c<8;c++) {
-        // for(int i=0;i<8;i++) {
-            // std::cout << std::hex << walletAddress.get()[c] << " ";
-            // std::cout << std::hex << hash.sha512_ptr(TMPa,TMPb).get()[c] << " ";
-            // if(i==7) {
-            //     std::cout << "\n\n";
-            // }
-        // }
+        // std::cout << std::hex << walletAddress.get()[c] << " ";
+    }
+    bool blockMined = false;
+    if(blockMined == false) {
+        std::tuple<std::shared_ptr<uint64_t>,std::string,uint32_t,uint64_t, 
+               double,std::shared_ptr<uint64_t>, double, double>
+        unverified_block_data = block.data(mempool2);
+        uint32_t blockchainSize;
+        uint64_t nonce;
+        std::shared_ptr<uint64_t> prevBlockHash(new uint64_t[8]);
+        std::string timestamp;
+        double difficulty, nextBlockGenTime, avHashrate;
+        std::tie(prevBlockHash, timestamp, blockchainSize, nonce, difficulty,
+                 merkle_root,nextBlockGenTime, avHashrate) = unverified_block_data;
+        auto [isblockmined,clean_mempool] = ProofofWork.mineBlock(transactionsEnc,
+                                                                  nonce, difficulty,
+                                                                  mempool2,
+                                                                  merkle_root);
+        std::cout << "\nmempool cleaned";
+        blockMined = isblockmined;
+        
+        if(blockMined) {
+            std::cout << "\nblock mined successfully";
+            std::cout << "\nrepresenting correct block in blockhain...\n";
+            std::cout << block.data_str(clean_mempool,blockchain_version);
+            std::cout << "\nblock added to blockchain";
+        }
     }
     std::cout << "\nline 339, main.cpp complete";
     /* TEST walletAddress */
