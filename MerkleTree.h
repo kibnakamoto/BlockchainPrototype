@@ -32,9 +32,11 @@ namespace MerkleTree
                     return nodes;
                 }
             public:
-                void append_levels(std::vector<std::shared_ptr<uint64_t>> mempool, 
-                                   uint64_t len, std::shared_ptr<uint64_t>
-                                   merkle_root)
+                std::shared_ptr<uint64_t> append_levels(std::vector<std::shared_ptr
+                                                        <uint64_t>> mempool, 
+                                                        uint64_t len, std::
+                                                        shared_ptr<uint64_t>
+                                                        merkle_root)
                 {
                     uint64_t currlen = len;
                     std::vector<std::shared_ptr<uint64_t>> level = mempool;
@@ -45,15 +47,19 @@ namespace MerkleTree
                         merkle_root = std::move(std::shared_ptr<uint64_t>
                                                 (level[0]));
                     }
+                    return merkle_root;
                 }
         };
         
-        inline void merkleRoot(std::vector<std::shared_ptr<uint64_t>> Mempool,
-                               std::shared_ptr<uint64_t> merkle_root)
+        inline std::shared_ptr<uint64_t> merkleRoot(std::vector<std::shared_ptr
+                                                    <uint64_t>> Mempool)
         {
             IntTypes int_type = IntTypes();
             SHA512 hash = SHA512();
             Node node = Node();
+            
+            // declare merkle root
+            alignas(uint64_t) std::shared_ptr<uint64_t> merkle_root(new uint64_t[8]);
             
             // to avoid 0 hashes to be invalid transactions in Mempool
             std::vector<std::shared_ptr<uint64_t>> mempool = Mempool;
@@ -77,9 +83,7 @@ namespace MerkleTree
                 /* validlen gets set to zero so don't use it after this loop */
             }
             // calculate MerkleRoot
-            node.append_levels(mempool, len, merkle_root);
-            
-            // store merkle_root in vector merkleRoots
-            merkleRoots.push_back(merkle_root);
+            merkle_root = node.append_levels(mempool, len, merkle_root);
+            return merkle_root;
         }
 }; // namespace MerkleTree
