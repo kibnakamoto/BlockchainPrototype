@@ -59,8 +59,26 @@ struct Transaction {
             transactionData += std::to_string(receiver.get()[c]);
         }
         transactionData += ", amount: " + std::to_string(amount);
+        
         return aes256.encrypt(transactionData, key);
     }
+    
+    // to delete padding from decrypted message
+    uint64_t getLength()
+    {
+        std::string transactionData = "";
+        transactionData += "sender: ";
+        for(int c=0;c<8;c++) {
+            transactionData += std::to_string(sender.get()[c]);
+        }
+        transactionData += ", receiver: ";
+        for(int c=0;c<8;c++) {
+            transactionData += std::to_string(receiver.get()[c]);
+        }
+        transactionData += ", amount: " + std::to_string(amount);
+        return transactionData.length();
+    }
+    
     
     // if owner of wallet(WalletAddress and keys)
     void dumptrdata(const std::map<std::shared_ptr<uint64_t>,std::vector<std::shared_ptr<uint8_t>>>
@@ -367,6 +385,19 @@ int main()
     }
     bool blockMined = false;
     if(blockMined == false) {
+        std::vector<uint64_t> trnsLength;
+        /* TEST PoW MINE */
+        trnsLength.push_back(trns.getLength());
+        trnsLength.push_back(trns1.getLength());
+        trnsLength.push_back(trns2.getLength());
+        trnsLength.push_back(trns3.getLength());
+        trnsLength.push_back(trns4.getLength());
+        trnsLength.push_back(trns.getLength());
+        trnsLength.push_back(trns1.getLength());
+        trnsLength.push_back(trns2.getLength());
+        trnsLength.push_back(trns1.getLength());
+        trnsLength.push_back(trns2.getLength());
+        /* TEST PoW MINE */
         std::tuple<std::shared_ptr<uint64_t>,std::string,uint32_t,uint64_t, 
                double,std::shared_ptr<uint64_t>, double, double>
         unverified_block_data = block.data(mempool2);
@@ -380,7 +411,8 @@ int main()
         auto [isblockmined,clean_mempool] = ProofofWork.mineBlock(transactionsEnc,
                                                                   nonce, difficulty,
                                                                   mempool,
-                                                                  merkle_root);
+                                                                  merkle_root,
+                                                                  trnsLength);
         std::cout << "\nmempool cleaned";
         blockMined = isblockmined;
         
