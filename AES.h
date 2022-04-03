@@ -244,14 +244,14 @@ class AES
             
         protected:
            // KeyExpansion
-           uint32_t* keyExpansion(uint8_t* key, uint32_t* w, uint8_t Nb,
+           uint32_t* keyExpansion(std::shared_ptr<uint8_t> key, uint32_t* w, uint8_t Nb,
                                   uint8_t Nk, uint8_t Nr)
             {
                 uint32_t temp;
                 int i=0;
                 do {
-                    w[i] = ((uint32_t)key[4*i]<<24) | (key[4*i+1]<<16) |
-                           (key[4*i+2]<<8) | key[4*i+3];
+                    w[i] = ((uint32_t)key.get()[4*i]<<24) | (key.get()[4*i+1]<<16) |
+                           (key.get()[4*i+2]<<8) | key.get()[4*i+3];
                     i++;
                 } while(i<Nk);
                 i=Nk;
@@ -316,7 +316,7 @@ class AES
                 return output;
             }
             
-            std::string encrypt(std::string user_in,uint8_t* key, uint8_t Nb,
+            std::string encrypt(std::string user_in,std::shared_ptr<uint8_t> key, uint8_t Nb,
                                 uint8_t Nk, uint8_t Nr)
             {
                 // declare arrays
@@ -379,7 +379,7 @@ class AES
                 return output;
             }
             
-            std::string decrypt(std::string user_in, uint8_t* key, uint8_t Nb,
+            std::string decrypt(std::string user_in, std::shared_ptr<uint8_t> key, uint8_t Nb,
                                 uint8_t Nk, uint8_t Nr)
             {
                 // declare single-dimentional arrays
@@ -398,15 +398,15 @@ class AES
                 
                 // create key schedule and decrypt
                 keyExpansion(key, w, Nb, Nk, Nr); 
-                invCipher(input, output, w, Nb, Nk, Nr); // output wrong 
+                invCipher(input, output, w, Nb, Nk, Nr);
                 std::string str = "";
                 for(int c=0;c<4*Nb;c++) {
-                    str += output[c]; /* Check invCipher */
+                    str += output[c];
                 }
                 return str;
             }
         public:
-            std::string multi_block_process_enc(std::string user_in, uint8_t*
+            std::string multi_block_process_enc(std::string user_in, std::shared_ptr<uint8_t>
                                                 key, uint8_t Nb, uint8_t Nk,
                                                 uint8_t Nr)
             {
@@ -434,8 +434,8 @@ class AES
                 return final_val;
             }
             
-            std::string multi_block_process_dec(std::string user_in, uint8_t* 
-                                                key, uint8_t Nb, uint8_t Nk,
+            std::string multi_block_process_dec(std::string user_in, std::shared_ptr
+                                                <uint8_t> key, uint8_t Nb, uint8_t Nk,
                                                 uint8_t Nr)
             {
                 std::string new_input[user_in.length()/32];
@@ -470,13 +470,13 @@ class AES
             const uint8_t Nk = 4;
             const uint8_t Nr = 10;
         public:
-            std::string encrypt(std::string user_in, uint8_t* key)
+            std::string encrypt(std::string user_in, std::shared_ptr<uint8_t> key)
             {
                 OPS_AES Operation = OPS_AES();
                 return Operation.multi_block_process_enc(user_in, key, Nb, Nk, Nr);
             }
             
-            std::string decrypt(std::string user_in, uint8_t* key)
+            std::string decrypt(std::string user_in, std::shared_ptr<uint8_t> key)
             {
                 OPS_AES Operation = OPS_AES();
                 return Operation.multi_block_process_dec(user_in, key, Nb, Nk, Nr);
@@ -491,13 +491,13 @@ class AES
             const uint8_t Nk = 6;
             const uint8_t Nr = 12;
         public:
-            std::string encrypt(std::string user_in, uint8_t* key)
+            std::string encrypt(std::string user_in, std::shared_ptr<uint8_t> key)
             {
                 OPS_AES Operation = OPS_AES();
                 return Operation.multi_block_process_enc(user_in, key, Nb, Nk, Nr);
             }
             
-            std::string decrypt(std::string user_in, uint8_t* key)
+            std::string decrypt(std::string user_in, std::shared_ptr<uint8_t> key)
             {
                 OPS_AES Operation = OPS_AES();
                 return Operation.multi_block_process_dec(user_in, key, Nb, Nk, Nr);
@@ -513,13 +513,13 @@ class AES
             const uint8_t Nk = 8;
             const uint8_t Nr = 14;
         public:
-            std::string encrypt(std::string user_in, uint8_t* key)
+            std::string encrypt(std::string user_in, std::shared_ptr<uint8_t> key)
             {
                 OPS_AES Operation = OPS_AES();
                 return Operation.multi_block_process_enc(user_in, key, Nb, Nk, Nr);
             }
             
-            std::string decrypt(std::string user_in, uint8_t* key)
+            std::string decrypt(std::string user_in, std::shared_ptr<uint8_t> key)
             {
                 OPS_AES Operation = OPS_AES();
                 return Operation.multi_block_process_dec(user_in, key, Nb, Nk, Nr);
