@@ -100,7 +100,8 @@ class PoW
     protected:
         bool mineSingleTr(std::string encryptedTr, std::shared_ptr<uint8_t> key,
                           uint64_t difficulty, std::vector<std::shared_ptr<uint64_t>>
-                          mempool, uint64_t nonce, std::shared_ptr<uint64_t> target)
+                          mempool, uint64_t nonce, std::shared_ptr<uint64_t> target,
+                          uint64_t trnsLength)
         {
             std::cout << "\ncalculating target...\n";
             std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
@@ -124,11 +125,13 @@ class PoW
             AES::AES256 aes256;
             std::string transactionData = aes256.decrypt(encryptedTr, key);
             std::shared_ptr<uint64_t> hash(new uint64_t[8]);
+            
+            /* Remove zeros in beggining cauesd by decrypting string that isn't 
+             * a multiple of 16.
+             */ // why the fuck doesn't it see leading zeros in length
+            transactionData.erase(trnsLength,transactionData.size()-trnsLength);
             hash = sha512(transactionData);
-            for(int c=0;c<8;c++) {
-                // std::cout << std::hex << sha512(transactionData).get()[c] << " ";
-            }
-            std::cout << "\n\n" << transactionData.length() << "\n\n";
+            std::cout << trnsLength << "\n\n" << transactionData.size() << "\n\n";
             bool valid;
             for(int i=0;i<mempool.size();i++) {
                 std::vector<bool> validity;
@@ -144,7 +147,7 @@ class PoW
                     valid = false;
                 } else {
                     valid = true;
-                    break; // breaks if true, continues to search if false
+                    break; // stops if true, continues to search if false
                 }
             }
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
@@ -159,7 +162,7 @@ class PoW
         mineBlock(const std::map<std::string, std::shared_ptr<uint8_t>> encryptedTs,
                   uint64_t blockNonce, uint64_t difficulty, std::vector<std::
                   shared_ptr<uint64_t>> mempool, std::shared_ptr<uint64_t>
-                  v_merkle_root)
+                  v_merkle_root, std::vector<uint64_t> trnsLengths)
         {
             std::shared_ptr<uint64_t> target(new uint64_t[8]); // transaction target
             uint64_t loopt = 0;
@@ -183,7 +186,7 @@ class PoW
                 std::cout << "\nchecking false transaction(s)...\n";
                 for (auto const [key, val] : encryptedTs) {
                     bool v = mineSingleTr(key, val, difficulty, mempool,
-                                          blockNonce, target);
+                                          blockNonce, target, trnsLengths[loopt]);
                     if(v == false) {
                         std::cout << "\ntransaction hash mismatch, transaction index:\t"
                                   << loopt << "\n" << "transaction hash:\n";
