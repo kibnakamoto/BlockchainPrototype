@@ -1,3 +1,102 @@
+#include <stdint.h>
+#include <tuple>
+#include <string.h> // for memcpy
+#include <memory>
+
+class IntTypes
+{
+    // make these a tuple so that concatinating more than 2 values is possible
+    public:
+        // This function is made for 256-bit sha256
+        inline std::pair<__uint128_t, __uint128_t> __uint256_pair(uint32_t mempoolSingleHash[8])
+        {
+            __uint128_t arr128[8>>2];
+            
+            // convert each 4 32-bit unsigned int to 1 128-bit unsigned int
+            for(int c=0;c<2;c++) {
+                arr128[c] = (((__uint128_t)mempoolSingleHash[c*4]<<96) |
+                             ((__uint128_t)mempoolSingleHash[c*4+1]<<64) |
+                             ((__uint128_t)mempoolSingleHash[c*4+2]<<32) |
+                             (__uint128_t)mempoolSingleHash[c*4+3]);
+            }
+            return {arr128[0], arr128[1]};
+        }
+        /* this creates a tuple of 4 variables that are 128-bit each and 
+           stores 512-bit unsigned int data */
+        inline std::tuple<__uint128_t, __uint128_t,__uint128_t, __uint128_t>
+        __uint512_tuple(uint64_t mempoolSingleHash[8])
+        {
+            __uint128_t arr128[8>>1];
+            
+            // convert each 2 64-bit unsigned int to 1 128-bit unsigned int
+            for(int c=0;c<4;c++) {
+                arr128[c] = (((__uint128_t)mempoolSingleHash[c*2]<< 64) |
+                             ((__uint128_t)mempoolSingleHash[c*2+1]));
+            }
+            return {arr128[0], arr128[1], arr128[2], arr128[3]};
+        }
+        
+        // converts 2 array[8] of 64-bit unsigned int into 1 1024 bit tuple
+        inline std::tuple<__uint128_t, __uint128_t,__uint128_t, __uint128_t,
+                          __uint128_t, __uint128_t,__uint128_t, __uint128_t>
+        __uint1024_tuple(uint64_t mempoolSingleHash1[8], uint64_t mempoolSingleHash2[8])
+        {
+            // test function
+            __uint128_t arr128[8];
+            uint64_t hashArr[8<<1];
+            for(int c=0;c<8;c++) {
+                hashArr[c] = mempoolSingleHash1[c];
+                hashArr[c+8] = mempoolSingleHash2[c];
+            }
+            // convert each 4 32-bit unsigned int to 1 128-bit unsigned int
+            for(int c=0;c<8;c++) {
+                arr128[c] = (((__uint128_t)hashArr[c*2]<< 64) |
+                             ((__uint128_t)hashArr[c*2+1]));
+            }
+            return {arr128[0], arr128[1], arr128[2], arr128[3], arr128[4], 
+                    arr128[5], arr128[6], arr128[7]};
+        }
+        
+        // uint64_t array of 8 to uint8_t array of 64. This is for the Merkle Tree
+        inline std::shared_ptr<uint8_t> arr64ToCharArr(std::shared_ptr<uint64_t>
+                                                       mempoolSingleHash1,
+                                                       std::shared_ptr<uint64_t>
+                                                       mempoolSingleHash2)
+        {
+            std::shared_ptr<uint64_t> hashArr(new uint64_t[16]);
+            std::shared_ptr<uint8_t> hashchArr(new uint8_t[128]);
+            
+            for(int c=0;c<8;c++) {
+                hashArr.get()[c] = mempoolSingleHash1.get()[c];
+                hashArr.get()[c+8] = mempoolSingleHash2.get()[c];
+            }
+            
+            // convert uint64_t array[16] to byte array[128]
+            // for(int c=0;c<16;c++) {
+            //     hashchArr.get()[c*8] = hashArr.get()[c]>>56 & 0xff;
+            //     hashchArr.get()[c*8+1] = hashArr.get()[c]>>48 & 0xff;
+            //     hashchArr.get()[c*8+2] = hashArr.get()[c]>>40 & 0xff;
+            //     hashchArr.get()[c*8+3] = hashArr.get()[c]>>32 & 0xff;
+            //     hashchArr.get()[c*8+4] = hashArr.get()[c]>>24 & 0xff;
+            //     hashchArr.get()[c*8+5] = hashArr.get()[c]>>16 & 0xff;
+            //     hashchArr.get()[c*8+6] = hashArr.get()[c]>>8 & 0xff;
+            //     hashchArr.get()[c*8+7] = hashArr.get()[c] & 0xff;
+            // }
+            
+            for(int c=0;c<16;c++) {
+                for(int i=56,k=0;i>=0,k<8;i-=8,k++) {
+                    hashchArr.get()[c*8+k] = hashArr.get()[c]>>i & 0xff;
+                }
+            }
+
+            return hashchArr;
+        }
+};
+
+
+
+
+
 /* Author: Taha Canturk
 *  Github: Kibnakamoto
 *   Repisotory: AES
@@ -11,23 +110,6 @@
 #include <string.h>
 #include <sstream>
 #include <iomanip>
-#include <random>
-#include <time.h>
-#include <tuple>
-#include <map>
-#include <cstring>
-#include <iomanip>
-#include <stdint.h>
-#include <vector>
-#include <string>
-#include <memory>
-#include <ctime>
-#include <cmath>
-#include <chrono>
-#include <unistd.h>
-#include <climits>
-#include <algorithm>
-#include <functional>
 
 class AES
 {
@@ -261,14 +343,14 @@ class AES
             
         protected:
            // KeyExpansion
-           uint32_t* keyExpansion(uint8_t* key, uint32_t* w, uint8_t Nb,
+           uint32_t* keyExpansion(std::shared_ptr<uint8_t> key, uint32_t* w, uint8_t Nb,
                                   uint8_t Nk, uint8_t Nr)
             {
                 uint32_t temp;
                 int i=0;
                 do {
-                    w[i] = ((uint32_t)key[4*i]<<24) | (key[4*i+1]<<16) |
-                           (key[4*i+2]<<8) | key[4*i+3];
+                    w[i] = ((uint32_t)key.get()[4*i]<<24) | (key.get()[4*i+1]<<16) |
+                           (key.get()[4*i+2]<<8) | key.get()[4*i+3];
                     i++;
                 } while(i<Nk);
                 i=Nk;
@@ -333,7 +415,7 @@ class AES
                 return output;
             }
             
-            std::string encrypt(std::string user_in,uint8_t* key, uint8_t Nb,
+            std::string encrypt(std::string user_in,std::shared_ptr<uint8_t> key, uint8_t Nb,
                                 uint8_t Nk, uint8_t Nr)
             {
                 // declare arrays
@@ -396,7 +478,7 @@ class AES
                 return output;
             }
             
-            std::string decrypt(std::string user_in, uint8_t* key, uint8_t Nb,
+            std::string decrypt(std::string user_in, std::shared_ptr<uint8_t> key, uint8_t Nb,
                                 uint8_t Nk, uint8_t Nr)
             {
                 // declare single-dimentional arrays
@@ -415,15 +497,15 @@ class AES
                 
                 // create key schedule and decrypt
                 keyExpansion(key, w, Nb, Nk, Nr); 
-                invCipher(input, output, w, Nb, Nk, Nr); // output wrong 
+                invCipher(input, output, w, Nb, Nk, Nr);
                 std::string str = "";
                 for(int c=0;c<4*Nb;c++) {
-                    str += output[c]; /* Check invCipher */
+                    str += output[c];
                 }
                 return str;
             }
         public:
-            std::string multi_block_process_enc(std::string user_in, uint8_t*
+            std::string multi_block_process_enc(std::string user_in, std::shared_ptr<uint8_t>
                                                 key, uint8_t Nb, uint8_t Nk,
                                                 uint8_t Nr)
             {
@@ -451,8 +533,8 @@ class AES
                 return final_val;
             }
             
-            std::string multi_block_process_dec(std::string user_in, uint8_t* 
-                                                key, uint8_t Nb, uint8_t Nk,
+            std::string multi_block_process_dec(std::string user_in, std::shared_ptr
+                                                <uint8_t> key, uint8_t Nb, uint8_t Nk,
                                                 uint8_t Nr)
             {
                 std::string new_input[user_in.length()/32];
@@ -487,13 +569,13 @@ class AES
             const uint8_t Nk = 4;
             const uint8_t Nr = 10;
         public:
-            std::string encrypt(std::string user_in, uint8_t* key)
+            std::string encrypt(std::string user_in, std::shared_ptr<uint8_t> key)
             {
                 OPS_AES Operation = OPS_AES();
                 return Operation.multi_block_process_enc(user_in, key, Nb, Nk, Nr);
             }
             
-            std::string decrypt(std::string user_in, uint8_t* key)
+            std::string decrypt(std::string user_in, std::shared_ptr<uint8_t> key)
             {
                 OPS_AES Operation = OPS_AES();
                 return Operation.multi_block_process_dec(user_in, key, Nb, Nk, Nr);
@@ -508,13 +590,13 @@ class AES
             const uint8_t Nk = 6;
             const uint8_t Nr = 12;
         public:
-            std::string encrypt(std::string user_in, uint8_t* key)
+            std::string encrypt(std::string user_in, std::shared_ptr<uint8_t> key)
             {
                 OPS_AES Operation = OPS_AES();
                 return Operation.multi_block_process_enc(user_in, key, Nb, Nk, Nr);
             }
             
-            std::string decrypt(std::string user_in, uint8_t* key)
+            std::string decrypt(std::string user_in, std::shared_ptr<uint8_t> key)
             {
                 OPS_AES Operation = OPS_AES();
                 return Operation.multi_block_process_dec(user_in, key, Nb, Nk, Nr);
@@ -530,13 +612,13 @@ class AES
             const uint8_t Nk = 8;
             const uint8_t Nr = 14;
         public:
-            std::string encrypt(std::string user_in, uint8_t* key)
+            std::string encrypt(std::string user_in, std::shared_ptr<uint8_t> key)
             {
                 OPS_AES Operation = OPS_AES();
                 return Operation.multi_block_process_enc(user_in, key, Nb, Nk, Nr);
             }
             
-            std::string decrypt(std::string user_in, uint8_t* key)
+            std::string decrypt(std::string user_in, std::shared_ptr<uint8_t> key)
             {
                 OPS_AES Operation = OPS_AES();
                 return Operation.multi_block_process_dec(user_in, key, Nb, Nk, Nr);
@@ -547,98 +629,6 @@ class AES
 
 
 
-class IntTypes
-{
-    // make these a tuple so that concatinating more than 2 values is possible
-    public:
-        // This function is made for 256-bit sha256
-        inline std::pair<__uint128_t, __uint128_t> __uint256_pair(uint32_t mempoolSingleHash[8])
-        {
-            __uint128_t arr128[8>>2];
-            
-            // convert each 4 32-bit unsigned int to 1 128-bit unsigned int
-            for(int c=0;c<2;c++) {
-                arr128[c] = (((__uint128_t)mempoolSingleHash[c*4]<<96) |
-                             ((__uint128_t)mempoolSingleHash[c*4+1]<<64) |
-                             ((__uint128_t)mempoolSingleHash[c*4+2]<<32) |
-                             (__uint128_t)mempoolSingleHash[c*4+3]);
-            }
-            return {arr128[0], arr128[1]};
-        }
-        /* this creates a tuple of 4 variables that are 128-bit each and 
-           stores 512-bit unsigned int data */
-        inline std::tuple<__uint128_t, __uint128_t,__uint128_t, __uint128_t>
-        __uint512_tuple(uint64_t mempoolSingleHash[8])
-        {
-            __uint128_t arr128[8>>1];
-            
-            // convert each 2 64-bit unsigned int to 1 128-bit unsigned int
-            for(int c=0;c<4;c++) {
-                arr128[c] = (((__uint128_t)mempoolSingleHash[c*2]<< 64) |
-                             ((__uint128_t)mempoolSingleHash[c*2+1]));
-            }
-            return {arr128[0], arr128[1], arr128[2], arr128[3]};
-        }
-        
-        // converts 2 array[8] of 64-bit unsigned int into 1 1024 bit tuple
-        inline std::tuple<__uint128_t, __uint128_t,__uint128_t, __uint128_t,
-                          __uint128_t, __uint128_t,__uint128_t, __uint128_t>
-        __uint1024_tuple(uint64_t mempoolSingleHash1[8], uint64_t mempoolSingleHash2[8])
-        {
-            // test function
-            __uint128_t arr128[8];
-            uint64_t hashArr[8<<1];
-            for(int c=0;c<8;c++) {
-                hashArr[c] = mempoolSingleHash1[c];
-                hashArr[c+8] = mempoolSingleHash2[c];
-            }
-            // convert each 4 32-bit unsigned int to 1 128-bit unsigned int
-            for(int c=0;c<8;c++) {
-                arr128[c] = (((__uint128_t)hashArr[c*2]<< 64) |
-                             ((__uint128_t)hashArr[c*2+1]));
-            }
-            return {arr128[0], arr128[1], arr128[2], arr128[3], arr128[4], 
-                    arr128[5], arr128[6], arr128[7]};
-        }
-        
-        // uint64_t array of 8 to uint8_t array of 64. This is for the Merkle Tree
-        inline std::shared_ptr<uint8_t> arr64ToCharArr(std::shared_ptr<uint64_t>
-                                                       mempoolSingleHash1,
-                                                       std::shared_ptr<uint64_t>
-                                                       mempoolSingleHash2)
-        {
-            std::shared_ptr<uint64_t> hashArr(new uint64_t[16]);
-            std::shared_ptr<uint8_t> hashchArr(new uint8_t[128]);
-            
-            for(int c=0;c<8;c++) {
-                hashArr.get()[c] = mempoolSingleHash1.get()[c];
-                hashArr.get()[c+8] = mempoolSingleHash2.get()[c];
-            }
-            
-            // convert uint64_t array[16] to byte array[128]
-            // for(int c=0;c<16;c++) {
-            //     hashchArr.get()[c*8] = hashArr.get()[c]>>56 & 0xff;
-            //     hashchArr.get()[c*8+1] = hashArr.get()[c]>>48 & 0xff;
-            //     hashchArr.get()[c*8+2] = hashArr.get()[c]>>40 & 0xff;
-            //     hashchArr.get()[c*8+3] = hashArr.get()[c]>>32 & 0xff;
-            //     hashchArr.get()[c*8+4] = hashArr.get()[c]>>24 & 0xff;
-            //     hashchArr.get()[c*8+5] = hashArr.get()[c]>>16 & 0xff;
-            //     hashchArr.get()[c*8+6] = hashArr.get()[c]>>8 & 0xff;
-            //     hashchArr.get()[c*8+7] = hashArr.get()[c] & 0xff;
-            // }
-            
-            for(int c=0;c<16;c++) {
-                for(int i=56,k=0;i>=0,k<8;i-=8,k++) {
-                    hashchArr.get()[c*8+k] = hashArr.get()[c]>>i & 0xff;
-                }
-            }
-
-            return hashchArr;
-        }
-};
-
-
-
 /*
  *  github: kibnakamoto
  *   Created on: Dec. 5, 2021
@@ -646,6 +636,15 @@ class IntTypes
  *       Finalized: Jan. 5 2022
  *        More Info: github.com/kibnakamoto/sha512.cpp/blob/main/README.md
  */
+
+#ifndef SHA512_H_
+#define SHA512_H_
+
+#include <string>
+#include <cstring>
+#include <stdint.h>
+#include <memory>
+#include <iomanip>
 
 // choice = (x ∧ y) ⊕ (¯x ∧ z)
 inline uint64_t Ch(uint64_t e, uint64_t f, uint64_t g) { return ((e bitand f)xor(~e bitand g)); }
@@ -832,18 +831,14 @@ class SHA512
             }
             
             alignas(uint8_t) std::shared_ptr<uint8_t> wordArray(new uint8_t[128]);
-            // wordArray = int_type.arr64ToCharArr(hash1, hash2);
+            wordArray = int_type.arr64ToCharArr(hash1, hash2);
             
             // 8 bit array values to 64 bit array using 64 bit integer array
-            // for(int i=0;i<128/8;i++) {
-            //     W[i] = (uint64_t)wordArray.get()[i*8]<<56;
-            //     for(int j=1;j<=6;j++)
-            //         W[i] = W[i]|( (uint64_t)wordArray.get()[i*8+j]<<(7-j)*8);
-            //     W[i] = W[i]|( (uint64_t)wordArray.get()[i*8+7] );
-            // }
-            for(int c=0;c<8;c++) {
-                W[c] = hash1.get()[c];
-                W[c+8] = hash2.get()[c];
+            for(int i=0;i<128/8;i++) {
+                W[i] = (uint64_t)wordArray.get()[i*8]<<56;
+                for(int j=1;j<=6;j++)
+                    W[i] = W[i]|( (uint64_t)wordArray.get()[i*8+j]<<(7-j)*8);
+                W[i] = W[i]|( (uint64_t)wordArray.get()[i*8+7] );
             }
             
             // append 1 as 64-bit value
@@ -864,7 +859,9 @@ class SHA512
             for(int c=0;c<8;c++) {
                 shared_H.get()[c] = H[c];
             }
-            
+            for(int c=0;c<8;c++) {
+                std::cout << std::hex << H[c] << " ";
+            }
             return shared_H;
         }
         
@@ -926,6 +923,16 @@ std::string sha512_str(std::string input) {
 	return ss.str();
 }
 
+#endif /* SHA512_H_ */
+
+
+
+#include <stdint.h>
+#include <vector>
+#include <string>
+#include <memory>
+#include "sha512.h"
+
 namespace MerkleTree
 {
         std::vector<std::shared_ptr<uint64_t>> merkleRoots;
@@ -950,33 +957,15 @@ namespace MerkleTree
                             nodes.push_back(hash.sha512_ptr(Plevel[(uint64_t)(c*2)],
                                                             Plevel[(uint64_t)(c*2+1)]));
                     }
-                    
-////////////////// Layer 1
-// a3d36d02d43fb871ec5d8cc215238bf6a524b113b9c1e3e442f64a4a7ffe4e775041bfc4ece909ad48331da88e2faff5c244bbdfbe09263f4138bf1a39da6afd
-// b6a64328f5c7855802f9a0675f8c39481856eb16a90144f8f61be6988bd3fa2d7d51761e96786449fe535c9796c4f9e48ebb8d1d5e62b7f4e3d073ecb6b110bc
-// 1e85143d6d6512bc6b37327df3ad595aa8e07c83e9b5a5271a793a4ec5e4694d15008c840c1641091f983c2d41957ddbe36c317180cd8ab6f424e264165a86dd
-// 4c0eca97e6c46a4141cd624570e83070b55d0cd139cda6bce406fa0ce594bfe6864d4942e99675290ce7825adf6c18723a227263e02e07b2578f853188f544ec
-////////////////// Layer 2
-// 57920167e6b0c5d2d6fc80590f161988eb89516a21aec25b2633aac24003a62e3ad665e94bbbb7e7b885baeadecca8abad77ce810d4dab9ab2a029ac77953c59
-// 33c709af44fd3e363ee91118d9d95e255fecb86981db515755e07476f33dfdcbfac36d7e4a245801b441a636123f79d31e387d40fff4b7a4b1a65e8e8f4b3a97
-////////////////// MERKLE ROOT
-// c03892c2b9b71691959172ae83a5c601a53d815c2fe2b0afdfcc6024e4038c740d031b3b2e02dd49d64ad8e4c5fcffd7135d6c2b0c1b8e690c379287da75e03d
-                    for(int c=0;c<len/2;c++) {
-                        for(int i=0;i<8;i++) {
-                            std::cout << std::hex << nodes[c].get()[i] << "";
-                            if(i==7) {
-                                std::cout << std::endl << std::endl;
-                                std::cout << c << "\n\n";
-                            }
-                        }
-                    }
                     /* nodes are single a layer of the MerkleTree */
                     return nodes;
                 }
             public:
-                void append_levels(std::vector<std::shared_ptr<uint64_t>> mempool, 
-                                   uint64_t len, std::shared_ptr<uint64_t>
-                                   merkle_root)
+                std::shared_ptr<uint64_t> append_levels(std::vector<std::shared_ptr
+                                                        <uint64_t>> mempool, 
+                                                        uint64_t len, std::
+                                                        shared_ptr<uint64_t>
+                                                        merkle_root)
                 {
                     uint64_t currlen = len;
                     std::vector<std::shared_ptr<uint64_t>> level = mempool;
@@ -986,28 +975,20 @@ namespace MerkleTree
                     } if(level.size() == 1) {
                         merkle_root = std::move(std::shared_ptr<uint64_t>
                                                 (level[0]));
-                        std::cout << "merkleRoot: "; 
-                        // c03892c2b9b71691959172ae83a5c601a53d815c2fe2b0afdfcc
-                        // 6024e4038c740d031b3b2e02dd49d64ad8e4c5fcffd7135d6c2b
-                        // 0c1b8e690c379287da75e03d
-                        for(int c=0;c<8;c++) {
-                            std::cout << std::hex << merkle_root.get()[c] << " ";
-                        }
-                        
-                        std::cout << "\nMERKLE_ROOT condition met\n";
-                    } else {
-                        std::cout << "ERROR, MERKLE_ROOT condition not met";
-                        exit(EXIT_FAILURE);
                     }
+                    return merkle_root;
                 }
         };
         
-        inline void merkleRoot(std::vector<std::shared_ptr<uint64_t>> Mempool,
-                               std::shared_ptr<uint64_t> merkle_root)
+        inline std::shared_ptr<uint64_t> merkleRoot(std::vector<std::shared_ptr
+                                                    <uint64_t>> Mempool)
         {
             IntTypes int_type = IntTypes();
             SHA512 hash = SHA512();
             Node node = Node();
+            
+            // declare merkle root
+            alignas(uint64_t) std::shared_ptr<uint64_t> merkle_root(new uint64_t[8]);
             
             // to avoid 0 hashes to be invalid transactions in Mempool
             std::vector<std::shared_ptr<uint64_t>> mempool = Mempool;
@@ -1031,12 +1012,26 @@ namespace MerkleTree
                 /* validlen gets set to zero so don't use it after this loop */
             }
             // calculate MerkleRoot
-            node.append_levels(mempool, len, merkle_root);
-            
-            // store merkle_root in vector merkleRoots
-            merkleRoots.push_back(merkle_root);
+            merkle_root = node.append_levels(mempool, len, merkle_root);
+            return merkle_root;
         }
 }; // namespace MerkleTree
+
+
+
+
+#include <iostream>
+#include <vector>
+#include <ctime>
+#include <cmath>
+#include <string.h>
+#include <stdint.h>
+#include <chrono>
+#include <unistd.h>
+#include <climits>
+#include <algorithm>
+#include <functional>
+#include <sstream>
 
 namespace Blockchain
 {
@@ -1060,7 +1055,7 @@ namespace Blockchain
         return distr(generator);
     }
     
-    inline double difficulty(uint64_t nonce) // nonce not necesarry for version 1
+    inline double difficulty(uint64_t nonce) // use algorithm to generate difficulty
     {
         return 1;
     }
@@ -1117,7 +1112,7 @@ namespace Blockchain
     inline double nextBlockTime(double difficulty,
                                 uint64_t hashrate=calcHashRateSha512())
     {
-        double timeM = difficulty * pow(2,32) / hashrate / 3600; // minutes
+        double timeM = difficulty * pow(2,32) / hashrate; // microseconds
         return timeM;
     }
 };
@@ -1125,17 +1120,25 @@ namespace Blockchain
 class PoW
 {
     protected:
-        bool mineSingleTr(std::string encryptedTr, uint8_t* key, uint64_t
-                          difficulty, std::vector<std::shared_ptr<uint64_t>>
-                          mempool, uint64_t nonce, std::shared_ptr<uint64_t> target)
+        bool mineSingleTr(std::string encryptedTr, std::shared_ptr<uint8_t> key,
+                          uint64_t difficulty, std::vector<std::shared_ptr<uint64_t>>
+                          mempool, uint64_t nonce, std::shared_ptr<uint64_t> target,
+                          uint64_t trnsLength)
         {
-            std::cout << "calculating target...\n";
+            std::cout << "\ncalculating target...\n";
             std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
             uint64_t newNonce = nonce;
+            
+            // assign starting target value
             for(int c=0;c<8;c++) {
-                while(target.get()[c] > pow(2,30)) { // define target hash
+                target.get()[c] = sha512(encryptedTr +
+                                  std::to_string(newNonce+difficulty)).get()[c];
+            }
+            
+            for(int c=0;c<8;c++) { // TODO: decrease target hash
+                while(target.get()[c] > pow(2,62)) { // define target hash
                     target.get()[c] = sha512(encryptedTr +
-                                       std::to_string(newNonce+difficulty)).get()[c];
+                                      std::to_string(newNonce+difficulty)).get()[c];
                     newNonce++;
                 }
             }
@@ -1143,56 +1146,97 @@ class PoW
             std::cout << "verifying transaction...\n";
             AES::AES256 aes256;
             std::string transactionData = aes256.decrypt(encryptedTr, key);
-            std::shared_ptr<uint64_t> hash(new uint64_t);
+            std::shared_ptr<uint64_t> hash(new uint64_t[8]);
+            
+            /* Remove zeros in beggining caused by decrypting string that isn't 
+             * a multiple of 16.
+             */
+            transactionData.erase(trnsLength,transactionData.size()-trnsLength);
             hash = sha512(transactionData);
+            std::cout << trnsLength << "\n\n" << transactionData.size() << "\n\n";
             bool valid;
-            if(std::find(mempool.begin(), mempool.end(), hash) != mempool.end()) {
-                valid = true;
-            } else {
-                valid = false;
+            for(int i=0;i<mempool.size();i++) {
+                std::vector<bool> validity;
+                for(int c=0;c<8;c++) {
+                    if(mempool[i].get()[c] == hash.get()[c]) { // if any index of mempool matches hash
+                        validity.push_back(true);
+                    } else {
+                        validity.push_back(false);
+                    }
+                }
+                if(std::find(validity.begin(), validity.end(), false) !=
+                   validity.end()) {
+                    valid = false;
+                } else {
+                    valid = true;
+                    break; // stops if true, continues to search if false
+                }
+                // print target hash
+                std::cout << "\ntarget hash: ";
+                for(int c=0;c<8;c++) {
+                    std::cout << std::hex << target.get()[c];
+                }
             }
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-            std::cout << "seconds it took to verify transaction: "
-                      << std::chrono::duration_cast<std::chrono::microseconds>
-                         (end - begin).count()
+            std::cout << "\nmicroseconds it took to verify transaction: "
+                      << std::dec << std::chrono::duration_cast<std::chrono::
+                                     microseconds>(end - begin).count()
                       << std::endl;
             return valid;
         }
     public:
-        bool mineBlock(const std::map<std::string, uint8_t*> encryptedTs,
-                       uint64_t blockNonce, uint64_t difficulty, 
-                       std::vector<std::shared_ptr<uint64_t>> mempool, std::shared_ptr<uint64_t>
-                       v_merkle_root)
+        std::pair<bool, std::vector<std::shared_ptr<uint64_t>>>
+        mineBlock(const std::map<std::string, std::shared_ptr<uint8_t>> encryptedTs,
+                  uint64_t blockNonce, uint64_t difficulty, std::vector<std::
+                  shared_ptr<uint64_t>> mempool, std::shared_ptr<uint64_t>
+                  v_merkle_root, std::vector<uint64_t> trnsLengths)
         {
-            std::shared_ptr<uint64_t> target(new uint64_t); // each index >= 2^30
+            std::shared_ptr<uint64_t> target(new uint64_t[8]); // transaction target
             uint64_t loopt = 0;
-            std::shared_ptr<uint64_t> merkle_root;
-            MerkleTree::merkleRoot(mempool, merkle_root);
-            if(merkle_root != v_merkle_root) {
-                std::cout << "\nmerkle_root: false\n\n";
-                for (auto const& [key, val] : encryptedTs) {
+            std::shared_ptr<uint64_t> merkle_root(new uint64_t[8]);
+            merkle_root = MerkleTree::merkleRoot(mempool);
+            bool merkle_validity;
+            for(int c=0;c<8;c++) {
+                merkle_validity = (merkle_root.get()[c] == v_merkle_root.get()[c]);
+            }
+            std::cout << "\nmerkle_root: ";
+            for(int c=0;c<8;c++) {
+                std::cout << std::hex << merkle_root.get()[c];
+            }
+
+            if(merkle_validity == false) {
+                std::cout << "\nmerkle_root: false";
+                std::cout << "\nfalse merkle_root: ";
+                for(int c=0;c<8;c++) {
+                    std::cout << std::hex << v_merkle_root.get()[c];
+                }
+                std::cout << "\nchecking false transaction(s)...\n";
+                for (auto const [key, val] : encryptedTs) {
                     bool v = mineSingleTr(key, val, difficulty, mempool,
-                                          blockNonce, target);
+                                          blockNonce, target, trnsLengths[loopt]);
                     if(v == false) {
-                        std::cout << "transaction hash mismatch, transaction index:\t"
+                        std::cout << "\ntransaction hash mismatch, transaction index:\t"
                                   << loopt << "\n" << "transaction hash:\n";
                         for(int c=0;c<8;c++) {
                             std::cout << std::hex << mempool[loopt].get()[c];
                         }
                         std::cout << std::endl;
                         mempool.erase(mempool.begin() + loopt);
-                        std::cout << "\ntransaction deleted from mempool\n";
-                        
-                        loopt++; // mempool index
+                        std::cout << "\ntransaction deleted from mempool";
                     } else {
-                        std::cout << "validated transaction:\t" << loopt
-                                  << " from mempool\n";
+                        std::cout << "\nvalidated transaction:\t" << loopt
+                                  << " from mempool\ntransaction hash: ";
+                        for(int c=0;c<8;c++) {
+                            std::cout << std::hex << mempool[loopt].get()[c];
+                        }
+                        std::cout << std::endl;
                     }
+                    loopt++; // mempool index
                 }
             } else {
                 std::cout << "\nmerkle_root: true\n\n";
             }
-            return true;
+            return {true, mempool}; // cleaned mempool
         }
 };
 
@@ -1212,28 +1256,37 @@ class Block
         }
         
         // generate block
-        void genBlock(std::shared_ptr<uint64_t> target, uint64_t nonce, std::shared_ptr<uint64_t>
-                      merkle_root, double difficulty)
+        std::shared_ptr<uint64_t> genBlock(std::shared_ptr<uint64_t> target,
+                                           uint64_t nonce, std::shared_ptr
+                                           <uint64_t> merkle_root, double
+                                           difficulty)
         {
             std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
             bool valid;
-            uint64_t newNonce = nonce;
+            __uint128_t newNonce = (__uint128_t)nonce;
             std::string merkle_root_str = "";
             for(int c=0;c<8;c++) {
                 merkle_root_str += std::to_string(merkle_root.get()[c]);
             }
-            
             for(int c=0;c<8;c++) {
-                while(target.get()[c] > pow(2,30)) {
+                target.get()[c] = sha512(merkle_root_str + std::to_string(newNonce+difficulty)).get()[c];
+            }
+            for(int c=0;c<8;c++) {
+                while(target.get()[c] >= pow(2,56)) {
                     target.get()[c] = sha512(merkle_root_str +
                                              std::to_string(newNonce+difficulty)).get()[c];
                     newNonce++;
                 }
             }
+            std::cout << "\ntarget: ";
+            for(int c=0;c<8;c++) {
+                std::cout << std::hex << target.get()[c] << "";
+            }
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-            std::cout << "seconds it took to generate block: " << std::chrono::duration_cast
-                                             <std::chrono::microseconds>
-                                             (end - begin).count() << std::endl;
+            std::cout << "\nmicroseconds it took to generate block: " << std::dec
+                      << std::chrono::duration_cast<std::chrono::microseconds>
+                         (end - begin).count() << std::endl;
+            return target;
         }
         /* make a tuple function that returns block components */
         std::tuple</* prevBlockHash */std::shared_ptr<uint64_t>, 
@@ -1241,27 +1294,18 @@ class Block
                    /* nonce */uint64_t, /* block difficulty */double,
                    /* merkle_root */std::shared_ptr<uint64_t>,
                    /* next block generation time*/double,
-                   /* average hashrate */double, /* block hash */std::shared_ptr<uint64_t>>
-       data(std::vector<std::shared_ptr<uint64_t>> mempool, const std::map<
-            std::string, uint8_t*> encryptedTs, std::string encryptedTr="",
-            uint8_t* AESkey=nullptr)
+                   /* average hashrate */double> data(std::vector<std::shared_ptr
+                                                      <uint64_t>> mempool)
        {
-           return {nullptr,"",0,0,0.0,nullptr,0.0,0.0, nullptr};
-       }
-        
-        std::string data_str(std::vector<std::shared_ptr<uint64_t>> mempool, const 
-                         std::map<std::string, uint8_t*> encryptedTs,
-                         std::string encryptedTr="", uint8_t* AESkey=nullptr)
-        {
             /* use this to represent block in blockchain, use tuple data to 
                compare values in block for testing */
             SHA512 hash = SHA512();
             PoW ProofofWork = PoW();
-            std::shared_ptr<uint64_t> target(new uint64_t);
-            std::shared_ptr<uint64_t> merkle_root;
-            MerkleTree::merkleRoot(mempool, merkle_root);
+            std::shared_ptr<uint64_t> target(new uint64_t[8]);
+            std::shared_ptr<uint64_t> merkle_root(new uint64_t[8]);
+            merkle_root = MerkleTree::merkleRoot(mempool);
             MerkleTree::merkleRoots.push_back(merkle_root);
-            std::shared_ptr<uint64_t> prevBlockHash(new uint64_t);
+            std::shared_ptr<uint64_t> prevBlockHash(new uint64_t[8]);
             uint32_t blockchainsize = Blockchain::blockchain.size();
             std::string timestamp = Blockchain::generateTimestamp();
             uint64_t nonce = Blockchain::generateNonce<uint64_t>();
@@ -1272,20 +1316,75 @@ class Block
             uint64_t avHashrate = averageHashRate();
             std::cout << "\ngenerating block\n";
             genBlock(target, nonce, merkle_root, difficulty);
-            bool blockMined = ProofofWork.mineBlock(encryptedTs, nonce, difficulty,
-                                                    mempool, merkle_root);
             double blockGenTime = Blockchain::nextBlockTime(difficulty, avHashrate);
             std::cout << "next block will be generated in " << blockGenTime
                       << std::endl;
             if(blockchainsize > 1) {
-                prevBlockHash = Blockchain::Blockhashes[blockchainsize-1];
+                for(int c=0;c<8;c++) {
+                    prevBlockHash.get()[c] = Blockchain::Blockhashes
+                                             [blockchainsize-1].get()[c];
+                }
+            } else {
+                for(int c=0;c<8;c++) {
+                    prevBlockHash.get()[c] = 0x00ULL;
+                }
             }
-            /* put everything to tuple and convert to string here to print and
-             * represent in block
-             */
-            return std::string();
+            
+           return {prevBlockHash,timestamp,blockchainsize,nonce,difficulty,
+                   merkle_root,blockGenTime,avHashrate};
+       }
+        
+        std::string data_str(std::vector<std::shared_ptr<uint64_t>> mempool,
+                             std::string blockchain_version)
+        {
+            /* use this to represent block in blockchain, use tuple data to 
+               compare values in block for testing */
+            std::tuple<std::shared_ptr<uint64_t>,std::string,uint32_t,uint64_t, 
+                       double,std::shared_ptr<uint64_t>, double, double>
+            block_data = data(mempool);
+            std::stringstream BLOCKCHAIN_BLOCKDATA;
+            std::shared_ptr<uint64_t> prevBlockHash(new uint64_t[8]);
+            std::string timestamp;
+            uint32_t blockchainSize;
+            uint64_t nonce;
+            double difficulty, nextBlockGenTime, avHashrate;
+            std::shared_ptr<uint64_t> merkle_root;
+            std::tie(prevBlockHash, timestamp, blockchainSize, nonce, difficulty,
+                     merkle_root,nextBlockGenTime, avHashrate) = block_data;
+            BLOCKCHAIN_BLOCKDATA << "previous block hash: ";
+            for(int c=0;c<8;c++) {
+                BLOCKCHAIN_BLOCKDATA << std::hex
+                                     << prevBlockHash.get()[c];
+            }
+            BLOCKCHAIN_BLOCKDATA << "\ntimestamp: " << timestamp;
+            BLOCKCHAIN_BLOCKDATA << "blockchain size: "
+                                 << std::dec << blockchainSize;
+            BLOCKCHAIN_BLOCKDATA << "\nnonce: "
+                                 << std::dec << nonce;
+            BLOCKCHAIN_BLOCKDATA << "\ndifficulty: "
+                                 << difficulty;
+            BLOCKCHAIN_BLOCKDATA << "\nmerkle_root: ";
+            for(int c=0;c<8;c++) {
+                BLOCKCHAIN_BLOCKDATA << std::hex << merkle_root.get()[c];
+            }
+            BLOCKCHAIN_BLOCKDATA << "\napproximate time until next block: "
+                                 << nextBlockGenTime;
+            BLOCKCHAIN_BLOCKDATA << "\nAverage hashrate of miners: "
+                                 << avHashrate;
+            BLOCKCHAIN_BLOCKDATA << "\nblockchain version: " << blockchain_version;
+            std::shared_ptr<uint64_t> blockHash;
+            blockHash = sha512(BLOCKCHAIN_BLOCKDATA.str());
+            BLOCKCHAIN_BLOCKDATA << "\nblock hash: ";
+            for(int c=0;c<8;c++) {
+                BLOCKCHAIN_BLOCKDATA << std::hex << blockHash.get()[c];
+            }
+            Blockchain::Blockhashes.push_back(blockHash);
+            Blockchain::blockchain.push_back(BLOCKCHAIN_BLOCKDATA.str());
+            return BLOCKCHAIN_BLOCKDATA.str();
         }
 };
+
+
 
 
 /*
@@ -1299,22 +1398,33 @@ class Block
 * 
 */
 
+#include <iostream>
+#include <string>
+#include <random>
+#include <time.h>
+#include <tuple>
+#include <map>
+#include "bigInt.h"
+#include "sha512.h"
+#include "MerkleTree.h"
+#include "AES.h" // Symmetrical Encryption
+#include "block.h"
+
 // 256-bit random number. AES key
-uint8_t* GenerateAES256Key()
+std::shared_ptr<uint8_t> GenerateAES256Key()
 {
     /* random byte using Mersenne Twister. Not recommended for 
        cryptography but couldn't find a cryptographic random byte generator */
-    uint8_t* key = nullptr;
-    key = new uint8_t[32];
+    std::shared_ptr<uint8_t> key(new uint8_t[32]);
     std::random_device randDev;
     std::mt19937 generator(randDev() ^ time(NULL));
      std::uniform_int_distribution<uint32_t> distr;
     for(int c=0;c<32-4;c++) {
         uint32_t tmp = distr(generator);
-        key[c] = tmp>>24 & 0xff;
-        key[c+1] = tmp>>16 & 0xff;
-        key[c+2] = tmp>>8 & 0xff;
-        key[c+3] = tmp & 0xff;
+        key.get()[c] = tmp>>24 & 0xff;
+        key.get()[c+1] = tmp>>16 & 0xff;
+        key.get()[c+2] = tmp>>8 & 0xff;
+        key.get()[c+3] = tmp & 0xff;
     }
     return key;
 }
@@ -1325,8 +1435,8 @@ struct Transaction {
     std::shared_ptr<uint64_t> receiver;
     uint32_t amount;
     
-    std::string encryptTr(uint8_t* key)
-    { // decrypted hashed data should equal hash in mempool. TEST
+    std::string encryptTr(std::shared_ptr<uint8_t> key)
+    {
         AES::AES256 aes256;
         std::string transactionData = "";
         transactionData += "sender: ";
@@ -1338,18 +1448,36 @@ struct Transaction {
             transactionData += std::to_string(receiver.get()[c]);
         }
         transactionData += ", amount: " + std::to_string(amount);
+        
         return aes256.encrypt(transactionData, key);
     }
     
+    // to delete padding from decrypted message
+    uint64_t getLength()
+    {
+        std::string transactionData = "";
+        transactionData += "sender: ";
+        for(int c=0;c<8;c++) {
+            transactionData += std::to_string(sender.get()[c]);
+        }
+        transactionData += ", receiver: ";
+        for(int c=0;c<8;c++) {
+            transactionData += std::to_string(receiver.get()[c]);
+        }
+        transactionData += ", amount: " + std::to_string(amount);
+        return transactionData.length();
+    }
+    
+    
     // if owner of wallet(WalletAddress and keys)
-    void dumptrdata(const std::map<std::shared_ptr<uint64_t>,std::vector<uint8_t*>>
+    void dumptrdata(const std::map<std::shared_ptr<uint64_t>,std::vector<std::shared_ptr<uint8_t>>>
                     walletData)
     {/* not tested */
         /* walletData = map to verify if owner of the wallet is requesting data dump
-           std::shared_ptr<uint64_t> is WalletAddress and vector of uint8_t* is the string AES key
+           std::shared_ptr<uint64_t> is WalletAddress and vector of std::shared_ptr<uint8_t> is the string AES key
            used as plain text and the AES key used as an AES key.
            walletData vector has length 2 and key used as key is first and 
-           string key as uint8_t* is second
+           string key as std::shared_ptr<uint8_t> is second
         */
         // useless function. Delete if not useful as reference
         std::cout << std::endl << std::endl;
@@ -1358,7 +1486,7 @@ struct Transaction {
         std::string AES256_ciphertext = "";
         for (auto const& [key, val] : walletData) {
             for(int c=0;c<32;c++) {
-            AESkeyStr += std::to_string(val[1][c]);
+            AESkeyStr += std::to_string(val[1].get()[c]);
             }
             AES256_ciphertext = aes256.encrypt(AESkeyStr, val[0]);
             for(int i=0;i<8;i++) {
@@ -1369,7 +1497,7 @@ struct Transaction {
             }
             std::cout << std::endl << std::endl << "AES256 key:\t";
             for(int c=0;c<32;c++) {
-                std::cout << val[1][c];
+                std::cout << val[1].get()[c];
             }
             std::cout << std::endl << std::endl;
         }
@@ -1407,31 +1535,29 @@ struct Transaction {
 class WalletAddress
 {
     public:
-        std::pair<std::shared_ptr<uint64_t>, std::vector<uint8_t*>> 
+        std::pair<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>> 
         GenerateNewWalletAddress(std::string askForPrivKey="")
         {
             std::string AES256_ciphertext;
             IntTypes int_type = IntTypes();
             AES::AES256 aes256;
-            uint8_t* AESkey = nullptr;
-            AESkey = new uint8_t[32];
+            std::shared_ptr<uint8_t> AESkey(new uint8_t[32]);
             AESkey = GenerateAES256Key(); // 32 bytes
-            uint8_t* NewAESkey = nullptr;
-            NewAESkey = new uint8_t[32];
+            std::shared_ptr<uint8_t> NewAESkey(new uint8_t[32]);
             NewAESkey = GenerateAES256Key();
             std::string AESkeyStr = "";
             for(int c=0;c<32;c++) { /* plain text = new AES key in string */
-                AESkeyStr += std::to_string(NewAESkey[c]);
+                AESkeyStr += std::to_string(NewAESkey.get()[c]);
             }
             AES256_ciphertext = aes256.encrypt(AESkeyStr, AESkey);
             if (askForPrivKey == "dump AES-key") {
                 std::cout << std::endl << "AES256 key:\t";
                 for(int c=0;c<32;c++) {
-                    std::cout << AESkey[c];
+                    std::cout << AESkey.get()[c];
                 }
                 std::cout << std::endl << std::endl;
             }
-            std::vector<uint8_t*> keys;
+            std::vector<std::shared_ptr<uint8_t>> keys;
             keys.push_back(AESkey);
             keys.push_back(NewAESkey);
             return {sha512(AES256_ciphertext), keys};
@@ -1442,14 +1568,14 @@ class Address
 {
     public:
         void verifyOwnerData(const std::map<std::shared_ptr<uint64_t>,
-                             std::vector<uint8_t*>> walletData)
+                             std::vector<std::shared_ptr<uint8_t>>> walletData)
         {
             AES::AES256 aes256;
             std::string AESkeyStr = "";
             std::string AES256_ciphertext = "";
             for (auto const& [key, val] : walletData) {
                 for(int c=0;c<32;c++) {
-                    AESkeyStr += std::to_string(val[1][c]);
+                    AESkeyStr += std::to_string(val[1].get()[c]);
                 }
                 AES256_ciphertext = aes256.encrypt(AESkeyStr, val[0]);
                 for(int i=0;i<8;i++) {
@@ -1464,7 +1590,7 @@ class Address
         }
         
         void WalletAddressNotFound(std::shared_ptr<uint64_t> walletAddress,
-                                   std::vector<uint8_t*> AESkeysWallet,
+                                   std::vector<std::shared_ptr<uint8_t>> AESkeysWallet,
                                    std::string askForPrivKey="")
         {
             WalletAddress wallet_address = WalletAddress();
@@ -1486,13 +1612,14 @@ class Address
                             std::shared_ptr<uint64_t> receiver, 
                             uint32_t amount, std::vector<std::shared_ptr<
                             uint64_t>> mempool, std::map<std::shared_ptr
-                            <uint64_t>, std::vector<uint8_t*>> verifyInfo,
-                            std::string sellorbuy, std::vector<uint8_t*> AESkeysTr,
-                            std::vector<std::shared_ptr<uint64_t>> transactionhashes,
-                            std::vector<std::string> ciphertexts, int32_t storedCrypto,
-                            std::vector<uint8_t*> AESkeysWallet, std::shared_ptr
-                            <uint64_t> walletAddress=nullptr,
-                            std::string askForPrivKey="")
+                            <uint64_t>, std::vector<std::shared_ptr<uint8_t>>>
+                            verifyInfo, std::string sellorbuy, std::vector<
+                            std::shared_ptr<uint8_t>> AESkeysTr, std::vector
+                            <std::shared_ptr<uint64_t>> transactionhashes,
+                            std::vector<std::string> ciphertexts, int32_t
+                            storedCrypto, std::vector<std::shared_ptr<uint8_t>>
+                            AESkeysWallet,std::shared_ptr<uint64_t> walletAddress
+                            =nullptr,std::string askForPrivKey="")
         {
             Address address = Address();
             if(walletAddress != nullptr) {
@@ -1509,8 +1636,7 @@ class Address
                 }
                 struct Transaction trns{sender, receiver, amount};
                 transactionhashes.push_back(trns.Hash());
-                uint8_t* newAES_TrKey = nullptr;
-                newAES_TrKey = new uint8_t[32];
+                std::shared_ptr<uint8_t> newAES_TrKey(new uint8_t[32]);
                 newAES_TrKey = GenerateAES256Key();
                 ciphertexts.push_back(trns.encryptTr(newAES_TrKey));
                 AESkeysTr.push_back(newAES_TrKey);
@@ -1533,16 +1659,16 @@ struct Wallet {
     std::shared_ptr<uint64_t> walletAddress;
     
     // can be empty if WalletAddressNotFound
-    std::vector<uint8_t*> AESkeysWallet;  // length of 2
+    std::vector<std::shared_ptr<uint8_t>> AESkeysWallet;  // length of 2
     
     /* verifyInfo includes AESkeysWallet in the first and second index. 
       If they don't match, don't change anything on the Wallet */
-    std::map<std::shared_ptr<uint64_t>, std::vector<uint8_t*>> verifyInfo;
+    std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>> verifyInfo;
     void new_transaction(std::shared_ptr<uint64_t> sender,
                             std::shared_ptr<uint64_t> receiver, 
                             uint32_t amount, std::vector<std::shared_ptr<
                             uint64_t>> mempool, std::string sellorbuy,
-                            std::vector<uint8_t*> AESkeysTr, std::vector<
+                            std::vector<std::shared_ptr<uint8_t>> AESkeysTr, std::vector<
                             std::shared_ptr<uint64_t>> transactionhashes,
                             std::vector<std::string> ciphertexts, int32_t
                             storedCrypto, std::string askForPrivKey="")
@@ -1582,13 +1708,14 @@ int main()
     std::shared_ptr<uint64_t> walletAddress(new uint64_t[8]);
     std::vector<std::shared_ptr<uint64_t>> mempool; // declare mempool
     std::vector<std::shared_ptr<uint64_t>> walletAddresses; // All wallet addresses
+    std::string blockchain_version = "1.0";
+    /* TEST PoW MINE */
     struct Transaction trns{sha512("sender"), sha512("receiver"), 50000};
     struct Transaction trns1{sha512("sener"), sha512("receiver"), 54000};
     struct Transaction trns2{sha512("sender"), sha512("reciver"), 35600};
     struct Transaction trns3{sha512("nder"), sha512("receiver"), 50000};
     struct Transaction trns4{sha512("sender"), sha512("receiver"), 40000};
     mempool.push_back(trns.Hash());
-    /* TEST MERKLE_ROOT */
     mempool.push_back(trns1.Hash());
     mempool.push_back(trns2.Hash());
     mempool.push_back(trns3.Hash());
@@ -1596,66 +1723,112 @@ int main()
     mempool.push_back(trns.Hash());
     mempool.push_back(trns1.Hash());
     mempool.push_back(trns2.Hash()); // 8 transactions
-    /* TEST MERKLE_ROOT */
-    /* TEST PoW MINE */
-    uint8_t* AES_key_mining = new uint8_t[32];
-    uint8_t* AES_key_mining1 = new uint8_t[32];
-    uint8_t* AES_key_mining2 = new uint8_t[32];
-    uint8_t* AES_key_mining3 = new uint8_t[32];
+    std::shared_ptr<uint8_t> AES_key_mining(new uint8_t[32]);
+    std::shared_ptr<uint8_t> AES_key_mining1(new uint8_t[32]);
+    std::shared_ptr<uint8_t> AES_key_mining2(new uint8_t[32]);
+    std::shared_ptr<uint8_t> AES_key_mining3(new uint8_t[32]);
+    std::shared_ptr<uint8_t> AES_key_mining4(new uint8_t[32]);
+    std::shared_ptr<uint8_t> AES_key_mining5(new uint8_t[32]);
     AES_key_mining = GenerateAES256Key();
     AES_key_mining1 = GenerateAES256Key();
     AES_key_mining2 = GenerateAES256Key();
     AES_key_mining3 = GenerateAES256Key();
-    std::map<std::string, uint8_t*> transactionsEnc;
-    std::map<std::string, uint8_t*>::iterator it = transactionsEnc.begin();
-    transactionsEnc.insert (it, std::pair<std::string, uint8_t*>
+    AES_key_mining4 = GenerateAES256Key();
+    AES_key_mining5 = GenerateAES256Key();
+    std::map<std::string, std::shared_ptr<uint8_t>> transactionsEnc;
+    std::map<std::string, std::shared_ptr<uint8_t>>::iterator it = transactionsEnc.begin(); ///// add all mempool transactions in order
+    transactionsEnc.insert (it, std::pair<std::string, std::shared_ptr<uint8_t>>
                             (trns.encryptTr(AES_key_mining), AES_key_mining)); // 
-    transactionsEnc.insert (it, std::pair<std::string, uint8_t*>
+    transactionsEnc.insert (it, std::pair<std::string, std::shared_ptr<uint8_t>>
                             (trns1.encryptTr(AES_key_mining1), AES_key_mining1)); // 1
-    transactionsEnc.insert (it, std::pair<std::string, uint8_t*>
+    transactionsEnc.insert (it, std::pair<std::string, std::shared_ptr<uint8_t>>
                             (trns2.encryptTr(AES_key_mining2), AES_key_mining2)); // 2
-    transactionsEnc.insert (it, std::pair<std::string, uint8_t*>
+    transactionsEnc.insert (it, std::pair<std::string, std::shared_ptr<uint8_t>>
                             (trns3.encryptTr(AES_key_mining3), AES_key_mining3)); // 3
-
+    transactionsEnc.insert (it, std::pair<std::string, std::shared_ptr<uint8_t>>
+                            (trns4.encryptTr(AES_key_mining4), AES_key_mining4)); // 4
+    transactionsEnc.insert (it, std::pair<std::string, std::shared_ptr<uint8_t>>
+                            (trns.encryptTr(AES_key_mining), AES_key_mining)); // 
+    transactionsEnc.insert (it, std::pair<std::string, std::shared_ptr<uint8_t>>
+                            (trns1.encryptTr(AES_key_mining1), AES_key_mining1)); // 1
+    transactionsEnc.insert (it, std::pair<std::string, std::shared_ptr<uint8_t>>
+                            (trns2.encryptTr(AES_key_mining2), AES_key_mining2)); // 2 -- 8 transactions
+    std::vector<std::shared_ptr<uint64_t>> mempool2;
+    mempool2.push_back(trns.Hash());
+    mempool2.push_back(trns1.Hash());
+    mempool2.push_back(trns2.Hash());
+    mempool2.push_back(trns3.Hash());
+    mempool2.push_back(trns4.Hash()); // 5 transactions
+    mempool2.push_back(trns.Hash());
+    mempool2.push_back(trns1.Hash());
+    mempool2.push_back(trns2.Hash()); // 8 transactions
+    mempool2.push_back(trns1.Hash()); // false from here
+    mempool2.push_back(trns2.Hash());
     /* TEST PoW MINE */
-    // block.data(mempool, transactionsEnc);
-    MerkleTree::merkleRoot(mempool, merkle_root);
     auto [fst,snd] = wallet_address.GenerateNewWalletAddress();
     walletAddress = fst;
     walletAddresses.push_back(fst);
     std::cout << "\n\nline 339, main.cpp:\t";
     for(int c=0;c<8;c++) {
-        for(int i=0;i<8;i++) {
-            // std::cout << std::hex << walletAddress.get()[c] << " ";
-            std::cout << std::hex << mempool[c].get()[i] << "";
-            if(i==7) {
-                std::cout << "\n\n";
-            }
-        }
+        // std::cout << std::hex << walletAddress.get()[c] << " ";
     }
-    ///// LAYER 1
-//c0458810c14f6fc333bbf366c10036cf2708e64dae0bfc7ee8f789b9b91d0a1ab36feb40b7d5922715f093dbfb7cf34bded5a2edbf6325fdf251ad11b0626d4
-//c248a81388e1c37c4f429d4c901ffb7a6384aea90b6dba464e6d846aeeea7dabc61e4dba220a5d3fecb31abb2a1ca013450c451146411403c7e7502a68f99de
-//ce38f08578bc2354324c354a9319ffe84ca785b59b40f682f6632a451cf87d485f5b68866f03ddb79865784e6448e0e381bb3bfe7d48fe0bd761190efbf9c6ee
-//9d7fbec69a94b388b29912bd559d9d976e5f262ce99acf03180e724ab88522da492cf558b3dbd055b8ab0b4d26a08951b5a9ad9aa73149fd91608d134c504b2
-//56a6e31e8e000b98c94d56c6778f065eb64e91711774aeaba4d858108046938fb373c931a7a696aa4ff13e38ab4753a682f53ac3bf8b27b31e4d60780151fc87
-//c0458810c14f6fc333bbf366c10036cf2708e64dae0bfc7ee8f789b9b91d0a1ab36feb40b7d5922715f093dbfb7cf34bded5a2edbf6325fdf251ad11b0626d4
-//c248a81388e1c37c4f429d4c901ffb7a6384aea90b6dba464e6d846aeeea7dabc61e4dba220a5d3fecb31abb2a1ca013450c451146411403c7e7502a68f99de
-//ce38f08578bc2354324c354a9319ffe84ca785b59b40f682f6632a451cf87d485f5b68866f03ddb79865784e6448e0e381bb3bfe7d48fe0bd761190efbf9c6ee
-    ///////////// LAYER 2
-//
-    
-    
+    bool blockMined = false;
+    if(blockMined == false) {
+        std::vector<uint64_t> trnsLength;
+        /* TEST PoW MINE */
+        trnsLength.push_back(trns.getLength());
+        trnsLength.push_back(trns1.getLength());
+        trnsLength.push_back(trns2.getLength());
+        trnsLength.push_back(trns3.getLength());
+        trnsLength.push_back(trns4.getLength());
+        trnsLength.push_back(trns.getLength());
+        trnsLength.push_back(trns1.getLength());
+        trnsLength.push_back(trns2.getLength());
+        trnsLength.push_back(trns1.getLength());
+        trnsLength.push_back(trns2.getLength());
+        /* TEST PoW MINE */
+        std::tuple<std::shared_ptr<uint64_t>,std::string,uint32_t,uint64_t, 
+               double,std::shared_ptr<uint64_t>, double, double>
+        unverified_block_data = block.data(mempool2);
+        uint32_t blockchainSize;
+        uint64_t nonce;
+        std::shared_ptr<uint64_t> prevBlockHash(new uint64_t[8]);
+        std::string timestamp;
+        double difficulty, nextBlockGenTime, avHashrate;
+        std::tie(prevBlockHash, timestamp, blockchainSize, nonce, difficulty,
+                 merkle_root,nextBlockGenTime, avHashrate) = unverified_block_data;
+        auto [isblockmined,clean_mempool] = ProofofWork.mineBlock(transactionsEnc,
+                                                                  nonce, difficulty,
+                                                                  mempool,
+                                                                  merkle_root,
+                                                                  trnsLength);
+        std::cout << "\nmempool cleaned";
+        blockMined = isblockmined;
+        
+        if(blockMined) {
+            std::cout << "\nblock mined successfully";
+            std::cout << "\nrepresenting correct block in blockhain...\n";
+            std::cout << block.data_str(clean_mempool,blockchain_version);
+            std::cout << "\n\nblock added to blockchain";
+            /* wrong mempool cannot have less than correct mempool since wrong
+             * mempool has new false transaction */
+        }
+// c0458810c14f6fc333bbf366c10036cf2708e64dae0bfc7ee8f789b9b91d0a1ab36feb40b7d5922715f093dbfb7cf34bded5a2edbf6325fdf251ad11b0626d4
+// c248a81388e1c37c4f429d4c901ffb7a6384aea90b6dba464e6d846aeeea7dabc61e4dba220a5d3fecb31abb2a1ca013450c451146411403c7e7502a68f99de
+// ce38f08578bc2354324c354a9319ffe84ca785b59b40f682f6632a451cf87d485f5b68866f03ddb79865784e6448e0e381bb3bfe7d48fe0bd761190efbf9c6ee
+// 9d7fbec69a94b388b29912bd559d9d976e5f262ce99acf03180e724ab88522da492cf558b3dbd055b8ab0b4d26a08951b5a9ad9aa73149fd91608d134c504b2
+// 56a6e31e8e000b98c94d56c6778f065eb64e91711774aeaba4d858108046938fb373c931a7a696aa4ff13e38ab4753a682f53ac3bf8b27b31e4d60780151fc87
+// c0458810c14f6fc333bbf366c10036cf2708e64dae0bfc7ee8f789b9b91d0a1ab36feb40b7d5922715f093dbfb7cf34bded5a2edbf6325fdf251ad11b0626d4
+// c248a81388e1c37c4f429d4c901ffb7a6384aea90b6dba464e6d846aeeea7dabc61e4dba220a5d3fecb31abb2a1ca013450c451146411403c7e7502a68f99de
+// ce38f08578bc2354324c354a9319ffe84ca785b59b40f682f6632a451cf87d485f5b68866f03ddb79865784e6448e0e381bb3bfe7d48fe0bd761190efbf9c6ee
+    }
     std::cout << "\nline 339, main.cpp complete";
     /* TEST walletAddress */
-    std::map<std::shared_ptr<uint64_t>, std::vector<uint8_t*>> testMap;
-    std::map<std::shared_ptr<uint64_t>, std::vector<uint8_t*>>::iterator
+    std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>> testMap;
+    std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>>::iterator
     itMap = testMap.begin();
     testMap.insert(itMap, std::pair<std::shared_ptr<uint64_t>, 
-                   std::vector<uint8_t*>>(walletAddress, snd));
+                   std::vector<std::shared_ptr<uint8_t>>>(walletAddress, snd));
     struct Wallet TestWallet{walletAddress, snd, testMap};
-    
-    delete[] snd[0];
-    delete[] snd[1];
     return 0;
 }
