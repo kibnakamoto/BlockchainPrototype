@@ -321,23 +321,67 @@ class Block
                    merkle_root,blockGenTime,avHashrate};
        }
         
-        std::string data_str(std::vector<std::shared_ptr<uint64_t>> mempool,
-                             std::string blockchain_version)
+        /* if recrease all block data */
+        // std::string data_str(std::vector<std::shared_ptr<uint64_t>> mempool,
+        //                      std::string blockchain_version)
+        // {
+        //     /* use this to represent block in blockchain, use tuple data to 
+        //       compare values in block for testing */
+        //     std::tuple<std::shared_ptr<uint64_t>,std::string,uint32_t,uint64_t, 
+        //               double,std::shared_ptr<uint64_t>, double, double>
+        //     block_data = data(mempool);
+        //     std::stringstream BLOCKCHAIN_BLOCKDATA;
+        //     std::shared_ptr<uint64_t> prevBlockHash(new uint64_t[8]);
+        //     std::string timestamp;
+        //     uint32_t blockchainSize;
+        //     uint64_t nonce;
+        //     double difficulty, nextBlockGenTime, avHashrate;
+        //     std::shared_ptr<uint64_t> merkle_root;
+        //     std::tie(prevBlockHash, timestamp, blockchainSize, nonce, difficulty,
+        //              merkle_root,nextBlockGenTime, avHashrate) = block_data;
+        //     BLOCKCHAIN_BLOCKDATA << "previous block hash: ";
+        //     for(int c=0;c<8;c++) {
+        //         BLOCKCHAIN_BLOCKDATA << std::hex
+        //                              << prevBlockHash.get()[c];
+        //     }
+        //     BLOCKCHAIN_BLOCKDATA << "\ntimestamp: " << timestamp;
+        //     BLOCKCHAIN_BLOCKDATA << "blockchain size: "
+        //                          << std::dec << blockchainSize;
+        //     BLOCKCHAIN_BLOCKDATA << "\nnonce: "
+        //                          << std::dec << nonce;
+        //     BLOCKCHAIN_BLOCKDATA << "\ndifficulty: "
+        //                          << difficulty;
+        //     BLOCKCHAIN_BLOCKDATA << "\nmerkle_root: ";
+        //     for(int c=0;c<8;c++) {
+        //         BLOCKCHAIN_BLOCKDATA << std::hex << merkle_root.get()[c];
+        //     }
+        //     BLOCKCHAIN_BLOCKDATA << "\napproximate time until next block: "
+        //                          << nextBlockGenTime;
+        //     BLOCKCHAIN_BLOCKDATA << "\nAverage hashrate of miners: "
+        //                          << avHashrate;
+        //     BLOCKCHAIN_BLOCKDATA << "\nblockchain version: " << blockchain_version;
+        //     std::shared_ptr<uint64_t> blockHash;
+        //     blockHash = sha512(BLOCKCHAIN_BLOCKDATA.str());
+        //     BLOCKCHAIN_BLOCKDATA << "\nblock hash: ";
+        //     for(int c=0;c<8;c++) {
+        //         BLOCKCHAIN_BLOCKDATA << std::hex << blockHash.get()[c];
+        //     }
+        //     Blockchain::Blockhashes.push_back(blockHash);
+        //     Blockchain::blockchain.push_back(BLOCKCHAIN_BLOCKDATA.str());
+        //     return BLOCKCHAIN_BLOCKDATA.str();
+        // }
+        /* use UI block data */
+        std::string data_str(std::shared_ptr<uint64_t> prevBlockHash, std::string
+                             timestamp, uint32_t blockchainSize, uint64_t nonce,
+                             double difficulty, double nextBlockGenTime,
+                             double avHashrate, std::vector<std::shared_ptr
+                             <uint64_t>> clean_mempool, std::string blockchain_version)
         {
             /* use this to represent block in blockchain, use tuple data to 
                compare values in block for testing */
-            std::tuple<std::shared_ptr<uint64_t>,std::string,uint32_t,uint64_t, 
-                       double,std::shared_ptr<uint64_t>, double, double>
-            block_data = data(mempool);
             std::stringstream BLOCKCHAIN_BLOCKDATA;
-            std::shared_ptr<uint64_t> prevBlockHash(new uint64_t[8]);
-            std::string timestamp;
-            uint32_t blockchainSize;
-            uint64_t nonce;
-            double difficulty, nextBlockGenTime, avHashrate;
-            std::shared_ptr<uint64_t> merkle_root;
-            std::tie(prevBlockHash, timestamp, blockchainSize, nonce, difficulty,
-                     merkle_root,nextBlockGenTime, avHashrate) = block_data;
+            std::shared_ptr<uint64_t> merkle_root(new uint64_t[8]);
+            merkle_root = MerkleTree::merkleRoot(clean_mempool);
             BLOCKCHAIN_BLOCKDATA << "previous block hash: ";
             for(int c=0;c<8;c++) {
                 BLOCKCHAIN_BLOCKDATA << std::hex
