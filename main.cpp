@@ -64,7 +64,7 @@ struct Transaction {
     }
     
     // to delete padding from decrypted message
-    uint64_t getLength()
+    uint64_t length()
     {
         std::string transactionData = "";
         transactionData += "sender: ";
@@ -320,6 +320,7 @@ int main()
     std::vector<std::shared_ptr<uint64_t>> mempool; // declare mempool
     std::vector<std::shared_ptr<uint64_t>> walletAddresses; // All wallet addresses
     std::string blockchain_version = "1.0";
+    bool blockMined = false;
     /* TEST PoW MINE */
     struct Transaction trns{sha512("sender"), sha512("receiver"), 50000};
     struct Transaction trns1{sha512("sener"), sha512("receiver"), 54000};
@@ -339,13 +340,11 @@ int main()
     std::shared_ptr<uint8_t> AES_key_mining2(new uint8_t[32]);
     std::shared_ptr<uint8_t> AES_key_mining3(new uint8_t[32]);
     std::shared_ptr<uint8_t> AES_key_mining4(new uint8_t[32]);
-    std::shared_ptr<uint8_t> AES_key_mining5(new uint8_t[32]);
     AES_key_mining = GenerateAES256Key();
     AES_key_mining1 = GenerateAES256Key();
     AES_key_mining2 = GenerateAES256Key();
     AES_key_mining3 = GenerateAES256Key();
     AES_key_mining4 = GenerateAES256Key();
-    AES_key_mining5 = GenerateAES256Key();
     std::map<std::string, std::shared_ptr<uint8_t>> transactionsEnc;
     std::map<std::string, std::shared_ptr<uint8_t>>::iterator it = transactionsEnc.begin(); ///// add all mempool transactions in order
     transactionsEnc.insert (it, std::pair<std::string, std::shared_ptr<uint8_t>>
@@ -383,20 +382,19 @@ int main()
     for(int c=0;c<8;c++) {
         // std::cout << std::hex << walletAddress.get()[c] << " ";
     }
-    bool blockMined = false;
     if(blockMined == false) {
         std::vector<uint64_t> trnsLength;
         /* TEST PoW MINE */
-        trnsLength.push_back(trns.getLength());
-        trnsLength.push_back(trns1.getLength());
-        trnsLength.push_back(trns2.getLength());
-        trnsLength.push_back(trns3.getLength());
-        trnsLength.push_back(trns4.getLength());
-        trnsLength.push_back(trns.getLength());
-        trnsLength.push_back(trns1.getLength());
-        trnsLength.push_back(trns2.getLength());
-        trnsLength.push_back(trns1.getLength());
-        trnsLength.push_back(trns2.getLength());
+        trnsLength.push_back(trns.length());
+        trnsLength.push_back(trns1.length());
+        trnsLength.push_back(trns2.length());
+        trnsLength.push_back(trns3.length());
+        trnsLength.push_back(trns4.length());
+        trnsLength.push_back(trns.length());
+        trnsLength.push_back(trns1.length());
+        trnsLength.push_back(trns2.length());
+        trnsLength.push_back(trns1.length());
+        trnsLength.push_back(trns2.length());
         /* TEST PoW MINE */
         std::tuple<std::shared_ptr<uint64_t>,std::string,uint32_t,uint64_t, 
                double,std::shared_ptr<uint64_t>, double, double>
@@ -419,10 +417,15 @@ int main()
         if(blockMined) {
             std::cout << "\nblock mined successfully";
             std::cout << "\nrepresenting correct block in blockhain...\n";
-            std::cout << block.data_str(clean_mempool,blockchain_version);
+            std::cout << block.data_str(prevBlockHash,timestamp,blockchainSize,
+                                        nonce,difficulty,nextBlockGenTime,
+                                        avHashrate,clean_mempool,blockchain_version);
             std::cout << "\n\nblock added to blockchain";
             /* wrong mempool cannot have less than correct mempool since wrong
-             * mempool has new false transaction */
+             * mempool has new false transaction, if there is a modified 
+             * transaction hash, it won't work, therefore needs further updates.
+             * More functionality will be added in further versions
+             */
         }
 // c0458810c14f6fc333bbf366c10036cf2708e64dae0bfc7ee8f789b9b91d0a1ab36feb40b7d5922715f093dbfb7cf34bded5a2edbf6325fdf251ad11b0626d4
 // c248a81388e1c37c4f429d4c901ffb7a6384aea90b6dba464e6d846aeeea7dabc61e4dba220a5d3fecb31abb2a1ca013450c451146411403c7e7502a68f99de
