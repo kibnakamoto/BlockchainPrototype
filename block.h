@@ -26,14 +26,14 @@ namespace Blockchain
     inline T generateNonce()
     {
         /* random numerical type using Mersenne Twister. Not recommended for 
-           cryptography but couldn't find a cryptographic random byte generator */
+           cryptography but couldn't find a std cryptographic random nonce generator */
         std::random_device randDev;
         std::mt19937 generator(randDev() ^ time(NULL));
         std::uniform_int_distribution<T> distr;
         return distr(generator);
     }
     
-    inline double difficulty(uint64_t nonce) // use algorithm to generate difficulty
+    inline double difficulty(uint64_t nonce) // return 1 in version 1
     {
         return 1;
     }
@@ -47,7 +47,7 @@ namespace Blockchain
         auto start = std::chrono::system_clock::now();
         auto end_t = std::chrono::system_clock::now();
         do
-        {
+        {   // NOTE: bitcoin target 3 times smaller: 10 minute block generation time
             std::string genesisBlockBtc =
             "GetHash()      = 0x000000000019d6689c085ae165831e934ff763ae46\
             a2a6c172b3f1b60a8ce26f\nhashMerkleRoot = 0x4a5e1e4baab89f3a3251\
@@ -77,6 +77,7 @@ namespace Blockchain
     
     inline uint64_t calcHashRateSha512(uint32_t accuracy=5)
     {
+        // TODO: use accuracy as parameter for user to optionally provide in UI
         std::vector<uint64_t> retvector;
         uint64_t ret=0;
         for(int c=0;c<accuracy;c++) {
@@ -90,6 +91,7 @@ namespace Blockchain
     inline double nextBlockTime(double difficulty,
                                 uint64_t hashrate=calcHashRateSha512())
     {
+        // TODO: avoid output as scientific notation
         double timeM = difficulty * pow(2,32) / hashrate; // microseconds
         return timeM;
     }
@@ -100,12 +102,12 @@ class PoW
     protected:
         bool mineSingleTr(std::string encryptedTr, std::shared_ptr<uint8_t> key,
                           uint64_t difficulty, std::vector<std::shared_ptr<uint64_t>>
-                          mempool, uint64_t nonce, std::shared_ptr<uint64_t> target,
-                          uint64_t trnsLength)
+                          mempool, uint64_t nonce, uint64_t trnsLength)
         {
-            std::cout << "\ncalculating target...\n";
+            std::cout << "\ncalculating transaction target...\n";
             std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
             uint64_t newNonce = nonce;
+            std::shared_ptr<uint64_t> target(new uint64_t[8]); // transaction target
             
             // assign starting target value
             for(int c=0;c<8;c++) {
@@ -113,6 +115,9 @@ class PoW
                                   std::to_string(newNonce+difficulty)).get()[c];
             }
             
+            /* TODO: decrease target hash for longer generation time once 
+             * version 1 is debugged
+             */
             for(int c=0;c<8;c++) {
                 while(target.get()[c] > pow(2,62)) { // define target hash
                     target.get()[c] = sha512(encryptedTr +
@@ -126,11 +131,12 @@ class PoW
             std::string transactionData = aes256.decrypt(encryptedTr, key);
             std::shared_ptr<uint64_t> hash(new uint64_t[8]);
             
-            /* Remove zeros in beggining cauesd by decrypting string that isn't 
-             * a multiple of 16.
-             */ // why the fuck doesn't it see leading zeros in length
+            /* Remove padding in beggining caused by decrypting AES256 
+             * ciphertext string that isn't a multiple of 16
+             */
             transactionData.erase(trnsLength,transactionData.size()-trnsLength);
             hash = sha512(transactionData);
+            std::cout << "decrypted trnsLength and unencrypted transactionData size: ";
             std::cout << trnsLength << "\n\n" << transactionData.size() << "\n\n";
             bool valid;
             for(int i=0;i<mempool.size();i++) {
@@ -149,9 +155,14 @@ class PoW
                     valid = true;
                     break; // stops if true, continues to search if false
                 }
+                // print target hash
+                std::cout << "\ntarget hash: ";
+                for(int c=0;c<8;c++) {
+                    std::cout << std::hex << target.get()[c];
+                }
             }
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-            std::cout << "microseconds it took to verify transaction: "
+            std::cout << "\nmicroseconds it took to verify transaction: "
                       << std::dec << std::chrono::duration_cast<std::chrono::
                                      microseconds>(end - begin).count()
                       << std::endl;
@@ -164,7 +175,6 @@ class PoW
                   shared_ptr<uint64_t>> mempool, std::shared_ptr<uint64_t>
                   v_merkle_root, std::vector<uint64_t> trnsLengths)
         {
-            std::shared_ptr<uint64_t> target(new uint64_t[8]); // transaction target
             uint64_t loopt = 0;
             std::shared_ptr<uint64_t> merkle_root(new uint64_t[8]);
             merkle_root = MerkleTree::merkleRoot(mempool);
@@ -186,7 +196,7 @@ class PoW
                 std::cout << "\nchecking false transaction(s)...\n";
                 for (auto const [key, val] : encryptedTs) {
                     bool v = mineSingleTr(key, val, difficulty, mempool,
-                                          blockNonce, target, trnsLengths[loopt]);
+                                          blockNonce, trnsLengths[loopt]);
                     if(v == false) {
                         std::cout << "\ntransaction hash mismatch, transaction index:\t"
                                   << loopt << "\n" << "transaction hash:\n";
@@ -244,6 +254,10 @@ class Block
             for(int c=0;c<8;c++) {
                 target.get()[c] = sha512(merkle_root_str + std::to_string(newNonce+difficulty)).get()[c];
             }
+            
+            /* TODO: use difficulty to generate target height instead of const 2 to 
+             * the power of 56. NOTE: Block generation time = 1-2 minutes.
+             */
             for(int c=0;c<8;c++) {
                 while(target.get()[c] >= pow(2,56)) {
                     target.get()[c] = sha512(merkle_root_str +
@@ -251,7 +265,7 @@ class Block
                     newNonce++;
                 }
             }
-            std::cout << "\ntarget: ";
+            std::cout << "\ngenBlock() target: ";
             for(int c=0;c<8;c++) {
                 std::cout << std::hex << target.get()[c] << "";
             }
@@ -261,7 +275,7 @@ class Block
                          (end - begin).count() << std::endl;
             return target;
         }
-        /* make a tuple function that returns block components */
+        // tuple function that returns block components
         std::tuple</* prevBlockHash */std::shared_ptr<uint64_t>, 
                    /* timestamp */std::string, /* blockchain size */ uint32_t,
                    /* nonce */uint64_t, /* block difficulty */double,
@@ -287,11 +301,11 @@ class Block
             uint64_t hashrate = Blockchain::calcHashRateSha512(5); // accuracy=5
             hashrates.push_back(hashrate);
             uint64_t avHashrate = averageHashRate();
-            std::cout << "\ngenerating block\n";
+            std::cout << "\ngenerating block...\n";
             genBlock(target, nonce, merkle_root, difficulty);
             double blockGenTime = Blockchain::nextBlockTime(difficulty, avHashrate);
-            std::cout << "next block will be generated in " << blockGenTime
-                      << std::endl;
+            std::cout << "next block will be generated in " << std::dec
+                      << blockGenTime << std::endl;
             if(blockchainsize > 1) {
                 for(int c=0;c<8;c++) {
                     prevBlockHash.get()[c] = Blockchain::Blockhashes
