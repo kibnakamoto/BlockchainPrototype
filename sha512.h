@@ -228,9 +228,6 @@ class SHA512
             for(int c=0;c<8;c++) {
                 shared_H.get()[c] = H[c];
             }
-            for(int c=0;c<8;c++) {
-                std::cout << std::hex << H[c] << " ";
-            }
             return shared_H;
         }
         
