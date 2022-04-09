@@ -100,9 +100,10 @@ namespace Blockchain
 class PoW
 {
     protected:
-        bool mineSingleTr(std::string encryptedTr, std::shared_ptr<uint8_t> key,
-                          uint64_t difficulty, std::vector<std::shared_ptr<uint64_t>>
-                          mempool, uint64_t nonce, uint64_t trnsLength)
+        std::tuple<bool, std::shared_ptr<uint64_t>, uint64_t>
+        mineSingleTr(std::string encryptedTr, std::shared_ptr<uint8_t> key,
+                     uint64_t difficulty, std::vector<std::shared_ptr<uint64_t>>
+                     mempool, uint64_t nonce, uint64_t trnsLength)
         {
             std::cout << "\ncalculating transaction target...\n";
             std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
@@ -139,18 +140,25 @@ class PoW
             std::cout << "decrypted trnsLength and unencrypted transactionData size: ";
             std::cout << trnsLength << "\n\n" << transactionData.size() << "\n\n";
             bool valid;
+            uint64_t index; // index of transaction
             for(int i=0;i<mempool.size();i++) {
                 std::vector<bool> validity;
                 for(int c=0;c<8;c++) {
                     if(mempool[i].get()[c] == hash.get()[c]) { // if any index of mempool matches hash
                         validity.push_back(true);
+                        index = i;
+                        
                     } else {
                         validity.push_back(false);
+                        
                     }
                 }
+                
+                // find wheter transaction is true or false
                 if(std::find(validity.begin(), validity.end(), false) !=
                    validity.end()) {
                     valid = false;
+                    validity.clear();
                 } else {
                     valid = true;
                     break; // stops if true, continues to search if false
@@ -166,7 +174,7 @@ class PoW
                       << std::dec << std::chrono::duration_cast<std::chrono::
                                      microseconds>(end - begin).count()
                       << std::endl;
-            return valid;
+            return {valid, hash, index};
         }
     public:
         std::pair<bool, std::vector<std::shared_ptr<uint64_t>>>
@@ -175,7 +183,6 @@ class PoW
                   shared_ptr<uint64_t>> mempool, std::shared_ptr<uint64_t>
                   v_merkle_root, std::vector<uint64_t> trnsLengths)
         {
-            uint64_t loopt = 0;
             std::shared_ptr<uint64_t> merkle_root(new uint64_t[8]);
             merkle_root = MerkleTree::merkleRoot(mempool);
             bool merkle_validity;
@@ -193,28 +200,32 @@ class PoW
                 for(int c=0;c<8;c++) {
                     std::cout << std::hex << v_merkle_root.get()[c];
                 }
+                bool v; // whether transaction is true or false
+                uint64_t index = 0;
+                std::shared_ptr<uint64_t> singleTrHash(new uint64_t[8]);
                 std::cout << "\nchecking false transaction(s)...\n";
                 for (auto const [key, val] : encryptedTs) {
-                    bool v = mineSingleTr(key, val, difficulty, mempool,
-                                          blockNonce, trnsLengths[loopt]);
+                    std::tuple<bool, std::shared_ptr<uint64_t>, uint64_t>
+                    minedSingleTr = mineSingleTr(key, val, difficulty, mempool,
+                                          blockNonce, trnsLengths[index]);
+                    std::tie(v, singleTrHash, index);
                     if(v == false) {
                         std::cout << "\ntransaction hash mismatch, transaction index:\t"
-                                  << loopt << "\n" << "transaction hash:\n";
+                                  << index << "\n" << "transaction hash:\n";
                         for(int c=0;c<8;c++) {
-                            std::cout << std::hex << mempool[loopt].get()[c];
+                            std::cout << std::hex << singleTrHash.get()[c];
                         }
                         std::cout << std::endl;
-                        mempool.erase(mempool.begin() + loopt);
+                        mempool.erase(mempool.begin() + index);
                         std::cout << "\ntransaction deleted from mempool";
                     } else {
-                        std::cout << "\nvalidated transaction:\t" << loopt
+                        std::cout << "\nvalidated transaction:\t" << index
                                   << " from mempool\ntransaction hash: ";
                         for(int c=0;c<8;c++) {
-                            std::cout << std::hex << mempool[loopt].get()[c];
+                            std::cout << std::hex << singleTrHash.get()[c];
                         }
                         std::cout << std::endl;
                     }
-                    loopt++; // mempool index
                 }
             } else {
                 std::cout << "\nmerkle_root: true\n\n";
@@ -265,7 +276,7 @@ class Block
                     newNonce++;
                 }
             }
-            std::cout << "\ngenBlock() target: ";
+            std::cout << "\nBlock target: ";
             for(int c=0;c<8;c++) {
                 std::cout << std::hex << target.get()[c] << "";
             }
@@ -308,8 +319,9 @@ class Block
                       << blockGenTime << std::endl;
             if(blockchainsize > 1) {
                 for(int c=0;c<8;c++) {
+                    // subtract 2 from blockchainsize since array starts from zero
                     prevBlockHash.get()[c] = Blockchain::Blockhashes
-                                             [blockchainsize-1].get()[c];
+                                             [blockchainsize-2].get()[c];
                 }
             } else {
                 for(int c=0;c<8;c++) {
@@ -321,7 +333,7 @@ class Block
                    merkle_root,blockGenTime,avHashrate};
        }
         
-        /* if recrease all block data */
+        /* if recreate all block data after mining */
         // std::string data_str(std::vector<std::shared_ptr<uint64_t>> mempool,
         //                      std::string blockchain_version)
         // {
@@ -377,8 +389,8 @@ class Block
                              double avHashrate, std::vector<std::shared_ptr
                              <uint64_t>> clean_mempool, std::string blockchain_version)
         {
-            /* use this to represent block in blockchain, use tuple data to 
-               compare values in block for testing */
+            /* use this to represent block in blockchain, use tuple data to
+               compare values in block for testing and mining */
             std::stringstream BLOCKCHAIN_BLOCKDATA;
             std::shared_ptr<uint64_t> merkle_root(new uint64_t[8]);
             merkle_root = MerkleTree::merkleRoot(clean_mempool);
