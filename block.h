@@ -113,7 +113,7 @@ class PoW
             // assign starting target value
             for(int c=0;c<8;c++) {
                 target.get()[c] = sha512(encryptedTr +
-                                  std::to_string(newNonce+difficulty)).get()[c];
+                                         std::to_string(newNonce)).get()[c];
             }
             
             /* TODO: decrease target hash for longer generation time once 
@@ -122,7 +122,7 @@ class PoW
             for(int c=0;c<8;c++) {
                 while(target.get()[c] > pow(2,62)) { // define target hash
                     target.get()[c] = sha512(encryptedTr +
-                                      std::to_string(newNonce+difficulty)).get()[c];
+                                             std::to_string(newNonce)).get()[c];
                     newNonce++;
                 }
             }
@@ -131,12 +131,19 @@ class PoW
             AES::AES256 aes256;
             std::string transactionData = aes256.decrypt(encryptedTr, key);
             std::shared_ptr<uint64_t> hash(new uint64_t[8]);
-            
+
             /* Remove padding in beggining caused by decrypting AES256 
              * ciphertext string that isn't a multiple of 16
              */
             transactionData.erase(trnsLength,transactionData.size()-trnsLength);
             hash = sha512(transactionData);
+            
+            // TODO: fix
+            // amount gets deleted too much causing 2 exrta deletions from mempool
+            std::cout << "\n\nafter verifying transaction\n" << transactionData
+                      << "\nlen of trnsLength: " << trnsLength
+                      << "\nlen of transactionData.size():"
+                      << transactionData.size() << "\n";
             bool valid;
             uint64_t index = 0; // index of transaction
             for(int i=0;i<mempool.size();i++) {
@@ -168,8 +175,7 @@ class PoW
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
             std::cout << "microseconds it took to verify transaction: "
                       << std::dec << std::chrono::duration_cast<std::chrono::
-                                     microseconds>(end - begin).count()
-                      << std::endl;
+                                     microseconds>(end - begin).count();
             return {valid, hash, index};
         }
     public:
@@ -207,18 +213,13 @@ class PoW
                     std::tie(v, singleTrHash, index) = minedSingleTr;
                     if(v == false) {
                         std::cout << "\ntransaction hash mismatch, transaction index:\t"
-                                  << index << "\n" << "transaction hash:\n";
+                                  << index << "\n" << "transaction hash: ";
                         for(int c=0;c<8;c++) {
                             std::cout << std::hex << singleTrHash.get()[c];
                         }
-                        /* ONLY IN BLOCKCHAIN VERSION 1.0 */
-                        std::cout << std::endl << "\nERROR: modified transaction,";
-                        std::cout << "mining only supports extra false";
-                        std::cout << "transaction in version 1.0";
                         std::cout << std::endl;
                         mempool.erase(mempool.begin() + index);
                         std::cout << "\ntransaction deleted from mempool";
-                        // exit(EXIT_FAILURE);
                     } else {
                         std::cout << "\nvalidated transaction:\t" << index
                                   << " from mempool\ntransaction hash: ";
