@@ -137,8 +137,10 @@ class PoW
              */
             transactionData.erase(trnsLength,transactionData.size()-trnsLength);
             hash = sha512(transactionData);
-            std::cout << "decrypted trnsLength and unencrypted transactionData size: ";
-            std::cout << trnsLength << "\n\n" << transactionData.size() << "\n\n";
+            std::cout << "\n\ntrnsLine140 block.h\n\n";
+            for(int c=0;c<8;c++) {
+                std::cout << hash.get()[c] << "";
+            }
             bool valid;
             uint64_t index; // index of transaction
             for(int i=0;i<mempool.size();i++) {
@@ -147,7 +149,6 @@ class PoW
                     if(mempool[i].get()[c] == hash.get()[c]) { // if any index of mempool matches hash
                         validity.push_back(true);
                         index = i;
-                        
                     } else {
                         validity.push_back(false);
                         
@@ -163,12 +164,13 @@ class PoW
                     valid = true;
                     break; // stops if true, continues to search if false
                 }
-                // print target hash
-                std::cout << "\ntarget hash: ";
-                for(int c=0;c<8;c++) {
-                    std::cout << std::hex << target.get()[c];
-                }
             }
+            // print target hash
+            std::cout << "\ntarget hash: ";
+            for(int c=0;c<8;c++) {
+                std::cout << std::hex << target.get()[c];
+            }
+            std::cout << std::endl;
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
             std::cout << "\nmicroseconds it took to verify transaction: "
                       << std::dec << std::chrono::duration_cast<std::chrono::
@@ -200,11 +202,11 @@ class PoW
                 for(int c=0;c<8;c++) {
                     std::cout << std::hex << v_merkle_root.get()[c];
                 }
-                bool v; // whether transaction is true or false
-                uint64_t index = 0;
-                std::shared_ptr<uint64_t> singleTrHash(new uint64_t[8]);
+                bool v;
+                std::shared_ptr<uint64_t> singleTrHash(new uint64_t[8]); // TODO: fix
                 std::cout << "\nchecking false transaction(s)...\n";
                 for (auto const [key, val] : encryptedTs) {
+                    uint64_t index = 0;
                     std::tuple<bool, std::shared_ptr<uint64_t>, uint64_t>
                     minedSingleTr = mineSingleTr(key, val, difficulty, mempool,
                                           blockNonce, trnsLengths[index]);
@@ -213,8 +215,13 @@ class PoW
                         std::cout << "\ntransaction hash mismatch, transaction index:\t"
                                   << index << "\n" << "transaction hash:\n";
                         for(int c=0;c<8;c++) {
-                            std::cout << std::hex << singleTrHash.get()[c];
+                            std::cout << std::hex << singleTrHash.get()[c] << "   ";
                         }
+                        /* ONLY IN BLOCKCHAIN VERSION 1.0 */
+                        std::cout << std::endl << "\nERROR: modified transaction,\
+                                                   mining only supports extra  \
+                                                   false transaction in version 1.0";
+                        exit(EXIT_FAILURE);
                         std::cout << std::endl;
                         mempool.erase(mempool.begin() + index);
                         std::cout << "\ntransaction deleted from mempool";
