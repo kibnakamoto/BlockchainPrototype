@@ -72,7 +72,9 @@ namespace MerkleTree
             
             while(len<validlen) { // append it 2, 4, 8... times
                 std::shared_ptr<uint64_t> oddZfill(new uint64_t[8]);
-                oddZfill = sha512("00000000");
+                
+                // TODO: convert "00000000" to memset("", "0", validlen); in future version
+                oddZfill = sha512("00000000"); 
                 mempool.push_back(oddZfill);
                 len++; // update len
             }
@@ -82,7 +84,7 @@ namespace MerkleTree
                 validlen/=2;
                 /* validlen gets set to zero so don't use it after this loop */
             }
-            // calculate MerkleRoot
+            // calculate Merkle Root
             merkle_root = node.append_levels(mempool, len, merkle_root);
             return merkle_root;
         }
