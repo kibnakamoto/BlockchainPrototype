@@ -137,24 +137,17 @@ class PoW
              */
             transactionData.erase(trnsLength,transactionData.size()-trnsLength);
             hash = sha512(transactionData);
-            std::cout << "\n\ntrnsLine140 block.h\n\n";
-            for(int c=0;c<8;c++) {
-                std::cout << hash.get()[c] << "";
-            }
             bool valid;
-            uint64_t index; // index of transaction
+            uint64_t index = 0; // index of transaction
             for(int i=0;i<mempool.size();i++) {
                 std::vector<bool> validity;
                 for(int c=0;c<8;c++) {
                     if(mempool[i].get()[c] == hash.get()[c]) { // if any index of mempool matches hash
                         validity.push_back(true);
-                        index = i;
                     } else {
                         validity.push_back(false);
-                        
                     }
                 }
-                
                 // find wheter transaction is true or false
                 if(std::find(validity.begin(), validity.end(), false) !=
                    validity.end()) {
@@ -164,15 +157,16 @@ class PoW
                     valid = true;
                     break; // stops if true, continues to search if false
                 }
+                index++;
             }
             // print target hash
-            std::cout << "\ntarget hash: ";
+            std::cout << "target hash: ";
             for(int c=0;c<8;c++) {
                 std::cout << std::hex << target.get()[c];
             }
             std::cout << std::endl;
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-            std::cout << "\nmicroseconds it took to verify transaction: "
+            std::cout << "microseconds it took to verify transaction: "
                       << std::dec << std::chrono::duration_cast<std::chrono::
                                      microseconds>(end - begin).count()
                       << std::endl;
@@ -203,28 +197,28 @@ class PoW
                     std::cout << std::hex << v_merkle_root.get()[c];
                 }
                 bool v;
-                std::shared_ptr<uint64_t> singleTrHash(new uint64_t[8]); // TODO: fix
+                std::shared_ptr<uint64_t> singleTrHash(new uint64_t[8]);
                 std::cout << "\nchecking false transaction(s)...\n";
                 for (auto const [key, val] : encryptedTs) {
                     uint64_t index = 0;
                     std::tuple<bool, std::shared_ptr<uint64_t>, uint64_t>
                     minedSingleTr = mineSingleTr(key, val, difficulty, mempool,
                                           blockNonce, trnsLengths[index]);
-                    std::tie(v, singleTrHash, index);
+                    std::tie(v, singleTrHash, index) = minedSingleTr;
                     if(v == false) {
                         std::cout << "\ntransaction hash mismatch, transaction index:\t"
                                   << index << "\n" << "transaction hash:\n";
                         for(int c=0;c<8;c++) {
-                            std::cout << std::hex << singleTrHash.get()[c] << "   ";
+                            std::cout << std::hex << singleTrHash.get()[c];
                         }
                         /* ONLY IN BLOCKCHAIN VERSION 1.0 */
-                        std::cout << std::endl << "\nERROR: modified transaction,\
-                                                   mining only supports extra  \
-                                                   false transaction in version 1.0";
-                        exit(EXIT_FAILURE);
+                        std::cout << std::endl << "\nERROR: modified transaction,";
+                        std::cout << "mining only supports extra false";
+                        std::cout << "transaction in version 1.0";
                         std::cout << std::endl;
                         mempool.erase(mempool.begin() + index);
                         std::cout << "\ntransaction deleted from mempool";
+                        // exit(EXIT_FAILURE);
                     } else {
                         std::cout << "\nvalidated transaction:\t" << index
                                   << " from mempool\ntransaction hash: ";
