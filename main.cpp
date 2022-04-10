@@ -416,7 +416,7 @@ int main()
         
         if(blockMined) {
             std::cout << "\nblock mined successfully";
-            std::cout << "\nrepresenting correct block in blockhain...\n";
+            std::cout << "\nrepresenting correct block in blockhain...\n\n";
             std::cout << block.data_str(prevBlockHash,timestamp,blockchainSize,
                                         nonce,difficulty,nextBlockGenTime,
                                         avHashrate,clean_mempool,blockchain_version);
@@ -426,6 +426,12 @@ int main()
              * transaction hash, it won't work, therefore needs further updates.
              * More functionality will be added in further versions
              */
+             std::cout << "\n\nclean mempool: \n";
+             for(int i=0;i<clean_mempool.size();i++) {
+                 for(int c=0;c<8;c++)
+                    std::cout << std::hex << clean_mempool[i].get()[c];
+                std::cout << std::endl;
+             }
         }
 // c0458810c14f6fc333bbf366c10036cf2708e64dae0bfc7ee8f789b9b91d0a1ab36feb40b7d5922715f093dbfb7cf34bded5a2edbf6325fdf251ad11b0626d4
 // c248a81388e1c37c4f429d4c901ffb7a6384aea90b6dba464e6d846aeeea7dabc61e4dba220a5d3fecb31abb2a1ca013450c451146411403c7e7502a68f99de
