@@ -321,12 +321,21 @@ int main()
     std::vector<std::shared_ptr<uint64_t>> walletAddresses; // All wallet addresses
     std::string blockchain_version = "1.0";
     bool blockMined = false;
+    
+    /* TODO: add UI for wallet address creation, buy, sell, verify, login, 
+     * sign-in, dump wallet data, allow manual encryption for wallet 
+     * address and automatic encryption for wallet data, only allow login and
+     * data decryption if database found user info match. GUI no need for GUI yet.
+     */
+    
     /* TEST PoW MINE */
     struct Transaction trns{sha512("sender"), sha512("receiver"), 50000};
     struct Transaction trns1{sha512("sener"), sha512("receiver"), 54000};
     struct Transaction trns2{sha512("sender"), sha512("reciver"), 35600};
     struct Transaction trns3{sha512("nder"), sha512("receiver"), 50000};
     struct Transaction trns4{sha512("sender"), sha512("receiver"), 40000};
+    // struct Transaction trns5{sha512("send"), sha512("receiver"), 45000};
+
     mempool.push_back(trns.Hash());
     mempool.push_back(trns1.Hash());
     mempool.push_back(trns2.Hash());
