@@ -21,7 +21,9 @@ Command List:
      * buy: buy an amount, must specify amount after typing buy
      * sell: sell an amount, must specify amount after typing sell
      * e-wallet-[encryption algorithm]: encrypt wallet, do not give wallet 
-       address here but provide encryption algorithm
+       address here but provide encryption algorithm and key
+       * e-wallet-genkey[encryption algorithm]: encrypt wallet, do not give wallet 
+       address here but provide encryption algorithm, key is generated 
      * d-wallet-[decryption algorithm]: decrypt wallet, provide key here
      * get p-w key: request private wallet key
      * get p-trns key request single transaction key, provide transaction index
