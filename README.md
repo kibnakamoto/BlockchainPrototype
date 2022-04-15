@@ -12,7 +12,7 @@ This is a blockchain prototype I'm creating for a future blockchain I will creat
 
 Command List:
 ```
-    // descriptions, PUT IN README.md
+    // descriptions
     /* NOTE: capitalization matters */
     /* help: show basic commands with descriptions
      * -help: for command description, put after another command
