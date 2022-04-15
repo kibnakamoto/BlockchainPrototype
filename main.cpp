@@ -405,7 +405,15 @@ int main()
                                              "enc-aes192-genkey","enc-aes256-genkey"
                                              ,"enc-aes128", "enc-aes192",
                                              "enc-aes256","dec-aes128", "dec-aes192",
-                                             "dec-aes256"};
+                                             "dec-aes256","get-blockchain",
+                                             "get myahr", "get block-hash", 
+                                             "get block-nonce",
+                                             "get block-timestamp",
+                                             "get block-merkle root",
+                                             "get block-difficulty", "get block-ahr",
+                                             "get nblocktime", "get blockchain-size",
+                                             "get version", "get mempool"
+                                            };
     // descriptions
     /* NOTE: capitalization matters */
     /* help: show basic commands, also for command description
@@ -432,26 +440,41 @@ int main()
      * enc-aes192 [input,key]: encrypt input with aes192, use own key in decimal format.
      * enc-aes256 [input,key]: encrypt input with aes256, use own key in decimal format.
      * dec-aes128 [input,key]: decrypt ciphertext with aes128, provide key
-     * dec-aes192 [input,key]: decrypt ciphertext with aes192, provide key 
+     * dec-aes192 [input,key]: decrypt ciphertext with aes192, provide key
      * dec-aes256 [input,key]: decrypt ciphertext with aes256, provide key
+     * get myahr: get my average hashrate
+     * get blockchain: prints all blocks in blockchain
+     * get block-hash [block index]: get block hash, provide index
+     * get block-nonce [block index]: get block nonce, provide index
+     * get block-timestamp [block index]: get block timestamp, provide index
+     * get block-merkle root [block index]: get merkle root of block, provide index
+     * get block-difficulty [block index]: get difficulty of block, provide index
+     * get block-ahr [block index]: get average hash rate of block miners, provide index
+     * get nblocktime: get next block generation time
+     * get blockchain-size: print amounts of blocks in blockchain
+     * get version: get blockchain version
+     * get mempool: print verified mempool hashes in current block
+     * NOT IN VERSION 1:
+        * get tr-target: print transaction target
+        * get tr-hash: print transaction hash
+        * get tr-ciphertext [trns index]: print transaction ciphertext
+        * get tr-timestamp [trns index]: print transaction timestamp
+        * dump all-trnsData: dump all transaction data in wallet
+        * dump trnsData [trns index: dump single transaction data, provide
+          transaction index
+        * get blockchain-ahr: get average hashrate over all blockchain
+        * get block-target [block index]: get block target hash, provide index
      */
     
     // if input = help, print "\nyes-no\n"
-    std::cout << "if you don't know commands, input \"help\"\n";
-    std::cout << "new user? ";
-    std::cin >> newUserIn;
-    if(newUserIn == "yes") {
-        std::string createWalletAddressOptional;
-        std::cout << "\ndo you want to generate new wallet address?\nyes-no\ninput:\t";
-        if(createWalletAddressOptional == "yes") {
-            auto [fst,snd] = wallet_address.GenerateNewWalletAddress();
-            walletAddress = fst;
-            walletAddresses.push_back(walletAddress);
-            std::cout << "\nwallet address created\n";
-            std::string encryptWalletOp;
-            std::cout << "encrypt wallet address? ";
-        }
-    }
+    std::cout << "for command list, input \"help\"\n";
+
+        auto [fst,snd] = wallet_address.GenerateNewWalletAddress();
+        walletAddress = fst;
+        walletAddresses.push_back(walletAddress);
+        std::cout << "\nwallet address created\n";
+        std::string encryptWalletOp;
+        std::cout << "encrypt wallet address? ";
     std::cout << "\n\nline 339, main.cpp:\t";
     /* TEST walletAddress */
     std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>> testMap;
@@ -460,6 +483,7 @@ int main()
     testMap.insert(itMap, std::pair<std::shared_ptr<uint64_t>,
                    std::vector<std::shared_ptr<uint8_t>>>(walletAddress, snd));
     struct Wallet TestWallet{walletAddress, snd, testMap};
+    /* TEST walletAddress */
 
     // if(blockMined == false) {
     //     std::vector<uint64_t> trnsLength;
