@@ -328,7 +328,6 @@ int main()
     std::vector<std::shared_ptr<uint64_t>> walletAddresses; // All wallet addresses
     std::string blockchain_version = "1.0";
     bool blockMined = false;
-    
     /* TODO: add UI for wallet address creation, buy, sell, verify, login, 
      * sign-in, dump wallet data, allow manual encryption for wallet 
      * address and automatic encryption for wallet data, only allow login and
@@ -391,10 +390,77 @@ int main()
     // mempool2.push_back(trns2.Hash()); // 8 transactions
     // mempool2.push_back(trns1.Hash()); // false from here
     // mempool2.push_back(trns2.Hash());
-    auto [fst,snd] = wallet_address.GenerateNewWalletAddress();
-    walletAddress = fst;
-    walletAddresses.push_back(walletAddress);
+    
+    /* UI */
+    std::string help;
+    std::string newUserIn;
+    std::vector<std::string> listOfCommands {"help", "help-all", "create-wa",
+                                             "buy","sell", "e-wallet-aes256", 
+                                             "e-wallet-aes128","e-wallet-aes192",
+                                             "d-wallet-aes256","d-wallet-aes128",
+                                             "d-wallet-aes192",
+                                             "get p-w key", "get p-trns key",
+                                             "send", "del-wallet","exit","quit"
+                                             "burn", "hash-sha512","enc-aes128-genkey",
+                                             "enc-aes192-genkey","enc-aes256-genkey"
+                                             ,"enc-aes128", "enc-aes192",
+                                             "enc-aes256","dec-aes128", "dec-aes192",
+                                             "dec-aes256"};
+    // descriptions
+    /* NOTE: capitalization matters */
+    /* help: show basic commands, also for command description
+     * help-all: show all commands
+     * create-wa: generate new wallet address
+     * buy: buy an amount, must specify amount after typing buy
+     * sell: sell an amount, must specify amount after typing sell
+     * e-wallet-[encryption algorithm]: encrypt wallet, do not give wallet 
+       address here but provide encryption algorithm,
+     * d-wallet-[decryption algorithm]: decrypt wallet, do not provide key here
+     * get p-w key: request private wallet key
+     * get p-trns key request single transaction key, provide transaction index
+       in wallet
+     * send: send to another wallet address, provide wallet address and amount
+     * del-wallet: delete your wallet address, make sure wallet is empty before
+       doing so, wallet components will be deleted and cannot be brought back
+     * [exit]or[quit]: will terminate and exit program
+     * burn [amount]: burn an amount of crypto(send to dead wallet address). provide amount
+     * hash-sha512 [input]: hash input with sha512
+     * enc-aes128-genkey [input,key]: encrypt input with aes128, key is generated for you
+     * enc-aes192-genkey [input,key]: encrypt input with aes192, key is generated for you
+     * enc-aes256-genkey [input,key]: encrypt input with aes256, key is generated for you
+     * enc-aes128 [input,key]: encrypt input with aes128, use own key in decimal format.
+     * enc-aes192 [input,key]: encrypt input with aes192, use own key in decimal format.
+     * enc-aes256 [input,key]: encrypt input with aes256, use own key in decimal format.
+     * dec-aes128 [input,key]: decrypt ciphertext with aes128, provide key
+     * dec-aes192 [input,key]: decrypt ciphertext with aes192, provide key 
+     * dec-aes256 [input,key]: decrypt ciphertext with aes256, provide key
+     */
+    
+    // if input = help, print "\nyes-no\n"
+    std::cout << "if you don't know commands, input \"help\"\n";
+    std::cout << "new user? ";
+    std::cin >> newUserIn;
+    if(newUserIn == "yes") {
+        std::string createWalletAddressOptional;
+        std::cout << "\ndo you want to generate new wallet address?\nyes-no\ninput:\t";
+        if(createWalletAddressOptional == "yes") {
+            auto [fst,snd] = wallet_address.GenerateNewWalletAddress();
+            walletAddress = fst;
+            walletAddresses.push_back(walletAddress);
+            std::cout << "\nwallet address created\n";
+            std::string encryptWalletOp;
+            std::cout << "encrypt wallet address? ";
+        }
+    }
     std::cout << "\n\nline 339, main.cpp:\t";
+    /* TEST walletAddress */
+    std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>> testMap;
+    std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>>::iterator
+    itMap = testMap.begin();
+    testMap.insert(itMap, std::pair<std::shared_ptr<uint64_t>,
+                   std::vector<std::shared_ptr<uint8_t>>>(walletAddress, snd));
+    struct Wallet TestWallet{walletAddress, snd, testMap};
+
     // if(blockMined == false) {
     //     std::vector<uint64_t> trnsLength;
     //     /* TEST PoW MINE */
@@ -447,13 +513,6 @@ int main()
     //          }
     //     }
     // }
-    /* TEST walletAddress */
-    std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>> testMap;
-    std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>>::iterator
-    itMap = testMap.begin();
-    testMap.insert(itMap, std::pair<std::shared_ptr<uint64_t>, 
-                   std::vector<std::shared_ptr<uint8_t>>>(walletAddress, snd));
-    struct Wallet TestWallet{walletAddress, snd, testMap};
     std::cout << "\nline 339, main.cpp complete";
     return 0;
 }
