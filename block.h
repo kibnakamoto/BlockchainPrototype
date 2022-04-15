@@ -131,26 +131,22 @@ class PoW
             AES::AES256 aes256;
             std::string transactionData = aes256.decrypt(encryptedTr, key);
             std::shared_ptr<uint64_t> hash(new uint64_t[8]);
-
+            bool valid;
+            uint64_t index = 0; // index of transaction
             /* Remove padding in beggining caused by decrypting AES256 
-             * ciphertext string that isn't a multiple of 16
+             * ciphertext string that isn't a multiple of 16. Try each index 
+             * of trnsLengths until hash matches mempool hash 
              */
-            
-            // TODO: fix
-            // amount gets deleted too much causing 2 exrta deletions from mempool
-            // Solution, 160 and 157 and 9 is hex not dec
             std::cout << "\nlen of trnsLength: " << std::dec << trnsLength
                       << "\nlen of transactionData.size(): " << transactionData.size()
                       << "\ndelete len: " << transactionData.size()-trnsLength;
-            transactionData.erase(trnsLength,transactionData.size()-trnsLength); // 157 to 160
+            transactionData.erase(trnsLength,transactionData.size()-trnsLength);
             hash = sha512(transactionData);
-            bool valid;
             std::cout << "\n\nafter verifying transaction\n" << transactionData << "\n";
-            uint64_t index = 0; // index of transaction
-            for(int i=0;i<mempool.size();i++) {
+            for(int j=0;j<mempool.size();j++) {
                 std::vector<bool> validity;
                 for(int c=0;c<8;c++) {
-                    if(mempool[i].get()[c] == hash.get()[c]) { // if any index of mempool matches hash
+                    if(mempool[j].get()[c] == hash.get()[c]) { // if any index of mempool matches hash
                         validity.push_back(true);
                     } else {
                         validity.push_back(false);
@@ -208,27 +204,33 @@ class PoW
                 std::cout << "\nchecking false transaction(s)...\n";
                 for (auto const [key, val] : encryptedTs) {
                     uint64_t index = 0;
-                    std::tuple<bool, std::shared_ptr<uint64_t>, uint64_t>
-                    minedSingleTr = mineSingleTr(key, val, difficulty, mempool,
-                                          blockNonce, trnsLengths[index]);
-                    std::tie(v, singleTrHash, index) = minedSingleTr;
-                    if(v == false) {
-                        std::cout << "\ntransaction hash mismatch, transaction index:\t"
-                                  << index << "\n" << "transaction hash: ";
-                        for(int c=0;c<8;c++) {
-                            std::cout << std::hex << singleTrHash.get()[c];
+                    for(int c=0;c<trnsLengths.size();c++) {
+                        std::tuple<bool, std::shared_ptr<uint64_t>, uint64_t>
+                        minedSingleTr = mineSingleTr(key, val, difficulty, mempool,
+                                              blockNonce, trnsLengths[c]);
+                        std::tie(v, singleTrHash, index) = minedSingleTr;
+                        if(v) {
+                            goto stop;
                         }
-                        std::cout << std::endl;
-                        mempool.erase(mempool.begin() + index);
-                        std::cout << "\ntransaction deleted from mempool";
-                    } else {
-                        std::cout << "\nvalidated transaction:\t" << index
-                                  << " from mempool\ntransaction hash: ";
-                        for(int c=0;c<8;c++) {
-                            std::cout << std::hex << singleTrHash.get()[c];
-                        }
-                        std::cout << std::endl;
                     }
+                    stop:
+                        if(v == false) {
+                            std::cout << "\ntransaction hash mismatch, transaction index:\t"
+                                      << index << "\n" << "transaction hash: ";
+                            for(int c=0;c<8;c++) {
+                                std::cout << std::hex << singleTrHash.get()[c];
+                            }
+                            std::cout << std::endl;
+                            mempool.erase(mempool.begin() + index);
+                            std::cout << "\ntransaction deleted from mempool";
+                        } else {
+                            std::cout << "\nvalidated transaction:\t" << index
+                                      << " from mempool\ntransaction hash: ";
+                            for(int c=0;c<8;c++) {
+                                std::cout << std::hex << singleTrHash.get()[c];
+                            }
+                            std::cout << std::endl;
+                        }
                 }
             } else {
                 std::cout << "\nmerkle_root: true\n\n";
