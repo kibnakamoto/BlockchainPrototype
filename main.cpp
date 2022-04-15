@@ -392,7 +392,6 @@ int main()
     // mempool2.push_back(trns2.Hash());
     
     /* UI */
-    std::string help;
     std::string newUserIn;
     std::vector<std::string> listOfCommands {"help", "help-all", "create-wa",
                                              "buy","sell", "e-wallet-aes256", 
@@ -412,12 +411,13 @@ int main()
                                              "get block-merkle root",
                                              "get block-difficulty", "get block-ahr",
                                              "get nblocktime", "get blockchain-size",
-                                             "get version", "get mempool"
+                                             "get version", "get mempool", "-help"
                                             };
     // descriptions
     /* NOTE: capitalization matters */
-    /* help: show basic commands, also for command description
-     * help-all: show all commands
+    /* help: show basic commands with descriptions
+     * -help: for command description, put after another command
+     * help-all: show all commands with description
      * create-wa: generate new wallet address
      * buy: buy an amount, must specify amount after typing buy
      * sell: sell an amount, must specify amount after typing sell
@@ -466,20 +466,21 @@ int main()
         * get block-target [block index]: get block target hash, provide index
      */
     
-    // if input = help, print "\nyes-no\n"
-    std::cout << "for command list, input \"help\"\n";
-
-        auto [fst,snd] = wallet_address.GenerateNewWalletAddress();
-        walletAddress = fst;
-        walletAddresses.push_back(walletAddress);
-        std::cout << "\nwallet address created\n";
-        std::string encryptWalletOp;
-        std::cout << "encrypt wallet address? ";
+    std::string userInput;
+    std::cout << "for basic command list, input \"help\"\n"
+              << "for all commands, input \"help-all\"\n";
+    if(userInput == "help") {
+        for(int c=0;c<18;c++)
+        std::cout << listOfCommands[c] << "\n";
+    }
     std::cout << "\n\nline 339, main.cpp:\t";
     /* TEST walletAddress */
     std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>> testMap;
     std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>>::iterator
     itMap = testMap.begin();
+    auto [fst,snd] = wallet_address.GenerateNewWalletAddress();
+    walletAddress = fst;
+    walletAddresses.push_back(walletAddress);
     testMap.insert(itMap, std::pair<std::shared_ptr<uint64_t>,
                    std::vector<std::shared_ptr<uint8_t>>>(walletAddress, snd));
     struct Wallet TestWallet{walletAddress, snd, testMap};
