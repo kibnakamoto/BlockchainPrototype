@@ -117,7 +117,7 @@ class PoW
             }
             
             /* TODO: decrease target hash for longer generation time once 
-             * version 1 is debugged
+             * version 1 is debugged. Or just get rid of target transaction hash
              */
             for(int c=0;c<8;c++) {
                 while(target.get()[c] > pow(2,62)) { // define target hash
@@ -134,19 +134,14 @@ class PoW
             bool valid;
             uint64_t index = 0; // index of transaction
             /* Remove padding in beggining caused by decrypting AES256 
-             * ciphertext string that isn't a multiple of 16. Try each index 
-             * of trnsLengths until hash matches mempool hash 
+             * ciphertext string that isn't a multiple of 16.
              */
-            std::cout << "\nlen of trnsLength: " << std::dec << trnsLength
-                      << "\nlen of transactionData.size(): " << transactionData.size()
-                      << "\ndelete len: " << transactionData.size()-trnsLength;
             transactionData.erase(trnsLength,transactionData.size()-trnsLength);
             hash = sha512(transactionData);
-            std::cout << "\n\nafter verifying transaction\n" << transactionData << "\n";
-            for(int j=0;j<mempool.size();j++) {
+            for(int i=0;i<mempool.size();i++) {
                 std::vector<bool> validity;
                 for(int c=0;c<8;c++) {
-                    if(mempool[j].get()[c] == hash.get()[c]) { // if any index of mempool matches hash
+                    if(mempool[i].get()[c] == hash.get()[c]) { // if any index of mempool matches hash
                         validity.push_back(true);
                     } else {
                         validity.push_back(false);
