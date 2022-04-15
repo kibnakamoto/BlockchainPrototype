@@ -393,9 +393,12 @@ int main()
     
     /* UI */
     std::string newUserIn;
-    std::vector<std::string> listOfCommands {"help", "help-all", "create-wa",
-                                             "buy","sell", "e-wallet-aes256", 
+    std::vector<std::string> listOfCommands {"help", "-help", "help-all", "create-wa",
+                                             "buy","sell", "e-wallet-aes256",
                                              "e-wallet-aes128","e-wallet-aes192",
+                                             "e-wallet-aes256-genkey",
+                                             "e-wallet-aes192-genkey",
+                                             "e-wallet-aes128-genkey",
                                              "d-wallet-aes256","d-wallet-aes128",
                                              "d-wallet-aes192",
                                              "get p-w key", "get p-trns key",
@@ -411,7 +414,7 @@ int main()
                                              "get block-merkle root",
                                              "get block-difficulty", "get block-ahr",
                                              "get nblocktime", "get blockchain-size",
-                                             "get version", "get mempool", "-help",
+                                             "get version", "get mempool",
                                              "get tr-target", "get tr-hash",
                                              "get tr-ciphertext", "get tr-timestamp",
                                              "dump all-trnsData", "dump trnsData",
@@ -423,15 +426,25 @@ int main()
      "create-wa: generate new wallet address",
      "buy: buy an amount, must specify amount after typing buy",
      "sell: sell an amount, must specify amount after typing sell",
-     "e-wallet-[encryption algorithm]: encrypt wallet, do not give wallet" +
-     std::string(" address here but provide encryption algorithm"),
-     "d-wallet-[decryption algorithm]: decrypt wallet, do not provide key here",
+     "e-wallet-aes128: encrypt wallet with aes256, do not provide wallet address here, provide key",
+     "e-wallet-aes192: encrypt wallet with aes192, do not provide wallet address here, provide key",
+     "e-wallet-aes256: encrypt wallet with aes256, do not provide wallet address here, provide key",
+     "e-wallet-aes128-genkey: encrypt wallet with aes256, do not provide wallet" +
+     std::string("address here, do not provide key"),
+     "e-wallet-aes192-genkey: encrypt wallet with aes192, do not provide wallet" +
+     std::string(" address here, do not provide key"),
+     "e-wallet-aes256-genkey: encrypt wallet with aes256, do not provide wallet" +
+     std::string(" address here, do not provide key"),
+     "d-wallet-aes128: decrypt wallet using aes128, provide key",
+     "d-wallet-aes192: decrypt wallet using aes192, provide key",
+     "d-wallet-aes256: decrypt wallet using aes256, provide key",
      "get p-w key: request private wallet key", "get p-trns key request single" +
      std::string(" transaction key, provide transaction index in wallet"),
      "send: send to another wallet address, provide wallet address and amount",
      "del-wallet: delete your wallet address, make sure wallet is empty before" +
      std::string(" doing so, wallet components will be deleted and cannot be brought back"),
-     "[exit]or[quit]: will terminate and exit program",
+     "exit: will terminate and exit program",
+     "quit: will terminate and exit program",
      "burn [amount]: burn an amount of crypto(send to dead wallet address), provide amount",
      "hash-sha512 [input]: hash input with sha512",
      "enc-aes128-genkey [input,key]: encrypt input with aes128, key is generated for you",
@@ -443,7 +456,7 @@ int main()
      "dec-aes128 [input,key]: decrypt ciphertext with aes128, provide key",
      "dec-aes192 [input,key]: decrypt ciphertext with aes192, provide key",
      "dec-aes256 [input,key]: decrypt ciphertext with aes256, provide key",
-     "get myahr: get my average hashrate",
+     "get myahr: print my average hashrate",
      "get blockchain: prints all blocks in blockchain",
      "get block-hash [block index]: get block hash, provide index",
      "get block-nonce [block index]: get block nonce, provide index",
@@ -467,7 +480,7 @@ int main()
     std::string userInput;
     std::cout << "for basic command list, input \"help\"\n"
               << "for all commands, input \"help-all\"\n";
-    // if(userInput == listOfCommands[0]) {
+    // if(userInput == "help") {
     //     for(int c=0;c<18;c++)
     //         std::cout << commandDescriptions[c] << "\n";
     //     if(blockchain_version != "1.0") {
@@ -475,7 +488,7 @@ int main()
     //             std::cout << commandDescriptions[c] << "\n";
     //         }
     //     }
-    // } else if(userInput == listOfCommands[1]) {
+    // } else if(userInput == "help-all") {
         // for(int c=0;c<commandDescriptions.size();c++)
     // }
     std::cout << commandDescriptions.size() << "\n\n" << listOfCommands.size();
