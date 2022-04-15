@@ -135,16 +135,17 @@ class PoW
             /* Remove padding in beggining caused by decrypting AES256 
              * ciphertext string that isn't a multiple of 16
              */
-            transactionData.erase(trnsLength,transactionData.size()-trnsLength);
-            hash = sha512(transactionData);
             
             // TODO: fix
             // amount gets deleted too much causing 2 exrta deletions from mempool
-            std::cout << "\n\nafter verifying transaction\n" << transactionData
-                      << "\nlen of trnsLength: " << trnsLength
-                      << "\nlen of transactionData.size():"
-                      << transactionData.size() << "\n";
+            // Solution, 160 and 157 and 9 is hex not dec
+            std::cout << "\nlen of trnsLength: " << std::dec << trnsLength
+                      << "\nlen of transactionData.size(): " << transactionData.size()
+                      << "\ndelete len: " << transactionData.size()-trnsLength;
+            transactionData.erase(trnsLength,transactionData.size()-trnsLength); // 157 to 160
+            hash = sha512(transactionData);
             bool valid;
+            std::cout << "\n\nafter verifying transaction\n" << transactionData << "\n";
             uint64_t index = 0; // index of transaction
             for(int i=0;i<mempool.size();i++) {
                 std::vector<bool> validity;
