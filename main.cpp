@@ -40,6 +40,41 @@ std::shared_ptr<uint8_t> GenerateAES256Key()
     return key;
 }
 
+// 192-bit random number. AES key
+std::shared_ptr<uint8_t> GenerateAES192Key()
+{
+    /* random byte using Mersenne Twister. Not recommended for 
+       cryptography but couldn't find a cryptographic random byte generator */
+    std::shared_ptr<uint8_t> key(new uint8_t[24]);
+    std::random_device randDev;
+    std::mt19937 generator(randDev() ^ time(NULL));
+     std::uniform_int_distribution<uint32_t> distr;
+    for(int c=0;c<24-4;c++) {
+        uint32_t tmp = distr(generator);
+        key.get()[c+1] = tmp>>16 & 0xff;
+        key.get()[c+2] = tmp>>8 & 0xff;
+        key.get()[c+3] = tmp & 0xff;
+    }
+    return key;
+}
+
+// 128-bit random number. AES key
+std::shared_ptr<uint8_t> GenerateAES128Key()
+{
+    /* random byte using Mersenne Twister. Not recommended for 
+       cryptography but couldn't find a cryptographic random byte generator */
+    std::shared_ptr<uint8_t> key(new uint8_t[16]);
+    std::random_device randDev;
+    std::mt19937 generator(randDev() ^ time(NULL));
+     std::uniform_int_distribution<uint32_t> distr;
+    for(int c=0;c<16-2;c++) {
+        uint32_t tmp = distr(generator);
+        key.get()[c] = tmp>>8 & 0xff;
+        key.get()[c+1] = tmp & 0xff;
+    }
+    return key;
+}
+
 
 struct Transaction {
     std::shared_ptr<uint64_t> sender;
@@ -362,7 +397,7 @@ int main()
     // AES_key_mining3 = GenerateAES256Key();
     // AES_key_mining4 = GenerateAES256Key();
     // std::map<std::string, std::shared_ptr<uint8_t>> transactionsEnc;
-    // std::map<std::string, std::shared_ptr<uint8_t>>::iterator it = transactionsEnc.begin(); ///// add all mempool transactions in order
+    // std::map<std::string, std::shared_ptr<uint8_t>>::iterator it = transactionsEnc.begin();
     // transactionsEnc.insert (it, std::pair<std::string, std::shared_ptr<uint8_t>>
     //                         (trns.encryptTr(AES_key_mining), AES_key_mining)); // 
     // transactionsEnc.insert (it, std::pair<std::string, std::shared_ptr<uint8_t>>
@@ -404,10 +439,10 @@ int main()
                                              "get p-w key", "get p-trns key",
                                              "send", "del-wallet","exit","quit"
                                              "burn", "hash-sha512","enc-aes128-genkey",
-                                             "enc-aes192-genkey","enc-aes256-genkey"
-                                             ,"enc-aes128", "enc-aes192",
+                                             "enc-aes192-genkey","enc-aes256-genkey",
+                                             "enc-aes128", "enc-aes192",
                                              "enc-aes256","dec-aes128", "dec-aes192",
-                                             "dec-aes256","get-blockchain",
+                                             "dec-aes256","get blockchain",
                                              "get myahr", "get block-hash", 
                                              "get block-nonce",
                                              "get block-timestamp",
@@ -418,7 +453,8 @@ int main()
                                              "get tr-target", "get tr-hash",
                                              "get tr-ciphertext", "get tr-timestamp",
                                              "dump all-trnsData", "dump trnsData",
-                                             "get blockchain-ahr", "get block-target"};
+                                             "get blockchain-ahr", "get block-target",
+                                             "enc-algs"};
     std::vector<std::string> commandDescriptions
     {"help: show basic commands with descriptions",
      "-help: for command description, put after another command",
@@ -467,7 +503,7 @@ int main()
      "get nblocktime: get next block generation time",
      "get blockchain-size: print amounts of blocks in blockchain",
      "get version: get blockchain version",
-     "get mempool: print verified mempool hashes in current block",
+     "get mempool: print verified mempool hashes in current block", // after this is not done in version 1
      "get tr-target: print transaction target",
      "get tr-hash: print transaction hash",
      "get tr-ciphertext [trns index]: print transaction ciphertext",
@@ -475,23 +511,44 @@ int main()
      "dump all-trnsData: dump all transaction data in wallet",
      "dump trnsData [trns index]: dump single transaction data, provide transaction index",
      "get blockchain-ahr: get average hashrate over all blockchain",
-     "get block-target [block index]: get block target hash, provide index"
-    };
-    std::string userInput;
-    std::cout << "for basic command list, input \"help\"\n"
-              << "for all commands, input \"help-all\"\n";
-    // if(userInput == "help") {
-    //     for(int c=0;c<18;c++)
-    //         std::cout << commandDescriptions[c] << "\n";
-    //     if(blockchain_version != "1.0") {
-    //         for(int c=;c<8;c++) {
-    //             std::cout << commandDescriptions[c] << "\n";
-    //         }
-    //     }
-    // } else if(userInput == "help-all") {
-        // for(int c=0;c<commandDescriptions.size();c++)
+     "get block-target [block index]: get block target hash, provide index",
+     "enc-algs: available encryption/decryption algorithms"};
+    std::string userInput = "";
+    // std::cout << "for basic command list, input \"help\"\n"
+    //           << "for all commands, input \"help-all\"\n";
+    
+    if(userInput == "help") {
+        for(int c=0;c<18;c++)
+            std::cout << commandDescriptions[c] << "\n";
+    }
+    else if(userInput == "help-all") {
+        if(blockchain_version != "1.0") {
+            for(int c=0;c<commandDescriptions.size();c++)
+                std::cout << commandDescriptions[c] << "\n";
+        } else {
+            for(int c=0;c<commandDescriptions.size()-9;c++)
+                std::cout << commandDescriptions[c] << "\n";
+        }
+    }
+    else if(userInput.length()>5 && userInput.substr(userInput.length()-5,
+                                                     userInput.length()) == "-help") {
+        if(std::find(listOfCommands.begin(),listOfCommands.end(),
+                     userInput.substr(0,userInput.length()-5)) != listOfCommands.end()) {
+            std::vector<std::string>::iterator itCom;
+            itCom = std::find(commandDescriptions.begin(),commandDescriptions.end(),
+                              userInput.substr(0,userInput.length()-5));
+            std::cout << "\n" << commandDescriptions[std::distance(commandDescriptions.begin(),
+                                                     itCom)];
+        } else {
+            std::cout << "\n" << "error: command not found";
+        }
+    }
+    // else if(userInput == "create-wa") {
+    //     auto [fstNewAddrs,sndNewAddrs] = wallet_address.GenerateNewWalletAddress();
+    //     walletAddress = fst;
+    //     walletAddresses.push_back(walletAddress);
     // }
-    std::cout << commandDescriptions.size() << "\n\n" << listOfCommands.size();
+    // std::cout << commandDescriptions.size() << "\n\n" << listOfCommands.size();
     std::cout << "\n\nline 339, main.cpp:\t";
     /* TEST walletAddress */
     std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>> testMap;
@@ -503,8 +560,9 @@ int main()
     testMap.insert(itMap, std::pair<std::shared_ptr<uint64_t>,
                    std::vector<std::shared_ptr<uint8_t>>>(walletAddress, snd));
     struct Wallet TestWallet{walletAddress, snd, testMap};
+    TestWallet.
     /* TEST walletAddress */
-
+    
     // if(blockMined == false) {
     //     std::vector<uint64_t> trnsLength;
     //     /* TEST PoW MINE */
