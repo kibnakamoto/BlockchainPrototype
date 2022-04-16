@@ -125,7 +125,7 @@ struct Transaction {
     // if owner of wallet(WalletAddress and keys)
     void dumptrdata(const std::map<std::shared_ptr<uint64_t>,std::vector<
                     std::shared_ptr<uint8_t>>> walletData)
-    {/* not tested */
+    {
         /* walletData = map to verify if owner of the wallet is requesting data dump
          * std::shared_ptr<uint64_t> is WalletAddress and vector of std::shared_ptr
          * <uint8_t> is the string AES key used as plain text and the AES key
@@ -148,11 +148,14 @@ struct Transaction {
                     exit(EXIT_FAILURE);
                 }
             }
-            std::cout << std::endl << std::endl << "AES256 key:\t";
+            std::cout << std::endl << std::endl << "AES256 key:\t {";
             for(int c=0;c<32;c++) {
-                std::cout << val[1].get()[c];
+                std::cout << "0x" << std::hex << (short)val[1].get()[c];
+                if(c<31) {
+                    std::cout << ", ";
+                }
             }
-            std::cout << std::endl << std::endl;
+            std::cout << "}" << std::endl << std::endl;
         }
         std::cout << "sender\'s wallet address:\t";
         for(int c=0;c<8;c++) {
@@ -164,7 +167,7 @@ struct Transaction {
             std::cout << std::hex << receiver.get()[c];
         }
         std::cout << std::endl;
-        std::cout << "amount:\t" << amount;
+        std::cout << "amount:\t" << std::dec << amount;
         std::cout << std::endl << std::endl;
     }
     
@@ -395,10 +398,8 @@ int main()
     /* TODO: add UI for wallet address creation, buy, sell, verify, login, 
      * sign-in, dump wallet data, allow manual encryption for wallet 
      * address and automatic encryption for wallet data, only allow login and
-     * data decryption if database found user info match. GUI no need for GUI yet.
+     * data decryption if database found user info match. No need for GUI yet.
      */
-    
-    // adding another transaction doesn't fix problem, some of them have wrong lengths no matter what
     
     /* TEST PoW MINE */
     // struct Transaction trns{sha512("sender"), sha512("receiver"), 50000};
@@ -406,7 +407,6 @@ int main()
     // struct Transaction trns2{sha512("sender"), sha512("reciver"), 35600};
     // struct Transaction trns3{sha512("nder"), sha512("receiver"), 50000};
     // struct Transaction trns4{sha512("sender"), sha512("receiver"), 40000};
-
     // mempool.push_back(trns.Hash());
     // mempool.push_back(trns1.Hash());
     // mempool.push_back(trns2.Hash());
@@ -578,48 +578,51 @@ int main()
     //     walletAddress = fst;
     //     walletAddresses.push_back(walletAddress);
     // }
+    
+    // DEBUG
     // std::cout << commandDescriptions.size() << "\n\n" << listOfCommands.size();
+    
     std::cout << "\n\nline 339, main.cpp:\t";
     /* TEST walletAddress */
-    std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>> testMap;
-    std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>>::iterator
-    itMap = testMap.begin();
-    std::vector<std::shared_ptr<uint8_t>> senderAESmap;
-    std::vector<std::shared_ptr<uint8_t>> receiverAESmap;
-    std::vector<std::shared_ptr<uint8_t>> AESkeysTr;
+    // std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>> testMap;
+    // std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>>::iterator
+    // itMap = testMap.begin();
+    // std::vector<std::shared_ptr<uint8_t>> senderAESmap;
+    // std::vector<std::shared_ptr<uint8_t>> receiverAESmap;
+    // std::vector<std::shared_ptr<uint8_t>> AESkeysTr;
     
     // transaction list in wallet
-    std::vector<std::shared_ptr<uint64_t>> transactionhashesW;
+    // std::vector<std::shared_ptr<uint64_t>> transactionhashesW;
     
-    std::shared_ptr<uint64_t> senderWallet(new uint64_t[8]);
-    auto [fst,snd] = wallet_address.GenerateNewWalletAddress();
-    auto [fst1,snd1] = wallet_address.GenerateNewWalletAddress();
-    walletAddress = fst; // receiver
-    receiverAESmap = snd;
-    senderWallet = fst1;
-    senderAESmap = snd1;
-    walletAddresses.push_back(walletAddress);
-    walletAddresses.push_back(senderWallet);
+    // std::shared_ptr<uint64_t> senderWallet(new uint64_t[8]);
+    // auto [fst,snd] = wallet_address.GenerateNewWalletAddress();
+    // auto [fst1,snd1] = wallet_address.GenerateNewWalletAddress();
+    // walletAddress = fst; // receiver
+    // receiverAESmap = snd;
+    // senderWallet = fst1;
+    // senderAESmap = snd1;
+    // walletAddresses.push_back(walletAddress);
+    // walletAddresses.push_back(senderWallet);
     
     // encrypted transaction data for a single wallet.
-    std::map<std::string, std::shared_ptr<uint8_t>> transactionsEnc;
-    std::map<std::string, std::shared_ptr<uint8_t>>::iterator it = transactionsEnc.begin();
+    // std::map<std::string, std::shared_ptr<uint8_t>> transactionsEnc;
+    // std::map<std::string, std::shared_ptr<uint8_t>>::iterator it = transactionsEnc.begin();
     
     /* only insert own wallet data to testMap, burning will be sending crypto 
      * to dead account. you have to make sure to have the correct wallet address
      * to send to
      */
-    testMap.insert(itMap, std::pair<std::shared_ptr<uint64_t>, 
-                   std::vector<std::shared_ptr<uint8_t>>>(walletAddress, receiverAESmap));
-    struct Wallet TestWallet{nullptr, snd, testMap};
-    auto [Fst,Snd] = TestWallet.new_transaction(senderWallet,walletAddress,/*amount*/ 50000,
-                                                mempool,"buy", transactionhashesW,
-                                                transactionsEnc, 
-                                                /* storedCrypto */ 20000,
-                                                "dump aes256-key");
-    walletAddress = Fst;
-    receiverAESmap = Snd;
-    /* TEST walletAddress */
+    // testMap.insert(itMap, std::pair<std::shared_ptr<uint64_t>, 
+    //               std::vector<std::shared_ptr<uint8_t>>>(walletAddress, receiverAESmap));
+    // struct Wallet TestWallet{nullptr, snd, testMap};
+    // auto [Fst,Snd] = TestWallet.new_transaction(senderWallet,walletAddress,/*amount*/ 50000,
+    //                                             mempool,"buy", transactionhashesW,
+    //                                             transactionsEnc, 
+    //                                             /* storedCrypto */ 20000,
+    //                                             "dump aes256-key");
+    // walletAddress = Fst;
+    // receiverAESmap = Snd;
+    /* TEST walletAddress DONE */
     
     // if(blockMined == false) {
     //     std::vector<uint64_t> trnsLength;
