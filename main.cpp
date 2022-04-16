@@ -203,12 +203,15 @@ class WalletAddress
                 AESkeyStr += std::to_string(NewAESkey.get()[c]);
             }
             AES256_ciphertext = aes256.encrypt(AESkeyStr, AESkey);
-            if (askForPrivKey == "dump AES-key") {
-                std::cout << std::endl << "AES256 key:\t";
+            if (askForPrivKey == "dump aes256-key") {
+                std::cout << std::endl << "AES256 key:\t {";
                 for(int c=0;c<32;c++) {
-                    std::cout << (short)AESkey.get()[c];
+                    std::cout << "0x" << std::hex << (short)AESkey.get()[c];
+                    if(c<31) {
+                        std::cout << ", ";
+                    }
                 }
-                std::cout << std::endl << std::endl;
+                std::cout << "}" << std::endl << std::endl;
             }
             std::vector<std::shared_ptr<uint8_t>> keys;
             keys.push_back(AESkey);
@@ -265,46 +268,51 @@ class Address
         }
 
         // if new transaction added to the Wallet
-        std::pair<std::shared_ptr<uint64_t>,std::vector<std::shared_ptr<uint8_t>>>
-        newTransaction(std::shared_ptr<uint64_t> sender,
-                       std::shared_ptr<uint64_t> receiver, 
-                       uint32_t amount, std::vector<std::shared_ptr<
+        std::pair<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>>
+        newTransaction(std::shared_ptr<uint64_t> sender, std::shared_ptr<uint64_t>
+                       receiver, uint32_t amount, std::vector<std::shared_ptr<
                        uint64_t>> &mempool, std::map<std::shared_ptr
                        <uint64_t>, std::vector<std::shared_ptr<uint8_t>>>
-                       verifyInfo, std::string sellorbuy, std::vector<
-                       std::shared_ptr<uint8_t>>& AESkeysTr, std::vector
+                       verifyInfo, std::string sellorbuy, std::vector
                        <std::shared_ptr<uint64_t>>& transactionhashes,
-                       std::vector<std::string>& ciphertexts, int32_t&
-                       storedCrypto, std::vector<std::shared_ptr<uint8_t>>
-                       AESkeysWallet,std::shared_ptr<uint64_t> walletAddress
-                       =nullptr,std::string askForPrivKey="")
+                       std::map<std::string, std::shared_ptr<uint8_t>>&
+                       transactionsEnc, int32_t& storedCrypto, std::vector<std::
+                       shared_ptr<uint8_t>> AESkeysWallet,std::shared_ptr<uint64_t>
+                       walletAddress=nullptr,std::string askForPrivKey="")
         {
             Address address = Address();
             if(walletAddress != nullptr) {
                 verifyOwnerData(verifyInfo);
                 if(sellorbuy=="sell") {
                     if(amount > storedCrypto) {
-                        std::cout << "you do not own " << amount << ". Process failed";
+                        std::cout << "you do not own " << std::dec << amount
+                                  << ". Process failed";
+                        sender = walletAddress;
                         exit(EXIT_FAILURE);
                     } else {
                         storedCrypto -= amount;
+                        std::cout << "\nyou sold " << std::dec << amount
+                                  << "\nyou now own "
+                                  << storedCrypto;
                     }
                 } else if(sellorbuy=="buy") {
+                    
                     storedCrypto += amount;
+                    std::cout << "\n"  << std::dec << amount
+                              << " bought.\nyou now own " << storedCrypto
+                              << "\n\n";
+                    receiver = walletAddress;
                 }
-                
-std::map<std::string, std::shared_ptr<uint8_t>>::iterator it = transactionsEnc.begin();
-transactionsEnc.insert (it, std::pair<std::string, std::shared_ptr<uint8_t>>
-                        (trns.encryptTr(AES_key_mining), AES_key_mining));
-// std::map<std::string, std::shared_ptr<uint8_t>> transactionsEnc;
-                
                 
                 struct Transaction trns{sender, receiver, amount};
                 transactionhashes.push_back(trns.Hash());
                 std::shared_ptr<uint8_t> newAES_TrKey(new uint8_t[32]);
                 newAES_TrKey = GenerateAES256Key();
-                ciphertexts.push_back(trns.encryptTr(newAES_TrKey));
-                AESkeysTr.push_back(newAES_TrKey);
+                std::map<std::string, std::shared_ptr<uint8_t>>::iterator
+                it = transactionsEnc.begin();
+                transactionsEnc.insert(it, std::pair<std::string, std::shared_ptr
+                                       <uint8_t>> (trns.encryptTr(newAES_TrKey),
+                                                   newAES_TrKey));
                 mempool.push_back(transactionhashes[transactionhashes.size()-1]);
             } else {
                 std::cout << "\nERR:\tWalletAddressNotFound\n";
@@ -314,40 +322,42 @@ transactionsEnc.insert (it, std::pair<std::string, std::shared_ptr<uint8_t>>
                 AESkeysWallet = snd;
                 std::cout << "\nNew Wallet Address Created";
                 newTransaction(sender, receiver, amount, mempool, verifyInfo,
-                               sellorbuy, AESkeysTr, transactionhashes,
-                               ciphertexts, storedCrypto, AESkeysWallet, walletAddress);
+                               sellorbuy, transactionhashes, transactionsEnc,
+                               storedCrypto, AESkeysWallet, walletAddress);
                 std::cout << "\nTransaction complete" << std::endl << std::endl;
-                return {walletAddress,AESkeysWallet};
             }
+            return {walletAddress,AESkeysWallet};
         }
 };
 
 struct Wallet {
     /* parameters to verify when owner of the wallet is modifying */
     // should be nullptr if WalletAddressNotFound
-    std::shared_ptr<uint64_t>& walletAddress;
+    std::shared_ptr<uint64_t> walletAddress;
     
     // can be empty if WalletAddressNotFound
-    std::vector<std::shared_ptr<uint8_t>>& AESkeysWallet;  // length of 2
+    std::vector<std::shared_ptr<uint8_t>> &AESkeysWallet;  // length of 2
     
     /* verifyInfo includes AESkeysWallet in the first and second index. 
       If they don't match, don't change anything on the Wallet */
     std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>> verifyInfo;
-    void new_transaction(std::shared_ptr<uint64_t> sender,
-                            std::shared_ptr<uint64_t> receiver, 
-                            uint32_t amount, std::vector<std::shared_ptr<
-                            uint64_t>> mempool, std::string sellorbuy,
-                            std::vector<std::shared_ptr<uint8_t>> AESkeysTr, std::vector<
-                            std::shared_ptr<uint64_t>> transactionhashes,
-                            std::vector<std::string> ciphertexts, int32_t
-                            storedCrypto, std::string askForPrivKey="")
-
+    
+    std::pair<std::shared_ptr<uint64_t>,std::vector<std::shared_ptr<uint8_t>>>
+    new_transaction(std::shared_ptr<uint64_t> sender, std::shared_ptr<uint64_t>
+                    receiver, uint32_t amount, std::vector<std::shared_ptr<
+                    uint64_t>> mempool, std::string sellorbuy, std::vector<
+                    std::shared_ptr<uint64_t>> transactionhashes,
+                    std::map<std::string, std::shared_ptr<uint8_t>>&
+                    transactionsEnc, int32_t storedCrypto, std::string
+                    askForPrivKey="")
     {
         Address address = Address();
-        address.newTransaction(sender, receiver, amount, mempool, verifyInfo, 
-                               sellorbuy, AESkeysTr, transactionhashes, 
-                               ciphertexts, storedCrypto, AESkeysWallet,
-                               walletAddress, askForPrivKey);
+        auto [fst,snd] = address.newTransaction(sender, receiver, amount, mempool,
+                                                verifyInfo, sellorbuy,
+                                                transactionhashes, transactionsEnc,
+                                                storedCrypto, AESkeysWallet,
+                                                walletAddress, askForPrivKey);
+        return {fst,snd};
     }
     void verifyOwnerData()
     {
@@ -355,12 +365,12 @@ struct Wallet {
         address.verifyOwnerData(verifyInfo);
     }
     
-    void WalletAddressNotFound(std::string askForPrivKey="")
+    std::shared_ptr<uint64_t> WalletAddressNotFound(std::string askForPrivKey="")
     {
         Address address = Address();
         auto [fst,snd] = address.WalletAddressNotFound(AESkeysWallet, askForPrivKey);
-        walletAddress = fst;
         AESkeysWallet = snd;
+        return fst;
         
     }
 };
@@ -585,34 +595,30 @@ int main()
     auto [fst,snd] = wallet_address.GenerateNewWalletAddress();
     auto [fst1,snd1] = wallet_address.GenerateNewWalletAddress();
     walletAddress = fst; // receiver
+    receiverAESmap = snd;
     senderWallet = fst1;
-    senderAESmap = snd;
-    receiverAESmap = snd1;
+    senderAESmap = snd1;
     walletAddresses.push_back(walletAddress);
-    walletAddresses.push_back(sender);
+    walletAddresses.push_back(senderWallet);
+    
+    // encrypted transaction data for a single wallet.
+    std::map<std::string, std::shared_ptr<uint8_t>> transactionsEnc;
+    std::map<std::string, std::shared_ptr<uint8_t>>::iterator it = transactionsEnc.begin();
     
     /* only insert own wallet data to testMap, burning will be sending crypto 
      * to dead account. you have to make sure to have the correct wallet address
      * to send to
      */
     testMap.insert(itMap, std::pair<std::shared_ptr<uint64_t>, 
-                   std::vector<std::shared_ptr<uint8_t>>>(walletAddress, reciverAESmap));
-    struct Wallet TestWallet{walletAddress, snd, testMap};
+                   std::vector<std::shared_ptr<uint8_t>>>(walletAddress, receiverAESmap));
+    struct Wallet TestWallet{nullptr, snd, testMap};
     auto [Fst,Snd] = TestWallet.new_transaction(senderWallet,walletAddress,/*amount*/ 50000,
-                                                mempool,"buy",AESkeysTr,
-                                                transactionhashesW,);
-    for(int c=0;c<8;c++) {
-        std::cout << walletAddress.get()[c];
-    }
-    std::shared_ptr<uint64_t> sender,
-                            std::shared_ptr<uint64_t> receiver, 
-                            uint32_t amount, std::vector<std::shared_ptr<
-                            uint64_t>> mempool, std::string sellorbuy,
-                            std::vector<std::shared_ptr<uint8_t>> AESkeysTr, std::vector<
-                            std::shared_ptr<uint64_t>> transactionhashes,
-                            std::vector<std::string> ciphertexts, int32_t
-                            storedCrypto, std::string askForPrivKey=""
-    
+                                                mempool,"buy", transactionhashesW,
+                                                transactionsEnc, 
+                                                /* storedCrypto */ 20000,
+                                                "dump aes256-key");
+    walletAddress = Fst;
+    receiverAESmap = Snd;
     /* TEST walletAddress */
     
     // if(blockMined == false) {
