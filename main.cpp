@@ -207,14 +207,11 @@ class WalletAddress
             }
             AES256_ciphertext = aes256.encrypt(AESkeyStr, AESkey);
             if (askForPrivKey == "dump aes256-key") {
-                std::cout << std::endl << "AES256 key:\t {";
+                std::cout << std::endl << "AES256 key:\t";
                 for(int c=0;c<32;c++) {
-                    std::cout << "0x" << std::hex << (short)AESkey.get()[c];
-                    if(c<31) {
-                        std::cout << ", ";
-                    }
+                    std::cout << (short)AESkey.get()[c] << " ";
                 }
-                std::cout << "}" << std::endl << std::endl;
+                std::cout << std::endl << std::endl;
             }
             std::vector<std::shared_ptr<uint8_t>> keys;
             keys.push_back(AESkey);
@@ -442,7 +439,7 @@ int main()
     // transactionsEnc.insert (it, std::pair<std::string, std::shared_ptr<uint8_t>>
     //                         (trns1.encryptTr(AES_key_mining1), AES_key_mining1)); // 1
     // transactionsEnc.insert (it, std::pair<std::string, std::shared_ptr<uint8_t>>
-    //                         (trns2.encryptTr(AES_key_mining2), AES_key_mining2)); // 2 -- 8 transactions
+    //                         (trns2.encryptTr(AES_key_mining2), AES_key_mining2)); // 2
     // std::vector<std::shared_ptr<uint64_t>> mempool2;
     // mempool2.push_back(trns.Hash());
     // mempool2.push_back(trns1.Hash());
@@ -485,6 +482,7 @@ int main()
                                              "get blockchain-ahr", "get block-target",
                                              "enc-algs", "start mine", "end mine"};
     std::vector<std::string> commandDescriptions
+    // include log in to wallet address command
     {"help: show basic commands with descriptions",
      "-help: for command description, put after another command",
      "help-all: show all commands with description",
@@ -534,7 +532,7 @@ int main()
      "get version: get blockchain version",
      "get mempool: print verified mempool hashes in current block",
      "enc-algs: available encryption/decryption algorithms",
-     "start mine: start mining", "end mine: end mining", // after this is not done in version 1
+     "start mine: start mining", "end mine: end mining", // after this is not in version 1
      "get tr-target: print transaction target",
      "get tr-hash: print transaction hash",
      "get tr-ciphertext [trns index]: print transaction ciphertext",
@@ -543,9 +541,20 @@ int main()
      "dump trnsData [trns index]: dump single transaction data, provide transaction index",
      "get blockchain-ahr: get average hashrate over all blockchain",
      "get block-target [block index]: get block target hash, provide index"};
-    std::string userInput = "";
+    std::string userInput = "create-wa";
     // std::cout << "for basic command list, input \"help\"\n"
     //           << "for all commands, input \"help-all\"\n";
+    std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>> walletMap;
+    std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>>::iterator
+    itWalletMap = walletMap.begin();
+    std::vector<std::shared_ptr<uint8_t>> senderAESkey;
+    std::vector<std::shared_ptr<uint8_t>> receiverAESkey;
+    std::vector<std::shared_ptr<uint8_t>> AESkeysTr;
+    
+    // transaction list in wallet
+    std::vector<std::shared_ptr<uint64_t>> transactionhashesW;
+    
+    std::shared_ptr<uint64_t> senderWallet(new uint64_t[8]);
     
     if(userInput == "help") {
         for(int c=0;c<18;c++)
@@ -561,23 +570,38 @@ int main()
         }
     }
     else if(userInput.length()>5 && userInput.substr(userInput.length()-5,
-                                                     userInput.length()) == "-help") { // TEST
-        if(std::find(listOfCommands.begin(),listOfCommands.end(),
-                     userInput.substr(0,userInput.length()-5)) != listOfCommands.end()) {
-            std::vector<std::string>::iterator itCom;
-            itCom = std::find(commandDescriptions.begin(),commandDescriptions.end(),
-                              userInput.substr(0,userInput.length()-5));
-            std::cout << "\n" << commandDescriptions[std::distance(commandDescriptions.begin(),
-                                                     itCom)];
-        } else {
-            std::cout << "\n" << "error: command not found";
+                                                     userInput.length()) == "-help") {
+        for(int c=0;c<commandDescriptions.size()-1;c++) {
+            if(commandDescriptions[c].starts_with(userInput.substr(0,userInput.length()-5))) {
+                std::cout << "\n" << commandDescriptions[c];
+                break;
+            } else {
+                std::cout << "\n" << "error: command not found";
+            }
         }
     }
-    // else if(userInput == "create-wa") {
-    //     auto [fstNewAddrs,sndNewAddrs] = wallet_address.GenerateNewWalletAddress();
-    //     walletAddress = fst;
-    //     walletAddresses.push_back(walletAddress);
-    // }
+    else if(userInput == "create-wa") {
+        std::cout << "\ncreating wallet address...\n";
+        auto [fstNewAddrs,sndNewAddrs] = wallet_address.GenerateNewWalletAddress("dump aes256-key");
+        std::cout << "wallet address created\nwallet address:\t";
+        walletAddress = fstNewAddrs;
+        for(int c=0;c<8;c++) {
+            std::cout << std::hex << walletAddress.get()[c];
+        }
+        std::cout << std::endl;
+        walletAddresses.push_back(walletAddress);
+        walletMap.insert(itWalletMap, std::pair<std::shared_ptr<uint64_t>,
+                         std::vector<std::shared_ptr<uint8_t>>>(walletAddress,
+                                                                sndNewAddrs));
+    }
+    else if(userInput == "buy" || userInput == "sell") {
+        // ask for walletAddress of receiver or seller, key isn't requiried
+        if(userInput == "buy") {
+            // call function
+        } else { // sell
+            // call function
+        }
+    }
     
     // DEBUG
     // std::cout << commandDescriptions.size() << "\n\n" << listOfCommands.size();
