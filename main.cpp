@@ -292,13 +292,20 @@ class Address
                 } else if(sellorbuy=="buy") {
                     storedCrypto += amount;
                 }
+                
+std::map<std::string, std::shared_ptr<uint8_t>>::iterator it = transactionsEnc.begin();
+transactionsEnc.insert (it, std::pair<std::string, std::shared_ptr<uint8_t>>
+                        (trns.encryptTr(AES_key_mining), AES_key_mining));
+// std::map<std::string, std::shared_ptr<uint8_t>> transactionsEnc;
+                
+                
                 struct Transaction trns{sender, receiver, amount};
                 transactionhashes.push_back(trns.Hash());
                 std::shared_ptr<uint8_t> newAES_TrKey(new uint8_t[32]);
                 newAES_TrKey = GenerateAES256Key();
                 ciphertexts.push_back(trns.encryptTr(newAES_TrKey));
                 AESkeysTr.push_back(newAES_TrKey);
-                mempool.push_back(transactionhashes[transactionhashes.size()]);
+                mempool.push_back(transactionhashes[transactionhashes.size()-1]);
             } else {
                 std::cout << "\nERR:\tWalletAddressNotFound\n";
                 auto [fst, snd] = WalletAddressNotFound(AESkeysWallet,
@@ -567,16 +574,44 @@ int main()
     std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>> testMap;
     std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>>::iterator
     itMap = testMap.begin();
+    std::vector<std::shared_ptr<uint8_t>> senderAESmap;
+    std::vector<std::shared_ptr<uint8_t>> receiverAESmap;
+    std::vector<std::shared_ptr<uint8_t>> AESkeysTr;
+    
+    // transaction list in wallet
+    std::vector<std::shared_ptr<uint64_t>> transactionhashesW;
+    
+    std::shared_ptr<uint64_t> senderWallet(new uint64_t[8]);
     auto [fst,snd] = wallet_address.GenerateNewWalletAddress();
-    walletAddress = fst;
+    auto [fst1,snd1] = wallet_address.GenerateNewWalletAddress();
+    walletAddress = fst; // receiver
+    senderWallet = fst1;
+    senderAESmap = snd;
+    receiverAESmap = snd1;
     walletAddresses.push_back(walletAddress);
-    testMap.insert(itMap, std::pair<std::shared_ptr<uint64_t>,
-                   std::vector<std::shared_ptr<uint8_t>>>(walletAddress, snd));
+    walletAddresses.push_back(sender);
+    
+    /* only insert own wallet data to testMap, burning will be sending crypto 
+     * to dead account. you have to make sure to have the correct wallet address
+     * to send to
+     */
+    testMap.insert(itMap, std::pair<std::shared_ptr<uint64_t>, 
+                   std::vector<std::shared_ptr<uint8_t>>>(walletAddress, reciverAESmap));
     struct Wallet TestWallet{walletAddress, snd, testMap};
-    auto [Fst,Snd] = TestWallet.new_transaction();
+    auto [Fst,Snd] = TestWallet.new_transaction(senderWallet,walletAddress,/*amount*/ 50000,
+                                                mempool,"buy",AESkeysTr,
+                                                transactionhashesW,);
     for(int c=0;c<8;c++) {
         std::cout << walletAddress.get()[c];
     }
+    std::shared_ptr<uint64_t> sender,
+                            std::shared_ptr<uint64_t> receiver, 
+                            uint32_t amount, std::vector<std::shared_ptr<
+                            uint64_t>> mempool, std::string sellorbuy,
+                            std::vector<std::shared_ptr<uint8_t>> AESkeysTr, std::vector<
+                            std::shared_ptr<uint64_t>> transactionhashes,
+                            std::vector<std::string> ciphertexts, int32_t
+                            storedCrypto, std::string askForPrivKey=""
     
     /* TEST walletAddress */
     
