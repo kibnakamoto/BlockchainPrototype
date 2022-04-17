@@ -148,7 +148,15 @@ struct Transaction {
                     exit(EXIT_FAILURE);
                 }
             }
-            std::cout << std::endl << std::endl << "AES256 key:\t {";
+            std::cout << std::endl << std::endl << "AES256 key 1:\t {";
+            for(int c=0;c<32;c++) {
+                std::cout << "0x" << std::hex << (short)val[0].get()[c];
+                if(c<31) {
+                    std::cout << ", ";
+                }
+            }
+            
+            std::cout << std::endl << std::endl << "AES256 key 2:\t {";
             for(int c=0;c<32;c++) {
                 std::cout << "0x" << std::hex << (short)val[1].get()[c];
                 if(c<31) {
@@ -207,11 +215,17 @@ class WalletAddress
             }
             AES256_ciphertext = aes256.encrypt(AESkeyStr, AESkey);
             if (askForPrivKey == "dump aes256-key") {
-                std::cout << std::endl << "AES256 key:\t";
+                std::cout << std::endl << "AES256 key 1:\t";
                 for(int c=0;c<32;c++) {
                     std::cout << (short)AESkey.get()[c] << " ";
                 }
                 std::cout << std::endl << std::endl;
+                std::cout << "AES256 key 2:\t";
+                for(int c=0;c<32;c++) {
+                    std::cout << (short)NewAESkey.get()[c] << " ";
+                }
+                std::cout << std::endl << std::endl;
+
             }
             std::vector<std::shared_ptr<uint8_t>> keys;
             keys.push_back(AESkey);
@@ -413,7 +427,7 @@ struct Wallet {
 /* UI */
 struct userData
 {
-    std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>> &walletMap;
+    std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>> walletMap;
     std::map<std::string,std::shared_ptr<uint8_t>> &transactions;
     std::vector<std::shared_ptr<uint64_t>> &transactionhashesW;
     std::vector<int32_t> &trnsLengths;
@@ -631,11 +645,11 @@ int main()
     std::string userInput = "create-wa";
     // std::cout << "for basic command list, input \"help\"\n"
     //           << "for all commands, input \"help-all\"\n";
-    std::map<std::string,std::vector<std::shared_ptr<uint8_t>>> transactions;
+    std::map<std::string,std::shared_ptr<uint8_t>> transactions;
     std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>> walletMap;
     std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>>::iterator
     itWalletMap = walletMap.begin();
-    std::shared_ptr<uint8_t> userAESmapkey;
+    std::vector<std::shared_ptr<uint8_t>> userAESmapkeys;
     std::vector<std::shared_ptr<uint8_t>> AESkeysTr;
     std::vector<int32_t> trnsLengths;
     
@@ -677,7 +691,7 @@ int main()
         for(int c=0;c<8;c++) {
             std::cout << std::hex << walletAddress.get()[c];
         }
-        std::cout << std::endl << "wallet address as decimal, for use in UI";
+        std::cout << std::endl << "wallet address as decimal, for use in UI: ";
         for(int c=0;c<8;c++)
             std::cout << std::dec << walletAddress.get()[c] << " ";
         std::cout << std::endl << "save these values on your device\n";
@@ -685,14 +699,15 @@ int main()
         walletMap.insert(itWalletMap, std::pair<std::shared_ptr<uint64_t>,
                          std::vector<std::shared_ptr<uint8_t>>>(walletAddress,
                                                                 sndNewAddrs));
-        std::cout << "wallet address saved\n";
+        std::cout << "wallet address saved on map\n";
     }
     else if(userInput == "buy" || userInput == "sell") {
         uint32_t amount;
+        int32_t storedCrypto;
         // ask for walletAddress of receiver or seller, key isn't requiried
         if(userInput == "buy") {
             if(walletMap.empty()) { // Don't use: else Use \"dump-wallet512\" and copy paste
-                std::cout << "wallet map empty, input your wallet address."
+                std::cout << "wallet map is empty, input your wallet address."
                           <<"If you don\'t have one, type \"nw \" here,press enter, "
                           << "if you have one, press enter, copy paste wallet address"
                           << "from where you saved it as decimal with whitespaces:\t";
@@ -705,39 +720,61 @@ int main()
                     // verify inputted wallet
                     wallet_address.verifyInputWallet(walletAddresses, walletAddress);
                     
-                    // if walletAddress valid, input wallet key
-                    std::cout << "\ninput your aes256 wallet key (don\'t "
+                    // if walletAddress valid, input wallet keys
+                    std::cout << "\ninput your aes256 wallet key 1 (don\'t "
                               << "delete white spaces in between numbers):\t";
                     for(int c=0;c<32;c++)
-                        std::cin >> userAESmapkey.get()[c];
+                        std::cin >> userAESmapkeys[0].get()[c];
+                    std::cout << "\ninput your aes256 wallet key 2 (don\'t "
+                              << "delete white spaces in between numbers):\t";
+                    for(int c=0;c<32;c++)
+                        std::cin >> userAESmapkeys[1].get()[c];
+
                     walletMap.insert(itWalletMap, std::pair<std::shared_ptr<uint64_t>, 
                                      std::vector<std::shared_ptr<uint8_t>>>
-                                     (walletAddress, userAESmapkey));
-                    struct Wallet trWallet{walletAddress, userAESmapkey, walletMap};
+                                     (walletAddress, userAESmapkeys));
+                    struct Wallet trWallet{walletAddress, userAESmapkeys, walletMap};
+                    std::cout << "\ninput senders wallet address:\t";
+                    for(int c=0;c<8;c++)
+                        std::cin >> secondWallet.get()[c];
+                    wallet_address.verifyInputWallet(walletAddresses, walletAddress);
+                    std::cout << "\nwallet data verified and saved\n";
+                    std::cout << "\ninput amount:\t";
+                    std::cin >> amount;
+                    struct userData user_data {walletMap,transactions,transactionhashesW,
+                                               trnsLengths};
+                    storedCrypto = user_data.setBalance();
+                    auto [Fst,Snd] = trWallet.new_transaction(secondWallet,walletAddress,
+                                                                amount,mempool,
+                                                                "buy", transactionhashesW,
+                                                                transactions, 
+                                                                storedCrypto,
+                                                                "dump aes256-key");
+
                     
-                } else {
-                    int32_t storedCrypto=0;
-                    struct Wallet trWallet{nullptr, userAESmapkey, walletMap};
+                } else {// only difference is first trWallet parameter is nullptr
+                    storedCrypto=0;
+                    struct Wallet trWallet{nullptr, userAESmapkeys, walletMap};
+                    
+                    std::cout << "\ninput senders wallet address:\t";
+                    for(int c=0;c<8;c++)
+                        std::cin >> secondWallet.get()[c];
+                    wallet_address.verifyInputWallet(walletAddresses, walletAddress);
+                    std::cout << "\nwallet data saved\n";
+                    std::cout << "\ninput amount:\t";
+                    std::cin >> amount;
+                    struct userData user_data {walletMap,transactions,transactionhashesW,
+                                               trnsLengths};
+                    storedCrypto = user_data.setBalance();
+                    auto [Fst,Snd] = trWallet.new_transaction(secondWallet,walletAddress,
+                                                                amount,mempool,
+                                                                "buy", transactionhashesW,
+                                                                transactions, 
+                                                                storedCrypto,
+                                                                "dump aes256-key");
+
                 }
-                std::cout << "\nwallet data saved\n";
-                
             }
-            std::cout << "\ninput senders wallet address:\t";
-            for(int c=0;c<8;c++)
-                std::cin >> secondWallet.get()[c];
-            wallet_address.verifyInputWallet(walletAddresses, walletAddress);
-            std::cout << "\ninput amount:\t";
-            std::cin >> amount;
-            struct userData user_data {walletMap,transactions,transactionhashesW,
-                                       trnsLengths};
-            storedCrypto = user_data.setBalance();
-            auto [Fst,Snd] = trWallet.new_transaction(secondWallet,walletAddress,
-                                                        amount,mempool,
-                                                        "buy", transactionhashesW,
-                                                        transactions, 
-                                                        storedCrypto,
-                                                        "dump aes256-key");
-            
         } else { // sell
             // call function
         }
