@@ -472,9 +472,13 @@ struct userData
                     for(int k=lenIndex;k<plaintext.length();k++) {
                         str_amount += plaintext[k];
                     }
-                    // calculate bought
+                    // calculate wallet balance
                     int32_t amount = static_cast<int32_t>(std::stoul(str_amount));
-                    storedCrypto += amount;
+                    if(plaintext.starts_with("buys")) {
+                        storedCrypto += amount;
+                    } else if(plaintext.starts_with("sell")) {
+                        storedCrypto -= amount;
+                    }
             }
         }
         return storedCrypto;
