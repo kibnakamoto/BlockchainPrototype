@@ -77,19 +77,25 @@ std::shared_ptr<uint8_t> GenerateAES128Key()
 
 
 struct Transaction {
+    // sender and receiver can be reversed and are only variable names
     std::shared_ptr<uint64_t> sender;
     std::shared_ptr<uint64_t> receiver;
     uint32_t amount;
     
-    std::string encryptTr(std::shared_ptr<uint8_t> key)
+    std::string encryptTr(std::shared_ptr<uint8_t> key,std::string buysOrSell)
     {
         AES::AES256 aes256;
         std::string transactionData = "";
-        transactionData += "sender: ";
+        if(buysOrSell == "buy") {
+            buysOrSell += "s"; // make it 4 chars
+        }
+
+        transactionData += buysOrSell + ", ";
+        transactionData += "wallet one: ";
         for(int c=0;c<8;c++) {
             transactionData += std::to_string(sender.get()[c]);
         }
-        transactionData += ", receiver: ";
+        transactionData += ", wallet two: ";
         for(int c=0;c<8;c++) {
             transactionData += std::to_string(receiver.get()[c]);
         }
@@ -102,11 +108,14 @@ struct Transaction {
     uint64_t length()
     {
         std::string transactionData = "";
-        transactionData += "sender: ";
+        // for length, buy or sell isn't required and just use the right amount of chars
+        // use buys for buy so that its the same length
+        transactionData += "bosc, ";
+        transactionData += "wallet one: ";
         for(int c=0;c<8;c++) {
             transactionData += std::to_string(sender.get()[c]);
         }
-        transactionData += ", receiver: ";
+        transactionData += ", wallet two: ";
         for(int c=0;c<8;c++) {
             transactionData += std::to_string(receiver.get()[c]);
         }
@@ -165,12 +174,12 @@ struct Transaction {
             }
             std::cout << "}" << std::endl << std::endl;
         }
-        std::cout << "sender\'s wallet address:\t";
+        std::cout << "your wallet address:\t";
         for(int c=0;c<8;c++) {
             std::cout << std::hex << sender.get()[c];
         }
         std::cout << std::endl;
-        std::cout << "receiver\'s wallet address:\t";
+        std::cout << "external wallet address:\t";
         for(int c=0;c<8;c++) {
             std::cout << std::hex << receiver.get()[c];
         }
@@ -180,14 +189,18 @@ struct Transaction {
     }
     
     // A single hashed transaction data
-    std::shared_ptr<uint64_t> Hash()
+    std::shared_ptr<uint64_t> Hash(std::string buysOrSell)
     {
         std::string transactionData = "";
-        transactionData += "sender: ";
+        if(buysOrSell == "buy") {
+            buysOrSell += "s"; // make it 4 chars
+        }
+        transactionData += buysOrSell + ", ";
+        transactionData += "wallet one: ";
         for(int c=0;c<8;c++) {
             transactionData += std::to_string(sender.get()[c]);
         }
-        transactionData += ", receiver: ";
+        transactionData += ", wallet two: ";
         for(int c=0;c<8;c++) {
             transactionData += std::to_string(receiver.get()[c]);
         }
@@ -354,13 +367,13 @@ class Address
                 }
                 
                 struct Transaction trns{sender, receiver, amount};
-                transactionhashes.push_back(trns.Hash());
+                transactionhashes.push_back(trns.Hash(sellorbuy));
                 std::shared_ptr<uint8_t> newAES_TrKey(new uint8_t[32]);
                 newAES_TrKey = GenerateAES256Key();
                 std::map<std::string, std::shared_ptr<uint8_t>>::iterator
                 it = transactionsEnc.begin();
                 transactionsEnc.insert(it, std::pair<std::string, std::shared_ptr
-                                       <uint8_t>> (trns.encryptTr(newAES_TrKey),
+                                       <uint8_t>> (trns.encryptTr(newAES_TrKey, sellorbuy),
                                                    newAES_TrKey));
                 mempool.push_back(transactionhashes[transactionhashes.size()-1]);
             } else {
@@ -459,6 +472,7 @@ struct userData
                     for(int k=lenIndex;k<plaintext.length();k++) {
                         str_amount += plaintext[k];
                     }
+                    // calculate bought
                     int32_t amount = static_cast<int32_t>(std::stoul(str_amount));
                     storedCrypto += amount;
             }
@@ -736,7 +750,7 @@ int main()
                           << "delete white spaces in between numbers):\t";
                 for(int c=0;c<32;c++)   std::cin >> userAESmapkeys[1].get()[c];
 
-                walletMap.insert(itWalletMap, std::pair<std::shared_ptr<uint64_t>, 
+                walletMap.insert(itWalletMap, std::pair<std::shared_ptr<uint64_t>,
                                  std::vector<std::shared_ptr<uint8_t>>>
                                  (walletAddress, userAESmapkeys));
                 
