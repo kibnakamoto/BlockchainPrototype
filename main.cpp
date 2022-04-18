@@ -844,7 +844,7 @@ int main()
             }
             std::cout << std::endl;
             std::vector<std::shared_ptr<uint8_t>> walletKeys;
-            for(cons auto [wa,walletkeys] : walletMap) {
+            for(const auto [wa,walletkeys] : walletMap) {
                 walletAddress = wa;
                 walletKeys = walletkeys;
             }
@@ -853,7 +853,7 @@ int main()
             std::cout << "\nciphertext of wallet address:\t" << ciphertextW
                       << "\n\nwarning: an " << "encrypted wallet address is not"
                       << " usable until you decrypt it";
-            walletAddresses = nullptr;
+            walletAddress = nullptr;
             ciphertextK1 = aes128.encrypt(aesKeyToStr<uint8_t>
                                           (walletKeys[0]),
                                           encWalletAes128Key);
@@ -862,11 +862,11 @@ int main()
                                           (walletKeys[0]),
                                           encWalletAes128Key);
             std::cout << "\n\nciphertext of key 2:\t" << ciphertextK2;
-            std::cout << "\n\nsave these values and keys as they won\'t be 
+            std::cout << "\n\nsave these values and keys as they won\'t be "
                       << "saved here and you won\'t be able to access your wallet again";
             std::string confirm;
             std::cout << "\nunencrypted wallet data will be gone until you decrypt it,"
-                      << " are you sure you want to continue\ntype \"y\" for yes,
+                      << " are you sure you want to continue\ntype \"y\" for yes, "
                       << "\"n\" for no";
             bool terminate = false;
             while(terminate == false) {
