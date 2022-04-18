@@ -273,15 +273,9 @@ class WalletAddress
             }
             AES256_ciphertext = aes256.encrypt(AESkeyStr, AESkey);
             if (askForPrivKey == "dump aes256-key") {
-                std::cout << std::endl << "AES256 key 1:\t";
-                for(int c=0;c<32;c++) {
-                    std::cout << (short)AESkey.get()[c] << " ";
-                }
+                std::cout << std::endl << "AES256 key 1:\t" << aesKeyToStr<uint8_t>(AESkey);
                 std::cout << std::endl << std::endl;
-                std::cout << "AES256 key 2:\t";
-                for(int c=0;c<32;c++) {
-                    std::cout << (short)NewAESkey.get()[c] << " ";
-                }
+                std::cout << "AES256 key 2:\t" << aesKeyToStr<uint8_t>(NewAESkey);
                 std::cout << std::endl << std::endl;
 
             }
@@ -786,13 +780,14 @@ int main()
                 wallet_address.verifyInputWallet(walletAddresses, walletAddress);
                 
                 // if walletAddress valid, input wallet keys
-                std::cout << "\ninput your aes256 wallet key 1 (don\'t "
-                          << "delete white spaces in between numbers):\t";
-                for(int c=0;c<32;c++)   std::cin >> userAESmapkeys[0].get()[c];
-                std::cout << "\ninput your aes256 wallet key 2 (don\'t "
-                          << "delete white spaces in between numbers):\t";
-                for(int c=0;c<32;c++)   std::cin >> userAESmapkeys[1].get()[c];
-
+                std::cout << "\ninput your aes256 wallet key 1 as hex:\t";
+                std::string key1Str;
+                std::cin >> key1Str;
+                userAESmapkeys[0] = aesKeyToSPtr<uint8_t>(key1Str);
+                std::cout << "\ninput your aes256 wallet key 2 as hex:\t";
+                std::string key2Str;
+                std::cin >> key2Str;
+                userAESmapkeys[1] = aesKeyToSPtr<uint8_t>(key2Str);
                 walletMap.insert(itWalletMap, std::pair<std::shared_ptr<uint64_t>,
                                  std::vector<std::shared_ptr<uint8_t>>>
                                  (walletAddress, userAESmapkeys));
@@ -827,13 +822,6 @@ int main()
     }
     // DEBUG
     // std::cout << commandDescriptions.size() << "\n\n" << listOfCommands.size();
-    std::shared_ptr<uint8_t> AES256key = generateAES256Key();
-    
-    aesKeyToSPtr<uint8_t>(aesKeyToStr<uint8_t>(AES256key));
-    std::cout << "\n\n\n";
-    for(int c=0;c<32;c++) {
-        std::cout << std::hex << (short)AES256key.get()[c];
-    }
     std::cout << "\n\nline 339, main.cpp:\t";
     /* TEST walletAddress */
     // std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>> testMap;
