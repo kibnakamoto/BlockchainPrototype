@@ -2,7 +2,7 @@
  *  github: kibnakamoto
  *   Created on: Dec. 5, 2021
  *      Author: Taha Canturk
- *       Finalized: Jan. 5 2022
+ *       Last Update: Apr 18, 2022
  *        More Info: github.com/kibnakamoto/sha512.cpp/blob/main/README.md
  */
 
