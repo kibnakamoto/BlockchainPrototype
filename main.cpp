@@ -636,7 +636,6 @@ int main()
                                              "dump trnsData", "get blockchain-ahr",
                                              "get block-target"};
     std::vector<std::string> commandDescriptions
-    // include log in to wallet address command
     {"help: show basic commands with descriptions",
      "-help: for command description, put after another command",
      "help-all: show all commands with description",
@@ -825,22 +824,47 @@ int main()
             walletAddress = newWA;
             userAESmapkeys = newKeys;
     }
-    else if(userInput == "e-wallet-aes128") {
-        if(walletMap.empty()) {
-            std::cout << "no wallet saved, if you want to encrypt manually, try"
-                      << "\"enc-aes128\" and input both input and key, if you"
-                      << " want to use an automatically generated key, use"
-                      << " \"enc-aes128-genkey\".";
+    else if(userInput == "e-wallet-aes128" || userInput == "e-wallet-aes192" ||
+            userInput == "e-wallet-aes256") {
+        std::string usrCommand;
+        std::string ACmndNoKey;
+        std::string ACmndWithKey; // alternative command with key
+        std::shared_ptr<uint8_t> encWalletAesAlgKey;
+        std::string algorithm;
+        uint32_t keysize;
+        usrCommand = userInput;
+        std::string aesAlgKey;
+        if(userInput == "e-wallet-aes128") {
+            ACmndNoKey = "enc-aes128";
+            ACmndWithKey = "enc-aes128-genkey";
+            algorithm = "aes128";
+            keysize = 16;
+        }
+        else if(userInput == "e-wallet-aes192") {
+            ACmndNoKey = "enc-aes192";
+            ACmndWithKey = "enc-aes192-genkey";
+            algorithm = "aes192";
+            keysize = 24;
         } else {
-            std::string aes128Key;
-            std::shared_ptr<uint8_t> encWalletAes128Key;
-            std::cout << "\nwallet found\ninput aes128 key as hex(hex digits "
-                      << "only):\t";
-            std::cin >> aes128Key;
-            encWalletAes128Key = aesKeyToSPtr<uint8_t>(aes128Key,16);
+            ACmndNoKey = "enc-aes256";
+            ACmndWithKey = "enc-aes256-genkey";
+            algorithm = "aes256";
+            keysize = 32;
+        }
+        
+        if(walletMap.empty()) {
+            std::cout << "no wallet saved, if you want to encrypt manually, try "
+                      << "\"" << ACmndNoKey << "\" and input both input and key, if you"
+                      << " want to use an automatically generated key, use"
+                      << " \"" << ACmndWithKey << "\".";
+        } else {
+            std::cout << "\nwallet found\ninput " << algorithm << " key as hex"
+                      << "(hex digits only):\t";
+            std::cin >> aesAlgKey;
+            encWalletAesAlgKey = aesKeyToSPtr<uint8_t>(aesAlgKey,keysize);
             std::cout << "\nis the key you inputted correct:\t";
             for(int c=0;c<16;c++) {
-                std::cout << std::hex << (short)encWalletAes128Key.get()[c];
+                std::cout << std::hex << (short)encWalletAesAlgKey.get()[c];
             }
             std::cout << std::endl;
             std::vector<std::shared_ptr<uint8_t>> walletKeys;
@@ -848,26 +872,47 @@ int main()
                 walletAddress = wa;
                 walletKeys = walletkeys;
             }
-            ciphertextW = aes128.encrypt(to8_64_str(walletAddress),
-                                         encWalletAes128Key);
+            if(algorithm == "aes128") {
+                ciphertextW = aes128.encrypt(to8_64_str(walletAddress),
+                                             encWalletAesAlgKey);
+            ciphertextK1 = aes128.encrypt(aesKeyToStr<uint8_t>
+                                          (walletKeys[0],16),
+                                          encWalletAesAlgKey);
+            ciphertextK2 = aes128.encrypt(aesKeyToStr<uint8_t>
+                                          (walletKeys[1],16),
+                                          encWalletAesAlgKey);
+            }
+            else if(algorithm == "aes192") {
+                ciphertextW = aes192.encrypt(to8_64_str(walletAddress),
+                                             encWalletAesAlgKey);
+                ciphertextK1 = aes192.encrypt(aesKeyToStr<uint8_t>
+                                              (walletKeys[0],24),
+                                              encWalletAesAlgKey);
+                ciphertextK2 = aes192.encrypt(aesKeyToStr<uint8_t>
+                                              (walletKeys[1],24),
+                                              encWalletAesAlgKey);
+            } else {
+                ciphertextW = aes256.encrypt(to8_64_str(walletAddress),
+                                             encWalletAesAlgKey);
+                ciphertextK1 = aes256.encrypt(aesKeyToStr<uint8_t>
+                                              (walletKeys[0]),
+                                              encWalletAesAlgKey); // keysize = 32
+                ciphertextK2 = aes256.encrypt(aesKeyToStr<uint8_t>
+                                              (walletKeys[1]),
+                                              encWalletAesAlgKey); // keysize = 32
+            }
             std::cout << "\nciphertext of wallet address:\t" << ciphertextW
                       << "\n\nwarning: an " << "encrypted wallet address is not"
                       << " usable until you decrypt it";
             walletAddress = nullptr;
-            ciphertextK1 = aes128.encrypt(aesKeyToStr<uint8_t>
-                                          (walletKeys[0]),
-                                          encWalletAes128Key);
             std::cout << "\n\nciphertext of key 1:\t" << ciphertextK1;
-            ciphertextK2 = aes128.encrypt(aesKeyToStr<uint8_t>
-                                          (walletKeys[0]),
-                                          encWalletAes128Key);
             std::cout << "\n\nciphertext of key 2:\t" << ciphertextK2;
             std::cout << "\n\nsave these values and keys as they won\'t be "
                       << "saved here and you won\'t be able to access your wallet again";
-            std::string confirm;
             std::cout << "\nunencrypted wallet data will be gone until you decrypt it,"
                       << " are you sure you want to continue\ntype \"y\" for yes, "
                       << "\"n\" for no";
+            std::string confirm;
             bool terminate = false;
             while(terminate == false) {
                 std::cin >> confirm;
@@ -880,16 +925,15 @@ int main()
                     terminate = true;
                 }
                 else if(confirm == "y" or confirm == "yes") {
-                    std::cout << "clearing unencrypted wallet data...";
+                    std::cout << "\nclearing unencrypted wallet data...";
                     usedEncAlg = "aes128";
                     walletMap.clear();
-                    std::cout << "done";
+                    std::cout << "\ndone";
                     terminate = true;
                 } else {
                     std::cout << "invalid input\n(y) or (n)";
                 }
             }
-            
         }
     }
     // DEBUG
