@@ -825,7 +825,9 @@ int main()
             userAESmapkeys = newKeys;
     }
     else if(userInput == "e-wallet-aes128" || userInput == "e-wallet-aes192" ||
-            userInput == "e-wallet-aes256") {
+            userInput == "e-wallet-aes256" || userInput == "e-wallet-aes128-genkey" ||
+            userInput == "e-wallet-aes192-genkey" || userInput ==
+            "e-wallet-aes256-genkey") {
         std::string usrCommand;
         std::string ACmndNoKey;
         std::string ACmndWithKey; // alternative command with key
@@ -834,18 +836,18 @@ int main()
         uint32_t keysize;
         usrCommand = userInput;
         std::string aesAlgKey;
-        if(userInput == "e-wallet-aes128") {
+        if(userInput == "e-wallet-aes128" || userInput == "e-wallet-aes128-genkey") {
             ACmndNoKey = "enc-aes128";
             ACmndWithKey = "enc-aes128-genkey";
             algorithm = "aes128";
             keysize = 16;
         }
-        else if(userInput == "e-wallet-aes192") {
+        else if(userInput == "e-wallet-aes192" || userInput =="e-wallet-aes192-genkey") {
             ACmndNoKey = "enc-aes192";
             ACmndWithKey = "enc-aes192-genkey";
             algorithm = "aes192";
             keysize = 24;
-        } else {
+        } else if(userInput == "e-wallet-aes256" || userInput == "e-wallet-aes256-genkey") {
             ACmndNoKey = "enc-aes256";
             ACmndWithKey = "enc-aes256-genkey";
             algorithm = "aes256";
@@ -858,15 +860,33 @@ int main()
                       << " want to use an automatically generated key, use"
                       << " \"" << ACmndWithKey << "\".";
         } else {
-            std::cout << "\nwallet found\ninput " << algorithm << " key as hex"
-                      << "(hex digits only):\t";
-            std::cin >> aesAlgKey;
-            encWalletAesAlgKey = aesKeyToSPtr<uint8_t>(aesAlgKey,keysize);
-            std::cout << "\nis the key you inputted correct:\t";
-            for(int c=0;c<16;c++) {
-                std::cout << std::hex << (short)encWalletAesAlgKey.get()[c];
+            if(userInput != "e-wallet-aes128-genkey" || userInput != 
+               "e-wallet-aes192-genkey" || userInput != "e-wallet-aes256-genkey") {
+                std::cout << "\nwallet found\ninput " << algorithm << " key as hex"
+                          << "(hex digits only):\t";
+                std::cin >> aesAlgKey;
+                encWalletAesAlgKey = aesKeyToSPtr<uint8_t>(aesAlgKey,keysize);
+                std::cout << "\nis the key you inputted correct as hex integer:\t";
+                for(int c=0;c<keysize;c++) {
+                    std::cout << std::hex << (short)encWalletAesAlgKey.get()[c];
+                }
+                std::cout << "\n\ninteger value will have a few missing zeros"
+                          << "which is fine but if a big part or everything is"
+                          << "wrong, that is a problem, please stop the process and "
+                          << "report the problem";
+                std::cout << std::endl;
             }
-            std::cout << std::endl;
+            else {
+                if(userInput == "e-wallet-aes128-genkey") {
+                    encWalletAesAlgKey = generateAES128Key();
+                }
+                else if(userInput == "e-wallet-aes192-genkey") {
+                    encWalletAesAlgKey = generateAES192Key();
+                }
+                else {
+                    encWalletAesAlgKey = generateAES256Key();
+                }
+            }
             std::vector<std::shared_ptr<uint8_t>> walletKeys;
             for(const auto [wa,walletkeys] : walletMap) {
                 walletAddress = wa;
@@ -926,9 +946,10 @@ int main()
                 }
                 else if(confirm == "y" or confirm == "yes") {
                     std::cout << "\nclearing unencrypted wallet data...";
-                    usedEncAlg = "aes128";
+                    usedEncAlg = algorithm;
                     walletMap.clear();
-                    std::cout << "\ndone";
+                    std::cout << "\ncomplete\nencryption key:\t" << std::hex
+                              << aesKeyToStr<uint8_t>(encWalletAesAlgKey,keysize);
                     terminate = true;
                 } else {
                     std::cout << "invalid input\n(y) or (n)";
