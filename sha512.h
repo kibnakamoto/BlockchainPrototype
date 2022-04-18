@@ -151,6 +151,7 @@ class SHA512
             for (int c=0;c<blockBytesLen/8;c++) {
                 W[c] = 0x00;
             }
+            /* TODO: convert to big endian so it works on all operating systems */
             
             // 8 bit array values to 64 bit array using 64 bit integer array.
             for (int i=0; i<len/8+1; i++) {
@@ -240,9 +241,9 @@ class SHA512
             }
             
             /* to avoid hash smaller than 512-bit (e.g. 511-bit) to be rehashed
-             * with no leading zeros
+             * with no leading zeros. But might be unnecessary.
              */
-            std::shared_ptr<uint8_t> wordArray(new uint8_t[64]);
+            alignas(uint64_t) std::shared_ptr<uint8_t> wordArray(new uint8_t[64]);
             for(int c=0;c<8;c++) {
                 for(int i=56,k=0;i>=0,k<8;i-=8,k++) {
                     wordArray.get()[c*8+k] = singleHash.get()[c]>>i & 0xff;
@@ -289,4 +290,16 @@ std::string sha512_str(std::string input) {
 	return ss.str();
 }
 
+// for wallet
+std::string to8_64_str(std::shared_ptr<uint64_t> input) {
+    std::stringstream ss;
+    for (int c=0;c<8;c++) {
+        ss << std::setfill('0') << std::setw(16) << std::hex
+           << input.get()[c];
+    }
+	return ss.str();
+}
+
+
 #endif /* SHA512_H_ */
+
