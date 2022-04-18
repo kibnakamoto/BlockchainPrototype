@@ -22,7 +22,7 @@
 #include "block.h"
 
 // 256-bit random number. AES key
-std::shared_ptr<uint8_t> GenerateAES256Key()
+std::shared_ptr<uint8_t> generateAES256Key()
 {
     /* random byte using Mersenne Twister. Not recommended for 
        cryptography but couldn't find a cryptographic random byte generator */
@@ -30,18 +30,18 @@ std::shared_ptr<uint8_t> GenerateAES256Key()
     std::random_device randDev;
     std::mt19937 generator(randDev() ^ time(NULL));
      std::uniform_int_distribution<uint32_t> distr;
-    for(int c=0;c<32-4;c++) {
+    for(int c=0;c<8;c++) {
         uint32_t tmp = distr(generator);
         key.get()[c] = tmp>>24 & 0xff;
-        key.get()[c+1] = tmp>>16 & 0xff;
-        key.get()[c+2] = tmp>>8 & 0xff;
-        key.get()[c+3] = tmp & 0xff;
+        key.get()[c*4+1] = tmp>>16 & 0xff;
+        key.get()[c*4+2] = tmp>>8 & 0xff;
+        key.get()[c*4+3] = tmp & 0xff;
     }
     return key;
 }
 
 // 192-bit random number. AES key
-std::shared_ptr<uint8_t> GenerateAES192Key()
+std::shared_ptr<uint8_t> generateAES192Key()
 {
     /* random byte using Mersenne Twister. Not recommended for 
        cryptography but couldn't find a cryptographic random byte generator */
@@ -49,17 +49,17 @@ std::shared_ptr<uint8_t> GenerateAES192Key()
     std::random_device randDev;
     std::mt19937 generator(randDev() ^ time(NULL));
      std::uniform_int_distribution<uint32_t> distr;
-    for(int c=0;c<24-4;c++) {
+    for(int c=0;c<8;c++) {
         uint32_t tmp = distr(generator);
-        key.get()[c+1] = tmp>>16 & 0xff;
-        key.get()[c+2] = tmp>>8 & 0xff;
-        key.get()[c+3] = tmp & 0xff;
+        key.get()[c*3+1] = tmp>>16 & 0xff;
+        key.get()[c*3+2] = tmp>>8 & 0xff;
+        key.get()[c*3+3] = tmp & 0xff;
     }
     return key;
 }
 
 // 128-bit random number. AES key
-std::shared_ptr<uint8_t> GenerateAES128Key()
+std::shared_ptr<uint8_t> generateAES128Key()
 {
     /* random byte using Mersenne Twister. Not recommended for 
        cryptography but couldn't find a cryptographic random byte generator */
@@ -67,13 +67,68 @@ std::shared_ptr<uint8_t> GenerateAES128Key()
     std::random_device randDev;
     std::mt19937 generator(randDev() ^ time(NULL));
      std::uniform_int_distribution<uint32_t> distr;
-    for(int c=0;c<16-2;c++) {
+    for(int c=0;c<8;c++) {
         uint32_t tmp = distr(generator);
-        key.get()[c] = tmp>>8 & 0xff;
-        key.get()[c+1] = tmp & 0xff;
+        key.get()[c*2] = tmp>>8 & 0xff;
+        key.get()[c*2+1] = tmp & 0xff;
     }
     return key;
 }
+
+// for user input in UI
+template<class T>
+std::string aesKeyToStr(std::shared_ptr<T> key, uint32_t keysize=32)
+{
+    std::stringstream ss;
+    for(int c=0;c<keysize;c++) {
+        ss << std::setfill('0') << std::setw(2) << std::hex << (short)key.get()[c];
+    }
+    return ss.str();
+}
+
+// reverse aeskey_tostr function for use in UI, default key size is for aes256
+template<class T>
+std::shared_ptr<T> aesKeyToSPtr(std::string strKey, uint32_t keysize=32)
+{
+    if(strKey.length() != keysize*2) {
+        std::cout << "length of key doesn't match required algorithm key size: "
+                  << keysize;
+        exit(EXIT_FAILURE);
+    }
+    std::shared_ptr<T> key(new T[keysize]);
+    std::string bytes="";
+    for(int c=0;c<keysize;c++) {
+        bytes += strKey.substr(c*2,2);
+        if (c<keysize-1) {
+            bytes += " ";
+        }
+    }
+    std::istringstream hexCharsStream(bytes);
+    unsigned int ch;
+    int i=0;
+    while (hexCharsStream >> std::hex >> ch)
+    {
+        key.get()[i] = ch;
+        i++;
+    }
+    return key;
+}
+
+// wallet address has to be 512-bits at all conditions and in hex format
+std::shared_ptr<uint64_t> usrInWallet512(std::string walletAddress)
+{
+    if(walletAddress.length() != 128) {
+        std::cout << "input length not 64 bytes";
+        exit(EXIT_FAILURE);
+    }
+    std::shared_ptr<uint64_t> hash(new uint64_t[8]);
+    for(int c=0;c<8;c++) {
+        std::string substr = "0x" + walletAddress.substr(c*16,16);
+        hash.get()[c] = std::stoul(substr, nullptr, 16);
+    }
+    return hash;
+}
+
 
 
 struct Transaction {
@@ -157,32 +212,22 @@ struct Transaction {
                     exit(EXIT_FAILURE);
                 }
             }
-            std::cout << std::endl << std::endl << "AES256 key 1:\t {";
+            std::cout << std::endl << std::endl << "AES256 key 1:\t";
             for(int c=0;c<32;c++) {
-                std::cout << "0x" << std::hex << (short)val[0].get()[c];
-                if(c<31) {
-                    std::cout << ", ";
-                }
+                std::cout << std::hex << (short)val[0].get()[c] << " ";
             }
             
-            std::cout << std::endl << std::endl << "AES256 key 2:\t {";
+            std::cout << std::endl << std::endl << "AES256 key 2:\t";
             for(int c=0;c<32;c++) {
-                std::cout << "0x" << std::hex << (short)val[1].get()[c];
-                if(c<31) {
-                    std::cout << ", ";
-                }
+                std::cout << std::hex << (short)val[1].get()[c] << " ";
             }
-            std::cout << "}" << std::endl << std::endl;
+            std::cout << std::endl << std::endl;
         }
         std::cout << "your wallet address:\t";
-        for(int c=0;c<8;c++) {
-            std::cout << std::hex << sender.get()[c];
-        }
+        std::cout << to8_64_str(sender);
         std::cout << std::endl;
         std::cout << "external wallet address:\t";
-        for(int c=0;c<8;c++) {
-            std::cout << std::hex << receiver.get()[c];
-        }
+        std::cout << to8_64_str(receiver);
         std::cout << std::endl;
         std::cout << "amount:\t" << std::dec << amount;
         std::cout << std::endl << std::endl;
@@ -219,9 +264,9 @@ class WalletAddress
             IntTypes int_type = IntTypes();
             AES::AES256 aes256;
             std::shared_ptr<uint8_t> AESkey(new uint8_t[32]);
-            AESkey = GenerateAES256Key(); // 32 bytes
+            AESkey = generateAES256Key(); // 32 bytes
             std::shared_ptr<uint8_t> NewAESkey(new uint8_t[32]);
-            NewAESkey = GenerateAES256Key();
+            NewAESkey = generateAES256Key();
             std::string AESkeyStr = "";
             for(int c=0;c<32;c++) { /* plain text = new AES key in string */
                 AESkeyStr += std::to_string(NewAESkey.get()[c]);
@@ -321,10 +366,8 @@ class Address
             walletAddress = fst;
             AESkeysWallet = snd;
             std::cout << "Wallet Address Generated\nWallet Address:\t";
-            for(int c=0;c<8;c++) {
-                std::cout << std::hex << walletAddress.get()[c];
-            }
-            std::cout << "\n\ntrying again";
+            std::cout << std::hex << to8_64_str(walletAddress);
+            std::cout << "\ntrying again";
             return {walletAddress,AESkeysWallet};
             
         }
@@ -369,7 +412,7 @@ class Address
                 struct Transaction trns{sender, receiver, amount};
                 transactionhashes.push_back(trns.Hash(sellorbuy));
                 std::shared_ptr<uint8_t> newAES_TrKey(new uint8_t[32]);
-                newAES_TrKey = GenerateAES256Key();
+                newAES_TrKey = generateAES256Key();
                 std::map<std::string, std::shared_ptr<uint8_t>>::iterator
                 it = transactionsEnc.begin();
                 transactionsEnc.insert(it, std::pair<std::string, std::shared_ptr
@@ -449,7 +492,7 @@ struct userData
     {
         std::string plaintext;
         AES::AES256 aes256;
-        int32_t storedCrypto=0;
+        int32_t storedCrypto=0; // set to zero and recalculate
         for(auto const [ciphertext, b32key] : transactions) {
             plaintext = aes256.decrypt(ciphertext,b32key);
             std::string str_amount = "";
@@ -485,7 +528,7 @@ struct userData
     }
 };
 
-/* UI */
+/* GUI, not for UI */
 struct userDatabase : public userData
 {
     
@@ -533,11 +576,11 @@ int main()
     // std::shared_ptr<uint8_t> AES_key_mining2(new uint8_t[32]);
     // std::shared_ptr<uint8_t> AES_key_mining3(new uint8_t[32]);
     // std::shared_ptr<uint8_t> AES_key_mining4(new uint8_t[32]);
-    // AES_key_mining = GenerateAES256Key();
-    // AES_key_mining1 = GenerateAES256Key();
-    // AES_key_mining2 = GenerateAES256Key();
-    // AES_key_mining3 = GenerateAES256Key();
-    // AES_key_mining4 = GenerateAES256Key();
+    // AES_key_mining = generateAES256Key();
+    // AES_key_mining1 = generateAES256Key();
+    // AES_key_mining2 = generateAES256Key();
+    // AES_key_mining3 = generateAES256Key();
+    // AES_key_mining4 = generateAES256Key();
     // std::map<std::string, std::shared_ptr<uint8_t>> transactionsEnc;
     // std::map<std::string, std::shared_ptr<uint8_t>>::iterator it = transactionsEnc.begin();
     // transactionsEnc.insert (it, std::pair<std::string, std::shared_ptr<uint8_t>>
@@ -660,7 +703,7 @@ int main()
      "dump trnsData [trns index]: dump single transaction data, provide transaction index",
      "get blockchain-ahr: get average hashrate over all blockchain",
      "get block-target [block index]: get block target hash, provide index"};
-    std::string userInput = "buy";
+    std::string userInput = "";
     // std::cout << "for basic command list, input \"help\"\n"
     //           << "for all commands, input \"help-all\"\n";
     std::map<std::string,std::shared_ptr<uint8_t>> transactions;
@@ -709,12 +752,7 @@ int main()
         auto [fstNewAddrs,sndNewAddrs] = wallet_address.GenerateNewWalletAddress("dump aes256-key");
         std::cout << "wallet address created\nwallet address:\t";
         walletAddress = fstNewAddrs;
-        for(int c=0;c<8;c++) {
-            std::cout << std::hex << walletAddress.get()[c];
-        }
-        std::cout << std::endl << "wallet address as decimal, for use in UI: ";
-        for(int c=0;c<8;c++)
-            std::cout << std::dec << walletAddress.get()[c] << " ";
+        std::cout << std::hex << to8_64_str(walletAddress);
         std::cout << std::endl << "save these values on your device\n";
         walletAddresses.push_back(walletAddress);
         walletMap.insert(itWalletMap, std::pair<std::shared_ptr<uint64_t>,
@@ -737,12 +775,13 @@ int main()
             std::cout << "wallet map is empty, input your wallet address."
                       <<"If you don\'t have one, type \"nw \" here,press enter, "
                       << "if you have one, press enter, copy paste wallet address"
-                      << "from where you saved it as decimal with whitespaces:\t";
+                      << "from where you saved it:\t";
             std::string noWallet;
             std::cin >> noWallet;
+            std::string strWallet;
             if(noWallet == "yw") {
-                for(int c=0;c<8;c++)    std::cin >> walletAddress.get()[c];
-                
+                std::cin >> strWallet;
+                walletAddress = usrInWallet512(strWallet);
                 // verify inputted wallet
                 wallet_address.verifyInputWallet(walletAddresses, walletAddress);
                 
@@ -766,7 +805,9 @@ int main()
             std::cout << "\nwallet address found\n";
         }
             std::cout << "\ninput" << secondWalletAd << "s wallet address:\t";
-            for(int c=0;c<8;c++)    std::cin >> secondWallet.get()[c];
+            std::string str_wallet;
+            std::cin >> str_wallet;
+            secondWallet = usrInWallet512(str_wallet);
             wallet_address.verifyInputWallet(walletAddresses, walletAddress);
             std::cout << "\nwallet data saved\n";
             struct Wallet trWallet{walletAddress, userAESmapkeys, walletMap};
@@ -786,7 +827,13 @@ int main()
     }
     // DEBUG
     // std::cout << commandDescriptions.size() << "\n\n" << listOfCommands.size();
+    std::shared_ptr<uint8_t> AES256key = generateAES256Key();
     
+    aesKeyToSPtr<uint8_t>(aesKeyToStr<uint8_t>(AES256key));
+    std::cout << "\n\n\n";
+    for(int c=0;c<32;c++) {
+        std::cout << std::hex << (short)AES256key.get()[c];
+    }
     std::cout << "\n\nline 339, main.cpp:\t";
     /* TEST walletAddress */
     // std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>> testMap;
