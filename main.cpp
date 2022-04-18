@@ -708,6 +708,11 @@ int main()
     std::vector<std::shared_ptr<uint8_t>> AESkeysTr;
     std::vector<int32_t> trnsLengths;
     
+    // TODO: make dump command for ciphertexts listed below if data is encrypted
+    std::string ciphertextW = ""; // wallet
+    std::string ciphertextK1 = ""; // key1
+    std::string ciphertextK2 = ""; // key2 
+    std::string usedEncAlg;
     
     // transaction list in wallet
     std::vector<std::shared_ptr<uint64_t>> transactionhashesW;
@@ -819,6 +824,73 @@ int main()
                                                         "dump aes256-key");
             walletAddress = newWA;
             userAESmapkeys = newKeys;
+    }
+    else if(userInput == "e-wallet-aes128") {
+        if(walletMap.empty()) {
+            std::cout << "no wallet saved, if you want to encrypt manually, try"
+                      << "\"enc-aes128\" and input both input and key, if you"
+                      << " want to use an automatically generated key, use"
+                      << " \"enc-aes128-genkey\".";
+        } else {
+            std::string aes128Key;
+            std::shared_ptr<uint8_t> encWalletAes128Key;
+            std::cout << "\nwallet found\ninput aes128 key as hex(hex digits "
+                      << "only):\t";
+            std::cin >> aes128Key;
+            encWalletAes128Key = aesKeyToSPtr<uint8_t>(aes128Key,16);
+            std::cout << "\nis the key you inputted correct:\t";
+            for(int c=0;c<16;c++) {
+                std::cout << std::hex << (short)encWalletAes128Key.get()[c];
+            }
+            std::cout << std::endl;
+            std::vector<std::shared_ptr<uint8_t>> walletKeys;
+            for(cons auto [wa,walletkeys] : walletMap) {
+                walletAddress = wa;
+                walletKeys = walletkeys;
+            }
+            ciphertextW = aes128.encrypt(to8_64_str(walletAddress),
+                                         encWalletAes128Key);
+            std::cout << "\nciphertext of wallet address:\t" << ciphertextW
+                      << "\n\nwarning: an " << "encrypted wallet address is not"
+                      << " usable until you decrypt it";
+            walletAddresses = nullptr;
+            ciphertextK1 = aes128.encrypt(aesKeyToStr<uint8_t>
+                                          (walletKeys[0]),
+                                          encWalletAes128Key);
+            std::cout << "\n\nciphertext of key 1:\t" << ciphertextK1;
+            ciphertextK2 = aes128.encrypt(aesKeyToStr<uint8_t>
+                                          (walletKeys[0]),
+                                          encWalletAes128Key);
+            std::cout << "\n\nciphertext of key 2:\t" << ciphertextK2;
+            std::cout << "\n\nsave these values and keys as they won\'t be 
+                      << "saved here and you won\'t be able to access your wallet again";
+            std::string confirm;
+            std::cout << "\nunencrypted wallet data will be gone until you decrypt it,"
+                      << " are you sure you want to continue\ntype \"y\" for yes,
+                      << "\"n\" for no";
+            bool terminate = false;
+            while(terminate == false) {
+                std::cin >> confirm;
+                if(confirm == "n" or confirm == "no") {
+                    std::cout << "\nprocess terminated, wallet not encrypted.";
+                    // reset ciphertexts
+                    ciphertextW = "";
+                    ciphertextK1 = "";
+                    ciphertextK2 = "";
+                    terminate = true;
+                }
+                else if(confirm == "y" or confirm == "yes") {
+                    std::cout << "clearing unencrypted wallet data...";
+                    usedEncAlg = "aes128";
+                    walletMap.clear();
+                    std::cout << "done";
+                    terminate = true;
+                } else {
+                    std::cout << "invalid input\n(y) or (n)";
+                }
+            }
+            
+        }
     }
     // DEBUG
     // std::cout << commandDescriptions.size() << "\n\n" << listOfCommands.size();
