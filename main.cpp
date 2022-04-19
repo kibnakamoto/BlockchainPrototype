@@ -163,7 +163,7 @@ struct Transaction {
     uint64_t length()
     {
         std::string transactionData = "";
-        // for length, buy or sell isn't required and just use the right amount of chars
+        // for length, buy or send isn't required and just use the right amount of chars
         // use buys for buy so that its the same length
         transactionData += "bosc, ";
         transactionData += "wallet one: ";
@@ -382,7 +382,7 @@ class Address
             Address address = Address();
             if(walletAddress != nullptr) {
                 verifyOwnerData(verifyInfo);
-                if(sellorbuy=="sell") {
+                if(sellorbuy=="send") {
                     if(amount > storedCrypto) {
                         std::cout << "you do not own " << std::dec << amount
                                   << ". Process failed";
@@ -513,7 +513,7 @@ struct userData
                     int32_t amount = static_cast<int32_t>(std::stoul(str_amount));
                     if(plaintext.starts_with("buys")) {
                         storedCrypto += amount;
-                    } else if(plaintext.starts_with("sell")) {
+                    } else if(plaintext.starts_with("send")) {
                         storedCrypto -= amount;
                     }
             }
@@ -608,14 +608,14 @@ int main()
     /* UI */
     std::string newUserIn;
     std::vector<std::string> listOfCommands {"help", "-help", "help-all", "create-wa",
-                                             "buy","sell", "e-wallet-aes256",
+                                             "buy","send", "e-wallet-aes256",
                                              "e-wallet-aes128","e-wallet-aes192",
                                              "e-wallet-aes256-genkey",
                                              "e-wallet-aes192-genkey",
                                              "e-wallet-aes128-genkey",
                                              "decrypt-wallet",
                                              "get p-w key", "get p-trns key",
-                                             "send", "del-wallet","exit","quit"
+                                             "del-wallet","exit","quit"
                                              "burn", "hash-sha512","enc-aes128-genkey",
                                              "enc-aes192-genkey","enc-aes256-genkey",
                                              "enc-aes128", "enc-aes192",
@@ -640,7 +640,8 @@ int main()
      "help-all: show all commands with description",
      "create-wa: generate new wallet address",
      "buy: buy an amount, must specify amount after typing buy",
-     "sell: sell an amount, must specify amount after typing sell",
+     "send: send an amount to another wallet",
+     "sell: same as send but send to non-existant wallet address",
      "e-wallet-aes128: encrypt wallet with aes256, do not provide wallet address here, provide key",
      "e-wallet-aes192: encrypt wallet with aes192, do not provide wallet address here, provide key",
      "e-wallet-aes256: encrypt wallet with aes256, do not provide wallet address here, provide key",
@@ -653,7 +654,6 @@ int main()
      "decrypt-wallet: decrypt wallet using chosen encryption algorithm, provide key",
      "get p-w key: request private wallet key", "get p-trns key request single" +
      std::string(" transaction key, provide transaction index in wallet"),
-     "send: send to another wallet address, provide wallet address and amount",
      "del-wallet: delete your wallet address, make sure wallet is empty before" +
      std::string(" doing so, wallet components will be deleted and cannot be brought back"),
      "exit: will terminate and exit program",
@@ -683,8 +683,8 @@ int main()
      "get mempool: print verified mempool hashes in current block",
      "enc-algs: available encryption/decryption algorithms",
      "start mine: start mining", "end mine: end mining",
-     "dump-wallet512: dump 512-bit wallet address as decimal",
-     "dump-w-aes256k: dump 32 byte wallet key", // after this is not in version 1
+     "dump-wallet512: dump 512-bit wallet address as hex",
+     "dump-w-aes256k: dump 32 byte wallet keys", // after this is not in version 1
      "get tr-target: print transaction target",
      "get tr-hash: print transaction hash",
      "get tr-ciphertext [trns index]: print transaction ciphertext",
@@ -755,18 +755,18 @@ int main()
                                                                 sndNewAddrs));
         std::cout << "wallet address saved on map\n";
     }
-    else if(userInput == "buy" || userInput == "sell") {
+    else if(userInput == "buy" || userInput == "send" || userInput == "sell") {
         uint32_t amount;
         int32_t storedCrypto;
         std::string secondWalletAd;
         
-        // ask for walletAddress of receiver or seller, key isn't requiried
+        // ask for walletAddress of receiver or sender, key isn't requiried
         if(userInput == "buy") {
             secondWalletAd = "sender";
-        } else { // sell
+        } else { // send or sell
             secondWalletAd = "receiver";
         }
-        if(walletMap.empty()) { // Don't use: else Use \"dump-wallet512\" and copy paste
+        if(walletMap.empty()) {
             std::cout << "wallet map is empty, input your wallet address."
                       <<"If you don\'t have one, type \"nw \" here,press enter, "
                       << "if you have one, press enter, copy paste wallet address"
@@ -805,16 +805,22 @@ int main()
             std::cin >> str_wallet;
             secondWallet = usrInWallet512(str_wallet);
             wallet_address.verifyInputWallet(walletAddresses, walletAddress);
-            std::cout << "\nwallet data saved\n";
+            std::cout << "\nwallet data verified\n";
             struct Wallet trWallet{walletAddress, userAESmapkeys, walletMap};
             std::cout << "\ninput amount:\t";
             std::cin >> amount;
             struct userData user_data {walletMap,transactions,transactionhashesW,
                                        trnsLengths};
             storedCrypto = user_data.setBalance();
+            /* since newTransaction doesn't have sell in sellorbuy and both
+             * perform the same task for now
+             */
+            if(userInput == "sell") {
+                userInput = "send";
+            }
             auto [newWA,newKeys] = trWallet.new_transaction(secondWallet,walletAddress,
                                                         amount,mempool,
-                                                        "buy", transactionhashesW,
+                                                        userInput, transactionhashesW,
                                                         transactions, 
                                                         storedCrypto,
                                                         "dump aes256-key");
