@@ -474,7 +474,7 @@ struct Wallet {
     }
 };
 
-/* UI */
+/* for UI */
 struct userData
 {
     std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>> walletMap;
@@ -613,8 +613,7 @@ int main()
                                              "e-wallet-aes256-genkey",
                                              "e-wallet-aes192-genkey",
                                              "e-wallet-aes128-genkey",
-                                             "d-wallet-aes256","d-wallet-aes128",
-                                             "d-wallet-aes192",
+                                             "decrypt-wallet",
                                              "get p-w key", "get p-trns key",
                                              "send", "del-wallet","exit","quit"
                                              "burn", "hash-sha512","enc-aes128-genkey",
@@ -651,9 +650,7 @@ int main()
      std::string(" address here, do not provide key"),
      "e-wallet-aes256-genkey: encrypt wallet with aes256, do not provide wallet" +
      std::string(" address here, do not provide key"),
-     "d-wallet-aes128: decrypt wallet using aes128, provide key",
-     "d-wallet-aes192: decrypt wallet using aes192, provide key",
-     "d-wallet-aes256: decrypt wallet using aes256, provide key",
+     "decrypt-wallet: decrypt wallet using chosen encryption algorithm, provide key",
      "get p-w key: request private wallet key", "get p-trns key request single" +
      std::string(" transaction key, provide transaction index in wallet"),
      "send: send to another wallet address, provide wallet address and amount",
@@ -711,7 +708,7 @@ int main()
     std::string ciphertextW = ""; // wallet
     std::string ciphertextK1 = ""; // key1
     std::string ciphertextK2 = ""; // key2 
-    std::string usedEncAlg;
+    std::string usedEncAlg = "";
     
     // transaction list in wallet
     std::vector<std::shared_ptr<uint64_t>> transactionhashesW;
@@ -831,7 +828,6 @@ int main()
         std::string usrCommand;
         std::string ACmndNoKey;
         std::string ACmndWithKey; // alternative command with key
-        std::shared_ptr<uint8_t> encWalletAesAlgKey;
         std::string algorithm;
         uint32_t keysize;
         usrCommand = userInput;
@@ -853,7 +849,7 @@ int main()
             algorithm = "aes256";
             keysize = 32;
         }
-        
+        std::shared_ptr<uint8_t> encWalletAesAlgKey(new uint8_t[keysize]);
         if(walletMap.empty()) {
             std::cout << "no wallet saved, if you want to encrypt manually, try "
                       << "\"" << ACmndNoKey << "\" and input both input and key, if you"
@@ -934,7 +930,7 @@ int main()
                       << "\"n\" for no";
             std::string confirm;
             bool terminate = false;
-            while(terminate == false) {
+            while(!terminate) {
                 std::cin >> confirm;
                 if(confirm == "n" or confirm == "no") {
                     std::cout << "\nprocess terminated, wallet not encrypted.";
@@ -955,6 +951,82 @@ int main()
                     std::cout << "invalid input\n(y) or (n)";
                 }
             }
+        }
+    }
+    else if(userInput == "decrypt-wallet") {
+        uint32_t keysize;
+        std::string aesKeyStr;
+        if(usedEncAlg == "aes128") {
+            keysize = 16;
+        }
+        else if(usedEncAlg == "aes192") {
+            keysize = 24;
+        }
+        else if(usedEncAlg == "aes256") {
+            keysize = 32;
+        }
+        std::shared_ptr<uint8_t> edkey(new uint8_t[keysize]);
+        std::string decStrWalletaddress;
+        std::string decStrWalletk1;
+        std::string decStrWalletk2;
+        std::shared_ptr<uint8_t> decWalletk1(new uint8_t[keysize]);
+        std::shared_ptr<uint8_t> decWalletk2(new uint8_t[keysize]);
+        if(walletMap.empty() && ciphertextW != "") {
+            std::cout << "ciphertext of wallet address found and no unencrypted data."
+                      << "Decrypting a wallet address using the " << usedEncAlg
+                      << ".\nciphertext of wallet address:\t" << ciphertextW
+                      << "\n\nciphertext of first " << usedEncAlg << " key:\t"
+                      << ciphertextK1 << "\n\nciphertext of second " << usedEncAlg
+                      << " key:\t" << ciphertextK2 << "\n\ninput " << keysize
+                      << " byte " << usedEncAlg << " key:\t";
+            std::cin >> aesKeyStr;
+            edkey = aesKeyToSPtr<uint8_t>(aesKeyStr,keysize);
+            std::cout << "\ndecrypting wallet data...\n";
+            if(usedEncAlg == "aes128") {
+                decStrWalletaddress = aes128.decrypt(ciphertextW,edkey);
+                decStrWalletk1 = aes128.decrypt(ciphertextK1,edkey);
+                decStrWalletk2 = aes128.decrypt(ciphertextK2,edkey);
+            }
+            else if(usedEncAlg == "aes192") {
+                decStrWalletaddress = aes192.decrypt(ciphertextW,edkey);
+                decStrWalletk1 = aes192.decrypt(ciphertextK1,edkey);
+                decStrWalletk2 = aes192.decrypt(ciphertextK2,edkey);
+            }
+            else if(usedEncAlg == "aes256") {
+                decStrWalletaddress = aes256.decrypt(ciphertextW, edkey);
+                decStrWalletk1 = aes256.decrypt(ciphertextK1,edkey);
+                decStrWalletk2 = aes256.decrypt(ciphertextK2,edkey);
+            }
+            /* delete padding caused by aes encryption, since all keys and
+             * wallet address length is 512-bits as string which is a multiple
+             * of aes block(16 bytes), its not necesarry to delete padding
+             *  but is a good precation to take just in case
+             */
+            uint32_t keySizeBits = keysize<<3;
+            decStrWalletaddress.erase(512,512-decStrWalletaddress.length());
+            decStrWalletk1.erase(keySizeBits,keySizeBits-decStrWalletk1.length());
+            decStrWalletk2.erase(keySizeBits,keySizeBits-decStrWalletk2.length());
+            walletAddress = usrInWallet512(decStrWalletaddress);
+            decWalletk1 = aesKeyToSPtr<uint8_t>(decStrWalletk1,keysize);
+            decWalletk2 = aesKeyToSPtr<uint8_t>(decStrWalletk2,keysize);
+            std::cout << "wallet components decrypted. Wallet address as plaintext:\t"
+                      << decStrWalletaddress << "\ndecrypted first " << usedEncAlg
+                      << " key as plaintext:\t" << decStrWalletk1 
+                      << "\ndecrypted second " << usedEncAlg
+                      << " key as plaintext:\t" << decStrWalletk2
+                      << "\n\nif these values are wrong, please report this "
+                      <<  "problem at https://github.com/kibnakamoto/"
+                      << "BlockchainPrototype/issues or email the issue at"
+                      << " kibnakanoto@protonmail.com";
+            std::vector<std::shared_ptr<uint8_t>> walletKeysDec;
+            walletKeysDec.push_back(decWalletk1);
+            walletKeysDec.push_back(decWalletk2);
+            walletMap.insert(itWalletMap,std::pair<std::shared_ptr<uint64_t>,std::vector
+                             <std::shared_ptr<uint8_t>>>(walletAddress,walletKeysDec));
+            std::cout << "\nwallet data saved\n";
+        } else {
+            std::cout << "\nNO ENCRYPTED WALLET FOUND\n";
+            exit(EXIT_FAILURE);
         }
     }
     // DEBUG
