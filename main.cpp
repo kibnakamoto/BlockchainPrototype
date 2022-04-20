@@ -4,9 +4,8 @@
 *   Start Date: Feb 9, 2022
 *    Finish Date: N/A
 *
-* This implementation only works for C++ version 17 or above. 
-* C++ 14 also works but gives warning
-* 
+* C++ version: only works on C++ 20
+* Blockchain Version: 1
 */
 
 #include <iostream>
