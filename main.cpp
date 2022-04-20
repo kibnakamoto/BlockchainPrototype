@@ -289,35 +289,35 @@ class WalletAddress
         void verifyInputWallet(std::vector<std::shared_ptr<uint64_t>> walletAddresses,
                                std::shared_ptr<uint64_t> walletAddress)
         {
-                            // find if walletAddress in vector walletAddresses
-                bool walletAValid;
-                for(int i=0;i<walletAddresses.size();i++) {
-                    std::vector<bool> validity;
-                    for(int c=0;c<8;c++) {
-                        if(walletAddresses[i].get()[c] == walletAddress.get()[c]) {
-                            validity.push_back(true);
-                        } else {
-                            validity.push_back(false);
-                        }
-                    }
-                    // find wheter walletAddress is true or false
-                    if(std::find(validity.begin(), validity.end(), false) !=
-                       validity.end()) {
-                        walletAValid = false;
-                        validity.clear();
+            // find if walletAddress in vector walletAddresses
+            bool walletAValid;
+            for(int i=0;i<walletAddresses.size();i++) {
+                std::vector<bool> validity;
+                for(int c=0;c<8;c++) {
+                    if(walletAddresses[i].get()[c] == walletAddress.get()[c]) {
+                        validity.push_back(true);
                     } else {
-                        walletAValid = true;
-                        break; // stops if true, continues to search if false
+                        validity.push_back(false);
                     }
                 }
-                
-                // terminate or not
-                if(walletAValid) {
-                    std::cout << "\nwallet address verified";
+                // find wheter walletAddress is true or false
+                if(std::find(validity.begin(), validity.end(), false) !=
+                   validity.end()) {
+                    walletAValid = false;
+                    validity.clear();
                 } else {
-                    std::cout << "\nerror: wallet address doesn't exist";
-                    exit(EXIT_FAILURE);
+                    walletAValid = true;
+                    break; // stops if true, continues to search if false
                 }
+            }
+            
+            // terminate or not
+            if(walletAValid) {
+                std::cout << "\nwallet address verified";
+            } else {
+                std::cout << "\nerror: wallet address doesn't exist";
+                exit(EXIT_FAILURE);
+            }
         }
 };
 
@@ -376,8 +376,9 @@ class Address
                        <std::shared_ptr<uint64_t>>& transactionhashes,
                        std::map<std::string, std::shared_ptr<uint8_t>>&
                        transactionsEnc, int32_t& storedCrypto, std::vector<std::
-                       shared_ptr<uint8_t>> AESkeysWallet,std::shared_ptr<uint64_t>
-                       walletAddress=nullptr,std::string askForPrivKey="")
+                       shared_ptr<uint8_t>> AESkeysWallet, std::vector<uint32_t>
+                       &trnsLengths, std::shared_ptr<uint64_t>
+                       walletAddress=nullptr, std::string askForPrivKey="")
         {
             Address address = Address();
             if(walletAddress != nullptr) {
@@ -405,6 +406,7 @@ class Address
                 
                 struct Transaction trns{sender, receiver, amount};
                 transactionhashes.push_back(trns.Hash(sellorbuy));
+                trnsLengths.push_back(trns.length());
                 std::shared_ptr<uint8_t> newAES_TrKey(new uint8_t[32]);
                 newAES_TrKey = generateAES256Key();
                 std::map<std::string, std::shared_ptr<uint8_t>>::iterator
@@ -422,7 +424,7 @@ class Address
                 std::cout << "\nNew Wallet Address Created";
                 newTransaction(sender, receiver, amount, mempool, verifyInfo,
                                sellorbuy, transactionhashes, transactionsEnc,
-                               storedCrypto, AESkeysWallet, walletAddress);
+                               storedCrypto, AESkeysWallet, trnsLengths, walletAddress);
                 std::cout << "\nTransaction complete" << std::endl << std::endl;
             }
             return {walletAddress,AESkeysWallet};
@@ -447,15 +449,16 @@ struct Wallet {
                     uint64_t>> mempool, std::string sellorbuy, std::vector<
                     std::shared_ptr<uint64_t>> transactionhashes,
                     std::map<std::string, std::shared_ptr<uint8_t>>&
-                    transactionsEnc, int32_t storedCrypto, std::string
-                    askForPrivKey="")
+                    transactionsEnc, int32_t storedCrypto, std::vector<uint32_t>
+                    trnsLengths, std::string askForPrivKey="")
     {
         Address address = Address();
         auto [fst,snd] = address.newTransaction(sender, receiver, amount, mempool,
                                                 verifyInfo, sellorbuy,
                                                 transactionhashes, transactionsEnc,
                                                 storedCrypto, AESkeysWallet,
-                                                walletAddress, askForPrivKey);
+                                                trnsLengths, walletAddress,
+                                                askForPrivKey);
         return {fst,snd};
     }
     void verifyOwnerData()
@@ -480,7 +483,7 @@ struct userData
     std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>> walletMap;
     std::map<std::string,std::shared_ptr<uint8_t>> &transactions;
     std::vector<std::shared_ptr<uint64_t>> &transactionhashesW;
-    std::vector<int32_t> &trnsLengths;
+    std::vector<uint32_t> &trnsLengths;
     
     int32_t setBalance()
     {
@@ -608,13 +611,13 @@ int main()
     /* UI */
     std::string newUserIn;
     std::vector<std::string> listOfCommands {"help", "-help", "help-all", "create-wa",
-                                             "buy","send", "e-wallet-aes256",
+                                             "buy","send", "sell", "e-wallet-aes256",
                                              "e-wallet-aes128","e-wallet-aes192",
                                              "e-wallet-aes256-genkey",
                                              "e-wallet-aes192-genkey",
                                              "e-wallet-aes128-genkey",
                                              "decrypt-wallet",
-                                             "get p-w key", "get p-trns key",
+                                             "get p-w key", "get p-trns-data",
                                              "del-wallet","exit","quit"
                                              "burn", "hash-sha512","enc-aes128-genkey",
                                              "enc-aes192-genkey","enc-aes256-genkey",
@@ -632,8 +635,7 @@ int main()
                                              "dump-wallet512", "dump-w-aes256k", "get tr-target",
                                              "get tr-hash", "get tr-ciphertext",
                                              "get tr-timestamp", "dump all-trnsData",
-                                             "dump trnsData", "get blockchain-ahr",
-                                             "get block-target"};
+                                             "get blockchain-ahr", "get block-target"};
     std::vector<std::string> commandDescriptions
     {"help: show basic commands with descriptions",
      "-help: for command description, put after another command",
@@ -652,8 +654,10 @@ int main()
      "e-wallet-aes256-genkey: encrypt wallet with aes256, do not provide wallet" +
      std::string(" address here, do not provide key"),
      "decrypt-wallet: decrypt wallet using chosen encryption algorithm, provide key",
-     "get p-w key: request private wallet key", "get p-trns key request single" +
-     std::string(" transaction key, provide transaction index in wallet"),
+     "get p-w keys: request private wallet keys",
+     
+     // in future use timestamp for get p-trns-data
+     "get p-trns-data: request single transaction data, provide transaction index in wallet",
      "del-wallet: delete your wallet address, make sure wallet is empty before" +
      std::string(" doing so, wallet components will be deleted and cannot be brought back"),
      "exit: will terminate and exit program",
@@ -690,7 +694,6 @@ int main()
      "get tr-ciphertext [trns index]: print transaction ciphertext",
      "get tr-timestamp [trns index]: print transaction timestamp",
      "dump all-trnsData: dump all transaction data in wallet",
-     "dump trnsData [trns index]: dump single transaction data, provide transaction index",
      "get blockchain-ahr: get average hashrate over all blockchain",
      "get block-target [block index]: get block target hash, provide index"};
     std::string userInput = "";
@@ -702,7 +705,7 @@ int main()
     itWalletMap = walletMap.begin();
     std::vector<std::shared_ptr<uint8_t>> userAESmapkeys;
     std::vector<std::shared_ptr<uint8_t>> AESkeysTr;
-    std::vector<int32_t> trnsLengths;
+    std::vector<uint32_t> trnsLengths;
     
     // TODO: make dump command for ciphertexts listed below if data is encrypted
     std::string ciphertextW = ""; // wallet
@@ -713,6 +716,7 @@ int main()
     // transaction list in wallet
     std::vector<std::shared_ptr<uint64_t>> transactionhashesW;
     
+    // second wallet address
     std::shared_ptr<uint64_t> secondWallet(new uint64_t[8]);
     
     if(userInput == "help") {
@@ -809,9 +813,11 @@ int main()
             struct Wallet trWallet{walletAddress, userAESmapkeys, walletMap};
             std::cout << "\ninput amount:\t";
             std::cin >> amount;
+            
             struct userData user_data {walletMap,transactions,transactionhashesW,
                                        trnsLengths};
             storedCrypto = user_data.setBalance();
+            
             /* since newTransaction doesn't have sell in sellorbuy and both
              * perform the same task for now
              */
@@ -822,7 +828,7 @@ int main()
                                                         amount,mempool,
                                                         userInput, transactionhashesW,
                                                         transactions, 
-                                                        storedCrypto,
+                                                        storedCrypto, trnsLengths,
                                                         "dump aes256-key");
             walletAddress = newWA;
             userAESmapkeys = newKeys;
@@ -1034,6 +1040,86 @@ int main()
             std::cout << "\nNO ENCRYPTED WALLET FOUND\n";
             exit(EXIT_FAILURE);
         }
+    }
+    else if(userInput == "get p-w key") {
+        std::cout << "\nsearching wallet for keys...\n";
+        if(walletMap.empty()) {
+            std::cout << "error: no wallet found";
+            exit(EXIT_FAILURE);
+        }
+        for(const auto [walletAd,walletKeys] : walletMap) {
+            std::cout << "key 1:\t";
+            for(int c=0;c<32;c++) std::cout << std::hex
+                                            << (short)walletKeys[0].get()[c];
+            
+            std::cout << std::endl << std::endl << "key 2:\t";
+            for(int c=0;c<32;c++) std::cout << std::hex
+                                            << (short)walletKeys[1].get()[c];
+        }
+        std::cout << "\n\nif you want to also see your wallet address, type \""
+                  << "get wa\"";
+    }
+    else if(userInput == "get p-trns-data") {
+        if(transactionhashesW.empty()) {
+            std::cout << "\nzero transactions in wallet\n";
+            exit(EXIT_FAILURE);
+        }
+        if(walletMap.empty()) {
+            std::cout << "\nno wallet found\n";
+            exit(EXIT_FAILURE);
+        }
+        std::cout << "\nthere are " << transactionhashesW.size()
+                  << " transactions in your wallet\nstate index of transaction"
+                  << " (index starts from zero), if you want all transaction "
+                  << "data or you don\'t know the index, type\"get all-trns-data\":\t";
+        uint64_t index;
+        std::cin >> index;
+        std::cout << "\ntransaction hash:\t";
+        for(int c=0;c<8;c++) std::cout << std::hex
+                                       << transactionhashesW[index].get()[c];
+        std::string plaintext;
+        uint64_t trnsIndex;
+        std::string ciphertextTr;
+        std::shared_ptr<uint8_t> trnsKey;
+        std::string correctPlaintext;
+        // find ciphertext and key index of transaction encryption map
+        for(const auto [cph,ckey] : transactions) {
+            /* delete padding caused by encryption
+               check which length creates correct hash to find index using 
+               single wallet mempool */
+            plaintext = aes256.decrypt(cph,ckey);
+            for(uint64_t c=0;c<trnsLengths.size();c++) {
+                plaintext.erase(trnsLengths[c],plaintext.length()-trnsLengths[c]);
+                std::shared_ptr<uint64_t> hash = sha512(plaintext);
+                for(uint64_t i=0;i<transactionhashesW.size();i++) {
+                    for(int j=0;j<8;j++) {
+                        if(transactionhashesW[i].get()[j] == hash.get()[j]) {
+                            trnsIndex = c; // find length of plaintext transaction data
+                            ciphertextTr = cph;
+                            trnsKey = ckey;
+                            correctPlaintext = plaintext;
+                            goto stop;
+                        }
+                    }
+                }
+            }
+        }
+        stop:
+            std::cout << "\ndecrypted transaction data:\t" << correctPlaintext;
+                      << 
+    }
+    else if(userInput == "dump-wallet512") {
+        if(walletMap.empty()) {
+            std::cout << "\nno wallet address found";
+            exit(EXIT_FAILURE);
+        } else {
+            std::cout << "\nwallet address:\t";
+            for(const auto [wa,walletKeys] : walletMap) {
+                for(int c=0;c<8;c++) std::cout << std::hex << wa.get()[c];
+            }
+        }
+        std::cout << std::endl << std::endl << "if you want to also see wallet keys"
+                  << " type \"get p-w keys\"";
     }
     // DEBUG
     // std::cout << commandDescriptions.size() << "\n\n" << listOfCommands.size();
