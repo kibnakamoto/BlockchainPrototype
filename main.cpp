@@ -706,12 +706,11 @@ int main()
     std::vector<std::shared_ptr<uint8_t>> userAESmapkeys;
     std::vector<std::shared_ptr<uint8_t>> AESkeysTr;
     std::vector<uint32_t> trnsLengths;
-    
-    // TODO: make dump command for ciphertexts listed below if data is encrypted
     std::string ciphertextW = ""; // wallet
     std::string ciphertextK1 = ""; // key1
     std::string ciphertextK2 = ""; // key2 
     std::string usedEncAlg = "";
+    int32_t storedCrypto;
     
     // transaction list in wallet
     std::vector<std::shared_ptr<uint64_t>> transactionhashesW;
@@ -761,7 +760,6 @@ int main()
     }
     else if(userInput == "buy" || userInput == "send" || userInput == "sell") {
         uint32_t amount;
-        int32_t storedCrypto;
         std::string secondWalletAd;
         
         // ask for walletAddress of receiver or sender, key isn't requiried
@@ -1145,6 +1143,46 @@ int main()
                                  unverifiedWalletMap};
         wallet_address.verifyInputWallet(walletAddresses,unverifiedWalletAddress);
         unv_wallet.verifyOwnerData();
+        
+        // delete wallet
+        std::string confirm;
+        if(storedCrypto != 0) {
+            std::cout << "\n\nare you sure you want to delete wallet? Your balance is "
+                      << storedCrypto << ". You cannot recover your balance after"
+                      << "deletion\ntype d or delete for delete, any key for"
+                      << "terminating process:\t";
+        } else {
+        std::cout << "\n\nAre you sure you want to delete wallet?\nYour balance"
+                  << " is 0.\ntype \"d\" or \"delete\" for delete, "
+                  << "type anything for terminating process:\t";
+        }
+        std::cin >> confirm;
+        if(confirm == "d" || confirm == "delete") {
+            std::cout << "\ndeleting wallet...\n";
+            walletMap.clear();
+            transactions.clear();
+            trnsLengths.clear();
+            userAESmapkeys.clear();
+            AESkeysTr.clear();
+            std::string ciphertextW = "";
+            std::string ciphertextK1 = "";
+            std::string ciphertextK2 = "";
+            std::string usedEncAlg = "";
+            
+            // delete wallet address from walletAddresses
+            for(int i=0;i<walletAddresses.size();i++) {
+                for(int c=0;c<8;c++) {
+                    if(walletAddresses[i].get()[c] == walletAddress.get()[c]) {
+                        walletAddresses.erase(walletAddresses.begin()+i);
+                    }
+                }
+            }
+            
+            std::cout << "wallet data deleted";
+        } else {
+            std::cout << "\nprocess terminated";
+            exit(EXIT_FAILURE);
+        }
     }
     else if(userInput == "dump-wallet512") {
         if(walletMap.empty()) {
