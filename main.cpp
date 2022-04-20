@@ -1106,7 +1106,45 @@ int main()
         }
         stop:
             std::cout << "\ndecrypted transaction data:\t" << correctPlaintext;
-                      << 
+    }
+    else if(userInput == "del-wallet") {
+        if(walletMap.empty()) {
+            std::cout << "\nno wallet found";
+            exit(EXIT_FAILURE);
+        }
+        std::shared_ptr<uint64_t> unverifiedWalletAddress(new uint64_t[8]);
+        std::shared_ptr<uint8_t> unverifiedWalletk2(new uint8_t[8]);
+        std::shared_ptr<uint8_t> unverifiedWalletk1(new uint8_t[8]);
+        std::map<std::shared_ptr<uint64_t>,std::vector<std::shared_ptr<uint8_t>>>
+        unverifiedWalletMap;
+        std::map<std::shared_ptr<uint64_t>,std::vector<std::shared_ptr<uint8_t>>>::
+        iterator ItUWMMap = unverifiedWalletMap.begin();
+        std::string str_wallet_ad;
+        std::string unverifiedStrWalletk1;
+        std::string unverifiedStrWalletk2;
+        
+        std::cout << "verify user by inputting both wallet keys and walletAddress"
+                  << "\ninput walletAddress:\t";
+        std::cin >> str_wallet_ad;
+        unverifiedWalletAddress = usrInWallet512(str_wallet_ad);
+        std::cout << "\n\ninput first key of wallet:\t";
+        std::cin >> unverifiedStrWalletk1;
+        unverifiedWalletk1 = aesKeyToSPtr<uint8_t>(unverifiedStrWalletk1);
+        std::cout << "\n\ninput second key of wallet:\t";
+        std::cin >> unverifiedStrWalletk2;
+        unverifiedWalletk2 = aesKeyToSPtr<uint8_t>(unverifiedStrWalletk2);
+        std::vector<std::shared_ptr<uint8_t>> unverifiedWalletVec;
+        unverifiedWalletVec.push_back(unverifiedWalletk1);
+        unverifiedWalletVec.push_back(unverifiedWalletk2);
+        unverifiedWalletMap.insert(ItUWMMap,std::pair<std::shared_ptr<uint64_t>,
+                                   std::vector<std::shared_ptr<uint8_t>>>
+                                   (unverifiedWalletAddress,unverifiedWalletVec));
+        
+        // verify inputted wallet data
+        struct Wallet unv_wallet{unverifiedWalletAddress,unverifiedWalletVec,
+                                 unverifiedWalletMap};
+        wallet_address.verifyInputWallet(walletAddresses,unverifiedWalletAddress);
+        unv_wallet.verifyOwnerData();
     }
     else if(userInput == "dump-wallet512") {
         if(walletMap.empty()) {
