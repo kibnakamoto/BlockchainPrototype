@@ -7,6 +7,12 @@
 * Blockchain Version: 1.0
 */
 
+/* TODO:
+ * convert all vector matrices into a set for uniuqe values:
+ * walletAddresses, mempool,wallet keys, transactionhashesW, etc.
+ * 77 uses of vector in three files: main.cpp(55), block.h(13), MerkleTree.h(9)
+ */
+
 #if __cplusplus > 201703L // if C++ 20 or above
 
     #include <iostream>
@@ -286,7 +292,7 @@
             }
             
             // for UI input
-            void verifyInputWallet(std::vector<std::shared_ptr<uint64_t>> walletAddresses,
+            bool verifyInputWallet(std::vector<std::shared_ptr<uint64_t>> walletAddresses,
                                    std::shared_ptr<uint64_t> walletAddress)
             {
                 // find if walletAddress in vector walletAddresses
@@ -300,6 +306,7 @@
                             validity.push_back(false);
                         }
                     }
+                    
                     // find wheter walletAddress is true or false
                     if(std::find(validity.begin(), validity.end(), false) !=
                        validity.end()) {
@@ -318,6 +325,7 @@
                     std::cout << "\nerror: wallet address doesn't exist";
                     exit(EXIT_FAILURE);
                 }
+                return walletAValid;
             }
     };
     
@@ -1159,6 +1167,7 @@
             std::cin >> confirm;
             if(confirm == "d" || confirm == "delete") {
                 std::cout << "\ndeleting wallet...\n";
+                for(int c=0;c<8;c++)
                 walletMap.clear();
                 transactions.clear();
                 trnsLengths.clear();
@@ -1184,6 +1193,87 @@
                 exit(EXIT_FAILURE);
             }
         }
+        else if(userInput == "exit" || userInput == "quit") {
+            std::cout << "\nprogram terminated";
+            exit(EXIT_FAILURE);
+        }
+        else if(userInput == "burn") {
+            if(walletMap.empty()) {
+                std::string strWalletKey1;
+                std::shared_ptr<uint8_t> walletKey1(new uint8_t[32]);
+                std::string strWalletKey2;
+                std::shared_ptr<uint8_t> walletKey2(new uint8_t[32]);
+                std::vector<std::shared_ptr<uint8_t>> walletKeysVec;
+                std::map<std::shared_ptr<uint64_t>,std::vector<std::shared_ptr
+                         <uint8_t>>> unv_wallet_map;
+                std::map<std::shared_ptr<uint64_t>,std::vector<std::shared_ptr
+                         <uint8_t>>>::iterator unv_it_map = unv_wallet_map.begin();
+                
+                std::cout << "\nverify wallet data to burn crypto\ninput wallet key 1:\t";
+                std::cin >> strWalletKey1;
+                walletKey1 = aesKeyToSPtr<uint8_t>(strWalletKey1);
+                std::cout << "input wallet key 2:\t";
+                std::cin >> strWalletKey2;
+                walletKey2 = aesKeyToSPtr<uint8_t>(strWalletKey2);
+                
+                // append wallet keys to walletKeysVec for verification process
+                walletKeysVec.push_back(walletKey1);
+                walletKeysVec.push_back(walletKey2);
+                
+                // verify wallet
+                for(const auto [wa,walletKeys] : walletMap) {
+                    unv_wallet_map.insert(unv_it_map,std::pair<std::shared_ptr
+                                          <uint64_t>,std::vector<std::shared_ptr
+                                          <uint8_t>>>(wa,walletKeysVec));
+                    struct Wallet unv_wallet{wa,walletKeysVec,unv_wallet_map};
+                    unv_wallet.verifyOwnerData();
+                    wallet_address.verifyInputWallet(walletAddresses,wa);
+                    walletAddress = wa;
+                }
+                
+                // create fake wallet address
+                auto [fakeWalletAd,fakeKeys] = wallet_address.GenerateNewWalletAddress();
+                bool walletAValid = wallet_address.verifyInputWallet(walletAddresses,
+                                                                     fakeWalletAd);
+                
+                // if fake wallet address exists, create new wallet address
+                while(walletAValid) {
+                    auto [newFakeWalletAd,newFakeKeys] = wallet_address.GenerateNewWalletAddress();
+                    fakeWalletAd = newFakeWalletAd;
+                    wallet_address.verifyInputWallet(walletAddresses,fakeWalletAd);
+                }
+                
+                // burn
+                uint32_t amountBurn;
+                std::cout << "\ninput amount to burn:\t";
+                std::cin >> amountBurn;
+                
+                // get accont balance
+                struct userData user_data {walletMap,transactions,transactionhashesW,
+                                           trnsLengths};
+                storedCrypto = user_data.setBalance();
+                
+                // unv_wallet_map is now verified
+                struct Wallet trWallet {walletAddress,walletKeysVec,unv_wallet_map};
+                
+                // create transaction
+                auto [newWA,newKeys] = trWallet.new_transaction(fakeWalletAd,
+                                                                walletAddress,
+                                                                amountBurn,mempool,
+                                                                "sell",
+                                                                transactionhashesW,
+                                                                transactions,
+                                                                storedCrypto,
+                                                                trnsLengths);
+                // delete fake wallet address
+                fakeWalletAd.reset();
+            }
+            else {
+                std::cout << "\nno wallet address found";
+                exit(EXIT_FAILURE);
+            }
+            
+        }
         else if(userInput == "dump-wallet512") {
             if(walletMap.empty()) {
                 std::cout << "\nno wallet address found";
@@ -1197,6 +1287,7 @@
             std::cout << std::endl << std::endl << "if you want to also see wallet keys"
                       << " type \"get p-w keys\"";
         }
+        
         // DEBUG
         // std::cout << commandDescriptions.size() << "\n\n" << listOfCommands.size();
         std::cout << "\n\nline 339, main.cpp:\t";
