@@ -10,6 +10,8 @@ Email: kibnakanoto@protonmail.com
 
 This is a blockchain prototype I'm creating for a future blockchain I will create.
 
+2965 lines of code as of apr 27, 2022
+
 Command List:
 ```
     // descriptions
