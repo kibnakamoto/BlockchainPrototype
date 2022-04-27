@@ -675,9 +675,9 @@
          "enc-aes128-genkey [input,key]: encrypt input with aes128, key is generated for you",
          "enc-aes192-genkey [input,key]: encrypt input with aes192, key is generated for you",
          "enc-aes256-genkey [input,key]: encrypt input with aes256, key is generated for you",
-         "enc-aes128 [input,key]: encrypt input with aes128, use own key in decimal format",
-         "enc-aes192 [input,key]: encrypt input with aes192, use own key in decimal format",
-         "enc-aes256 [input,key]: encrypt input with aes256, use own key in decimal format",
+         "enc-aes128 [input,key]: encrypt input with aes128, use own key in hex format",
+         "enc-aes192 [input,key]: encrypt input with aes192, use own key in hex format",
+         "enc-aes256 [input,key]: encrypt input with aes256, use own key in hex format",
          "dec-aes128 [input,key]: decrypt ciphertext with aes128, provide key",
          "dec-aes192 [input,key]: decrypt ciphertext with aes192, provide key",
          "dec-aes256 [input,key]: decrypt ciphertext with aes256, provide key",
@@ -1275,6 +1275,121 @@
                 exit(EXIT_FAILURE);
             }
         }
+        else if(userInput == "hash-sha512") {
+            std::string tmp_str;
+            std::cout << "\ninput text to hash using sha512:\t";
+            std::cin >> tmp_str;
+            std::string hash_sha512_str = to8_64_str(sha512(tmp_str));
+            std::cout << "\n\nhash:\t" << hash_sha512_str << std::endl;
+        }
+        else if(userInput == "enc-aes128-genkey" || userInput == "enc-aes192-genkey" ||
+                userInput == "enc-aes256-genkey" || userInput == "enc-aes128"  ||
+                userInput == "enc-aes192"  || userInput == "enc-aes256" ||
+                userInput == "dec-aes128" || userInput == "dec-aes192" ||
+                userInput == "dec-aes256") {
+            // find which algorithm algorithm
+            unsigned short algorithmSize;
+            bool withKey;
+            std::string key_size_str = "";
+            std::string plaintext;
+            std::string ciphertext;
+            std::string encOrDec = "";
+            for(int c=0;c<3;c++) { // encryption or decryption
+                encOrDec += userInput[c];
+            }
+            
+            // find algorithm size in bytes
+            for(int c=6;c<=9;c++) {
+                key_size_str += userInput[c];
+            }
+            algorithmSize = (unsigned short)std::stoul(key_size_str,nullptr,0);
+            
+            if(encOrDec == "enc") {
+                /* if userInput length bigger than 10, automatic key generation is
+                 * requested
+                 */
+                if(userInput.length() > 10) {
+                    withKey = true;
+                } else {
+                    withKey = false;
+                }
+                std::shared_ptr<uint8_t> aesKeyEnc(new uint8_t[algorithmSize/8]);
+                
+                std::cout << "\nencrypting input using aes" << algorithmSize
+                          << ". input what to encrypt:\t";
+                std::cin >> plaintext;
+                if(!withKey) {
+                    std::string aesKeyEncStr;
+                    std::cout << "\ninput aes" << algorithmSize << " key:\t";
+                    std::cin >> aesKeyEncStr;
+                    aesKeyEnc = aesKeyToSPtr<uint8_t>(aesKeyEncStr,algorithmSize/8);
+                    if(algorithmSize == 128) {
+                        ciphertext = aes128.encrypt(plaintext,aesKeyEnc);
+                    }
+                    else if (algorithmSize == 192) {
+                        ciphertext = aes192.encrypt(plaintext,aesKeyEnc);
+                    }
+                    else { // 256
+                        ciphertext = aes256.encrypt(plaintext,aesKeyEnc);
+                    }
+                } else {
+                    if(algorithmSize == 128) {
+                        aesKeyEnc = generateAES128Key();
+                        ciphertext = aes128.encrypt(plaintext,aesKeyEnc);
+                    }
+                    else if(algorithmSize == 192) {
+                        aesKeyEnc = generateAES192Key();
+                        ciphertext = aes192.encrypt(plaintext,aesKeyEnc);
+                    }
+                    else { // 256
+                        aesKeyEnc = generateAES256Key();
+                        ciphertext = aes256.encrypt(plaintext,aesKeyEnc);
+                    }
+                }
+                
+                std::cout << "ciphertext:\t" << ciphertext << "\n\naes"
+                          << algorithmSize << " key:\t";
+                for(int c=0;c<algorithmSize/8;c++) {
+                    std::cout << std::hex << aesKeyEnc.get()[c];
+                }
+            } else {
+                std::string aesKeyDecStr;
+                std::shared_ptr<uint8_t> aesKeyDec(new uint8_t[algorithmSize/8]);
+                std::cout << "\nnote: if plaintext of the encrypted text is "
+                          << "not a multiple of 16, there will be padding with"
+                          << " zeros at the end of the decrypted ciphertext"
+                          << " because aes algorithms encrypt plaintext as"
+                          << " blocks of 16 bytes, if you know the length of"
+                          << " plaintext, delete the padding of \"0\"\'s"
+                          << "\n\ninput ciphertext:\t";
+                std::cin >> ciphertext;
+                std::cout << "\n\ninput aes" << algorithmSize << " key:\t";
+                std::cin >> aesKeyDecStr;
+                aesKeyDec = aesKeyToSPtr<uint8_t>(aesKeyDecStr,algorithmSize/8);
+
+                if(algorithmSize == 128) {
+                    plaintext = aes128.decrypt(ciphertext,aesKeyDec);
+                }
+                else if (algorithmSize == 192) {
+                    plaintext = aes192.decrypt(ciphertext,aesKeyDec);
+                }
+                else { // 256
+                    plaintext = aes256.decrypt(ciphertext,aesKeyDec);
+                }
+                std::cout << "\n\nplaintext:\t" << plaintext;
+            }
+            std::cout << std::endl;
+        }
+        else if(userInput == "get myahr") {
+            uint32_t accuracy;
+            std::cout << "input accuracy of hashrate (how many seconds should"
+                      << " the calculation last?)\ninput in decimal format"
+                      << "(no floating points):\t"
+            std::cin >> accuracy;
+            std::cout << "\ncalculating average hashrate...";
+            uint64_t hashrate = Blockchain::calcHashRateSha512(accuracy);
+            std::cout << "your hashrate:\t" << hashrate << std::endl;
+        }
         
         else if(userInput == "dump-wallet512") {
             if(walletMap.empty()) {
@@ -1386,7 +1501,7 @@
         //          }
         //     }
         // }
-        std::cout << "\nline 339, main.cpp complete";
+        std::cout << "\nline 1483: exitted normally";
         return 0;
     }
 #else
