@@ -13,9 +13,9 @@
  * 77 uses of vector in three files: main.cpp(55), block.h(13), MerkleTree.h(9)
  */
 
-#if __cplusplus > 201703L // if C++ 20 or above
+#include <iostream>
 
-    #include <iostream>
+#if __cplusplus > 201703L // if C++ 20 or above
     #include <string>
     #include <random>
     #include <time.h>
@@ -1183,11 +1183,13 @@
                     for(int c=0;c<8;c++) {
                         if(walletAddresses[i].get()[c] == walletAddress.get()[c]) {
                             walletAddresses.erase(walletAddresses.begin()+i);
+                            goto stop_find;
                         }
                     }
                 }
-                
-                std::cout << "wallet deleted";
+                stop_find:
+                    walletAddress.reset();
+                    std::cout << "wallet deleted";
             } else {
                 std::cout << "\nprocess terminated";
                 exit(EXIT_FAILURE);
@@ -1272,8 +1274,8 @@
                 std::cout << "\nno wallet address found";
                 exit(EXIT_FAILURE);
             }
-            
         }
+        
         else if(userInput == "dump-wallet512") {
             if(walletMap.empty()) {
                 std::cout << "\nno wallet address found";
@@ -1388,8 +1390,6 @@
         return 0;
     }
 #else
-    #include <iostream>
-    
     int main()
     {
         std::cout << "user defined error: C++ version has to be C++20 or above";
