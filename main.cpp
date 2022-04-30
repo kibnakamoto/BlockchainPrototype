@@ -21,6 +21,7 @@
     #include <time.h>
     #include <tuple>
     #include <map>
+    #include <set>
     #include "bigInt.h"
     #include "sha512.h"
     #include "MerkleTree.h"
@@ -82,7 +83,7 @@
     }
     
     // for user input in UI
-    template<class T>
+    template<typename T>
     std::string aesKeyToStr(std::shared_ptr<T> key, uint32_t keysize=32)
     {
         std::stringstream ss;
@@ -556,6 +557,7 @@
         std::vector<std::shared_ptr<uint64_t>> walletAddresses; // All wallet addresses
         std::string blockchain_version = "1.0";
         bool blockMined = false;
+        std::set<std::string> blockchain; // all blocks in the blockchain
         /* TODO: add UI for wallet address creation, buy, sell, verify, login, 
          * sign-in, dump wallet data, allow manual encryption for wallet 
          * address and automatic encryption for wallet data, only allow login and
@@ -732,7 +734,7 @@
         while (uiActive) {
             while(!terminate) {
                 std::cout << "\ninput:\t";
-                std::cin >> userInput;
+                std::getline(std::cin,userInput);
                 if(userInput == "help") {
                     for(int c=0;c<18;c++)
                         std::cout << commandDescriptions[c] << "\n";
@@ -1317,15 +1319,17 @@
                     std::string plaintext;
                     std::string ciphertext;
                     std::string encOrDec = "";
+                    std::stringstream ss;
                     for(int c=0;c<3;c++) { // encryption or decryption
                         encOrDec += userInput[c];
                     }
                     
-                    // find algorithm size in bytes
-                    for(int c=6;c<=9;c++) {
+                    // find algorithm size in bits
+                    for(int c=7;c<=9;c++) {
                         key_size_str += userInput[c];
                     }
-                    algorithmSize = (unsigned short)std::stoul(key_size_str,nullptr,0);
+                    ss << key_size_str;
+                    ss >> algorithmSize;
                     
                     if(encOrDec == "enc") {
                         /* if userInput length bigger than 10, automatic key generation is
@@ -1343,7 +1347,8 @@
                         std::cin >> plaintext;
                         if(!withKey) {
                             std::string aesKeyEncStr;
-                            std::cout << "\ninput aes" << algorithmSize << " key:\t";
+                            std::cout << "\ninput 32 byte aes" << algorithmSize
+                                      << " key as hex:\t";
                             std::cin >> aesKeyEncStr;
                             aesKeyEnc = aesKeyToSPtr<uint8_t>(aesKeyEncStr,algorithmSize/8);
                             if(algorithmSize == 128) {
@@ -1401,7 +1406,6 @@
                         }
                         std::cout << "\n\nplaintext:\t" << plaintext;
                     }
-                    std::cout << std::endl;
                     break;
                 }
                 else if(userInput == "get myahr") {
@@ -1412,10 +1416,23 @@
                     std::cin >> accuracy;
                     std::cout << "\ncalculating average hashrate...";
                     uint64_t hashrate = Blockchain::calcHashRateSha512(accuracy);
-                    std::cout << "\nyour hashrate:\t" << hashrate << std::endl;
+                    std::cout << "\nyour hashrate:\t" << std::dec << hashrate;
                     break;
                 }
-                
+                else if(userInput == "get blockchain") {
+                    std::cout << "printing all blocks in the blockchain...";
+                    if(blockchain.empty()) {
+                        std::cout << "\nno blocks in blockchain, type "
+                                  << "\"start mine\" to start mining";
+                    } else {
+                        std::cout << "blockchain:\t";
+                        for (auto it = blockchain.begin(); it !=
+                             blockchain.end(); ++it) {
+                            std::cout << *it << std::endl << std::endl;
+                        }
+                    }
+                    break;
+                }
                 else if(userInput == "dump-wallet512") {
                     if(walletMap.empty()) {
                         std::cout << "\nno wallet address found";
@@ -1428,6 +1445,13 @@
                     }
                     std::cout << std::endl << std::endl << "if you want to also"
                               << " see wallet keys, type \"get p-w keys\"";
+                    break;
+                // if nothing, this is to avoid getting command not found at certain times
+                } else if(userInput == "") {
+                    
+                }
+                else {
+                    std::cout << "\ncommand not found";
                     break;
                 }
             }
