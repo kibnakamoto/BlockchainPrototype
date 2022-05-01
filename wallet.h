@@ -1,3 +1,11 @@
+/*  Author: Taha Canturk
+ *  Github: Kibnakamoto
+ *  Repisotory: BlockchainPrototype
+ *  Start Date: May 1, 2022
+ *  Last Update: May 1, 2022
+ */
+
+
 #ifndef WALLET_H_
 #define WALLET_H_
 
