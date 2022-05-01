@@ -1,8 +1,9 @@
 /*
 * Author: Taha Canturk
 *  Github: kibnakamoto
-*   Start Date: Feb 9, 2022
-*    Finish Date: Apr 9, 2022
+*   Repository: BlockchainPrototype
+*    Start Date: Feb 9, 2022
+*     Last Update: May 1, 2022
 *
 */
 
