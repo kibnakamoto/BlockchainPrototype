@@ -1,3 +1,14 @@
+/*
+* Author: Taha Canturk
+*  Github: kibnakamoto
+*   Start Date: Feb 9, 2022
+*    Finish Date: Apr 9, 2022
+*
+*/
+
+#ifndef MERKLETREE_H_
+#define MERKLETREE_H_
+
 #include <stdint.h>
 #include <vector>
 #include <string>
@@ -89,3 +100,5 @@ namespace MerkleTree
             return merkle_root;
         }
 }; // namespace MerkleTree
+
+#endif /* MERKLETREE_H_ */
