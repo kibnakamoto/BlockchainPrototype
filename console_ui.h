@@ -55,8 +55,7 @@ struct userData
     }
 };
 
-void consoleUserInterface(bool uiActive,std::string userInput,
-                          std::vector<std::string> commandDescriptions,
+void consoleUserInterface(bool uiActive, std::vector<std::string> commandDescriptions,
                           std::string blockchain_version,std::shared_ptr<uint64_t>
                           &walletAddress,std::vector<std::shared_ptr<uint64_t>>
                           &walletAddresses, std::map<std::shared_ptr<uint64_t>,
@@ -78,10 +77,12 @@ void consoleUserInterface(bool uiActive,std::string userInput,
     AES::AES128 aes128;
     AES::AES192 aes192;
     AES::AES256 aes256;
+    
+    std::string userInput;
     std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>>::
     iterator itWalletMap = walletMap.begin();
-
     bool terminate = false;
+    
     while (uiActive) {
         while(!terminate) {
             std::cout << "\ninput:\t";
