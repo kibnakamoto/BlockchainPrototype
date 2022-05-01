@@ -1,8 +1,8 @@
-/*  Author: Taha Canturk
+/* Author: Taha Canturk
  *  Github: Kibnakamoto
- *  Repisotory: BlockchainPrototype
- *  Start Date: May 1, 2022
- *  Last Update: May 1, 2022
+ *   Repisotory: BlockchainPrototype
+ *    Start Date: May 1, 2022
+ *     Last Update: May 1, 2022
  */
 
 
@@ -17,45 +17,6 @@
 #include <random>
 #include <time.h>
 #include <tuple>
-
-// for user input in UI
-template<typename T>
-std::string aesKeyToStr(std::shared_ptr<T> key, uint32_t keysize=32)
-{
-    std::stringstream ss;
-    for(int c=0;c<keysize;c++) {
-        ss << std::setfill('0') << std::setw(2) << std::hex << (short)key.get()[c];
-    }
-    return ss.str();
-}
-
-// reverse aeskey_tostr function for use in UI, default key size is for aes256
-template<typename T>
-std::shared_ptr<T> aesKeyToSPtr(std::string strKey, uint32_t keysize=32)
-{
-    if(strKey.length() != keysize*2) {
-        std::cout << "length of key doesn't match required algorithm key size: "
-                  << keysize;
-        exit(EXIT_FAILURE);
-    }
-    std::shared_ptr<T> key(new T[keysize]);
-    std::string bytes="";
-    for(int c=0;c<keysize;c++) {
-        bytes += strKey.substr(c*2,2);
-        if (c<keysize-1) {
-            bytes += " ";
-        }
-    }
-    std::istringstream hexCharsStream(bytes);
-    unsigned int ch;
-    int i=0;
-    while (hexCharsStream >> std::hex >> ch)
-    {
-        key.get()[i] = ch;
-        i++;
-    }
-    return key;
-}
 
 /* for UI */
 struct userData
