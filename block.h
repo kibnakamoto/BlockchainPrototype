@@ -1,3 +1,15 @@
+/*
+* Author: Taha Canturk
+*  Github: kibnakamoto
+*   Start Date: Feb 9, 2022
+*    Finish Date: Apr 15, 2022
+*
+*/
+
+
+#ifndef BLOCK_H_
+#define BLOCK_H_
+
 #include <iostream>
 #include <vector>
 #include <ctime>
@@ -22,7 +34,7 @@ namespace Blockchain
         return std::asctime(std::localtime(&Time));
     }
     
-    template<class T>
+    template<typename T>
     inline T generateNonce()
     {
         /* random numerical type using Mersenne Twister. Not recommended for 
@@ -175,7 +187,7 @@ class PoW
         mineBlock(const std::map<std::string, std::shared_ptr<uint8_t>> encryptedTs,
                   uint64_t blockNonce, uint64_t difficulty, std::vector<std::
                   shared_ptr<uint64_t>> mempool, std::shared_ptr<uint64_t>
-                  v_merkle_root, std::vector<uint64_t> trnsLengths)
+                  v_merkle_root, std::vector<uint32_t> trnsLengths)
         {
             std::shared_ptr<uint64_t> merkle_root(new uint64_t[8]);
             merkle_root = MerkleTree::merkleRoot(mempool);
@@ -266,11 +278,12 @@ class Block
                 target.get()[c] = sha512(merkle_root_str + std::to_string(newNonce+difficulty)).get()[c];
             }
             
-            /* TODO: use difficulty to generate target height instead of const 2 to 
-             * the power of 56. NOTE: Block generation time = 1-2 minutes.
+            /* TODO: use difficulty to generate target height instead of 
+             * something like const 2 to the power of 54. NOTE: Block generation
+             * time with 2^56 = 1-2 minutes.
              */
             for(int c=0;c<8;c++) {
-                while(target.get()[c] >= pow(2,56)) {
+                while(target.get()[c] >= pow(2,54)) {
                     target.get()[c] = sha512(merkle_root_str +
                                              std::to_string(newNonce+difficulty)).get()[c];
                     newNonce++;
@@ -426,3 +439,5 @@ class Block
             return BLOCKCHAIN_BLOCKDATA.str();
         }
 };
+
+#endif /* BLOCK_H_ */
