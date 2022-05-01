@@ -1,9 +1,9 @@
 /* Author: Taha Canturk
-*  Github: Kibnakamoto
-*   Repisotory: AES
-*  Start Date: March, 5, 2022
-*  Finalized: March 11, 2022
-*/
+ *  Github: Kibnakamoto
+ *  Repisotory: BlockchainPrototype
+ *  Start Date: March, 5, 2022
+ *  Last Update: May 1, 2022
+ */
 
 #ifndef AES_H
 #define AES_H
