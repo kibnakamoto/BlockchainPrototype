@@ -540,7 +540,7 @@
         
     };
     
-    int main()
+    int main(int argc,char** argv)
     {
         /* need string hash values while comparing hashes */
         IntTypes int_type = IntTypes();
@@ -558,12 +558,7 @@
         std::string blockchain_version = "1.0";
         bool blockMined = false;
         std::set<std::string> blockchain; // all blocks in the blockchain
-        /* TODO: add UI for wallet address creation, buy, sell, verify, login, 
-         * sign-in, dump wallet data, allow manual encryption for wallet 
-         * address and automatic encryption for wallet data, only allow login and
-         * data decryption if database found user info match. No need for GUI yet.
-         */
-        
+
         /* TEST PoW MINE */
         // struct Transaction trns{sha512("sender"), sha512("receiver"), 50000};
         // struct Transaction trns1{sha512("sener"), sha512("receiver"), 54000};
@@ -626,8 +621,8 @@
                                                  "e-wallet-aes256-genkey",
                                                  "e-wallet-aes192-genkey",
                                                  "e-wallet-aes128-genkey",
-                                                 "decrypt-wallet",
-                                                 "get p-w key", "get p-trns-data",
+                                                 "decrypt-wallet", "get p-w keys"
+                                                 "get p-trns-data",
                                                  "del-wallet","exit","quit"
                                                  "burn", "hash-sha512","enc-aes128-genkey",
                                                  "enc-aes192-genkey","enc-aes256-genkey",
@@ -648,7 +643,7 @@
                                                  "get blockchain-ahr", "get block-target"};
         std::vector<std::string> commandDescriptions
         {"help: show basic commands with descriptions",
-         "-help: for command description, put after another command",
+         " -help: for command description, put after another command",
          "help-all: show all commands with description",
          "create-wa: generate new wallet address",
          "buy: buy an amount, must specify amount after typing buy",
@@ -658,11 +653,11 @@
          "e-wallet-aes192: encrypt wallet with aes192, do not provide wallet address here, provide key",
          "e-wallet-aes256: encrypt wallet with aes256, do not provide wallet address here, provide key",
          "e-wallet-aes128-genkey: encrypt wallet with aes256, do not provide wallet" +
-         std::string("address here, do not provide key"),
+         std::string("address here, do not provide key, for command line, add space after aes128"),
          "e-wallet-aes192-genkey: encrypt wallet with aes192, do not provide wallet" +
-         std::string(" address here, do not provide key"),
+         std::string(" address here, do not provide key, for command line, add space after aes192"),
          "e-wallet-aes256-genkey: encrypt wallet with aes256, do not provide wallet" +
-         std::string(" address here, do not provide key"),
+         std::string(" address here, do not provide key, for command line, add space after aes256"),
          "decrypt-wallet: decrypt wallet using chosen encryption algorithm, provide key",
          "get p-w keys: request private wallet keys",
          
@@ -728,9 +723,340 @@
         // second wallet address
         std::shared_ptr<uint64_t> secondWallet(new uint64_t[8]);
         
-        // is UI active
-        bool uiActive = true;
+        /* command line UI */
+        
+        // find -help in command line
+        // std::string dashHelp = ;
+        if(argc != 1) {
+            if(argc == 2 && strcmp(argv[1], "help") == 0) {
+                for(int c=0;c<18;c++) {
+                    std::cout << commandDescriptions[c];
+                }
+            }
+            else if(argc == 2 && strcmp(argv[1],"help-all") == 0) {
+                if(blockchain_version != "1.0") {
+                    for(int c=0;c<commandDescriptions.size();c++)
+                        std::cout << commandDescriptions[c] << "\n";
+                } else {
+                    for(int c=0;c<commandDescriptions.size()-9;c++)
+                        std::cout << commandDescriptions[c] << "\n";
+                }
+            }
+            else if(argc == 3 && strcmp(argv[2],"-help") == 0) {
+                bool commandExists = false;
+                std::string tmp = argv[1];
+                for(int c=0;c<commandDescriptions.size()-1;c++) {
+                    if(commandDescriptions[c].starts_with(tmp.substr
+                                                          (0,tmp.length()-6))) {
+                        std::cout << "\n" << commandDescriptions[c];
+                        commandExists = true; // can't use else here
+                    }
+                }
+                if(!commandExists) {
+                    std::cout << "command doesn\'t exist";
+                }
+            }
+            else if(argc == 2 && strcmp(argv[1],"create-wa") == 0) {
+                std::cout << "\ncreating wallet address...\n";
+                auto [fstNewAddrs,sndNewAddrs] = wallet_address.GenerateNewWalletAddress("dump aes256-key");
+                std::cout << "wallet address created\nwallet address:\t";
+                walletAddress = fstNewAddrs;
+                std::cout << std::hex << to8_64_str(walletAddress);
+                std::cout << std::endl << "save these values on your device\n";
+                walletAddresses.push_back(walletAddress);
+                walletMap.insert(itWalletMap, std::pair<std::shared_ptr<uint64_t>,
+                                 std::vector<std::shared_ptr<uint8_t>>>(walletAddress,
+                                                                        sndNewAddrs));
+                std::cout << "wallet address saved on map\n";
+            }
+            //////////////////////////////          USES std::cin
+            else if(argc == 2 && (strcmp(argv[1], "buy") == 0 ||
+                    strcmp(argv[1], "sell") == 0 || strcmp(argv[1], "send") == 0)) {
+                uint32_t amount;
+                std::string secondWalletAd;
+                
+                // ask for walletAddress of receiver or sender, key isn't requiried
+                if(userInput == "buy") {
+                    secondWalletAd = "sender";
+                } else { // send or sell
+                    secondWalletAd = "receiver";
+                }
+                if(walletMap.empty()) {
+                    std::cout << "wallet map is empty, input your wallet address."
+                              << " If you don\'t have one, type \"nw \" here,press enter, "
+                              << "if you have one, press enter, copy paste wallet address"
+                              << " from where you saved it:\t";
+                    std::string noWallet;
+                    std::cin >> noWallet;
+                    std::string strWallet;
+                    if(noWallet == "yw") {
+                        std::cin >> strWallet;
+                        walletAddress = usrInWallet512(strWallet);
+                        // verify inputted wallet
+                        wallet_address.verifyInputWallet(walletAddresses, walletAddress);
+                        
+                        // if walletAddress valid, input wallet keys
+                        std::cout << "\ninput your aes256 wallet key 1 as hex:\t";
+                        std::string key1Str;
+                        std::cin >> key1Str;
+                        userAESmapkeys[0] = aesKeyToSPtr<uint8_t>(key1Str);
+                        std::cout << "\ninput your aes256 wallet key 2 as hex:\t";
+                        std::string key2Str;
+                        std::cin >> key2Str;
+                        userAESmapkeys[1] = aesKeyToSPtr<uint8_t>(key2Str);
+                        walletMap.insert(itWalletMap, std::pair<std::shared_ptr<uint64_t>,
+                                         std::vector<std::shared_ptr<uint8_t>>>
+                                         (walletAddress, userAESmapkeys));
+                        
+                    } else {// only difference is first trWallet parameter is nullptr
+                        storedCrypto=0;
+                        walletAddress = nullptr;
+                    }
+                } else { // if walletMap not empty
+                    std::cout << "\nwallet address found\n";
+                }
+                std::cout << "\ninput " << secondWalletAd << "s wallet address:\t";
+                std::string str_wallet;
+                std::cin >> str_wallet;
+                secondWallet = usrInWallet512(str_wallet);
+                wallet_address.verifyInputWallet(walletAddresses, walletAddress);
+                std::cout << "\nwallet data verified\n";
+                struct Wallet trWallet{walletAddress, userAESmapkeys, walletMap};
+                std::cout << "\ninput amount:\t";
+                std::cin >> amount;
+                
+                struct userData user_data {walletMap,transactions,transactionhashesW,
+                                           trnsLengths};
+                storedCrypto = user_data.setBalance();
+                
+                /* since newTransaction doesn't have sell in sellorbuy and both
+                 * perform the same task for now
+                 */
+                if(userInput == "sell") {
+                    userInput = "send";
+                }
+                auto [newWA,newKeys] = trWallet.new_transaction(secondWallet,
+                                                                walletAddress,
+                                                                amount,mempool,
+                                                                userInput,
+                                                                transactionhashesW,
+                                                                transactions, 
+                                                                storedCrypto,
+                                                                trnsLengths,
+                                                                "dump aes256-key");
+                walletAddress = newWA;
+                userAESmapkeys = newKeys;
+            }
+            else if((argc == 2 || argc == 3) && (strcmp(argv[1],"e-wallet-aes128") ||
+                                                 strcmp(argv[1],"e-wallet-aes192") ||
+                                                 strcmp(argv[1],"e-wallet-aes256"))) {
+                std::string usrCommand;
+                std::string ACmndNoKey;
+                std::string algorithm;
+                uint32_t keysize;
+                usrCommand = userInput;
+                std::string aesAlgKey;
+                if(strcmp(argv[1], "e-wallet-aes128") == 0) {
+                    ACmndNoKey = "enc-aes128";
+                    algorithm = "aes128";
+                    keysize = 16;
+                }
+                else if(strcmp(argv[1], "e-wallet-aes192") == 0) {
+                    ACmndNoKey = "enc-aes192";
+                    algorithm = "aes192";
+                    keysize = 24;
+                } else if(strcmp(argv[1], "e-wallet-aes256") == 0) {
+                    ACmndNoKey = "enc-aes256";
+                    algorithm = "aes256";
+                    keysize = 32;
+                }
+                
+                std::shared_ptr<uint8_t> encWalletAesAlgKey(new uint8_t[keysize]);
+                if(walletMap.empty()) {
+                    std::cout << "no wallet saved, if you want to encrypt manually, try "
+                              << "\"" << ACmndNoKey << "\" and input both input and key, if you"
+                              << " want to use an automatically generated key, put"
+                              << " \"e-wallet-" << algorithm << " -genkey\".";
+                } else {
+                    if(argc == 2) { // if key generation not requested
+                        std::cout << "\nwallet found\ninput " << algorithm << " key as hex"
+                                  << "(hex digits only):\t";
+                        std::cin >> aesAlgKey;
+                        encWalletAesAlgKey = aesKeyToSPtr<uint8_t>(aesAlgKey,keysize);
+                        std::cout << "\nis the key you inputted correct as hex integer:\t";
+                        for(int c=0;c<keysize;c++) {
+                            std::cout << std::hex << (short)encWalletAesAlgKey.get()[c];
+                        }
+                        std::cout << "\n\ninteger value will have a few missing zeros"
+                                  << "which is fine but if a big part or everything is"
+                                  << "wrong, that is a problem, please stop the process and "
+                                  << "report the problem";
+                        std::cout << std::endl;
+                    }
+                    else {
+                        if(algorithm == "aes128") {
+                            encWalletAesAlgKey = generateAES128Key();
+                        }
+                        else if(algorithm == "aes192") {
+                            encWalletAesAlgKey = generateAES192Key();
+                        }
+                        else { // aes256
+                            encWalletAesAlgKey = generateAES256Key();
+                        }
+                        std::vector<std::shared_ptr<uint8_t>> walletKeys;
+                        for(const auto [wa,walletkeys] : walletMap) {
+                            walletAddress = wa;
+                            walletKeys = walletkeys;
+                        }
+                        if(algorithm == "aes128") {
+                            ciphertextW = aes128.encrypt(to8_64_str(walletAddress),
+                                                         encWalletAesAlgKey);
+                        ciphertextK1 = aes128.encrypt(aesKeyToStr<uint8_t>
+                                                      (walletKeys[0],16),
+                                                      encWalletAesAlgKey);
+                        ciphertextK2 = aes128.encrypt(aesKeyToStr<uint8_t>
+                                                      (walletKeys[1],16),
+                                                      encWalletAesAlgKey);
+                        }
+                        else if(algorithm == "aes192") {
+                            ciphertextW = aes192.encrypt(to8_64_str(walletAddress),
+                                                         encWalletAesAlgKey);
+                            ciphertextK1 = aes192.encrypt(aesKeyToStr<uint8_t>
+                                                          (walletKeys[0],24),
+                                                          encWalletAesAlgKey);
+                            ciphertextK2 = aes192.encrypt(aesKeyToStr<uint8_t>
+                                                          (walletKeys[1],24),
+                                                          encWalletAesAlgKey);
+                        } else { // aes256
+                            ciphertextW = aes256.encrypt(to8_64_str(walletAddress),
+                                                         encWalletAesAlgKey);
+                            ciphertextK1 = aes256.encrypt(aesKeyToStr<uint8_t>
+                                                          (walletKeys[0]),
+                                                          encWalletAesAlgKey); // keysize = 32
+                            ciphertextK2 = aes256.encrypt(aesKeyToStr<uint8_t>
+                                                          (walletKeys[1]),
+                                                          encWalletAesAlgKey); // keysize = 32
+                        }
+                        std::cout << "\nciphertext of wallet address:\t" << ciphertextW
+                                  << "\n\nwarning: an " << "encrypted wallet address is not"
+                                  << " usable until you decrypt it";
+                        walletAddress = nullptr;
+                        std::cout << "\n\nciphertext of key 1:\t" << ciphertextK1;
+                        std::cout << "\n\nciphertext of key 2:\t" << ciphertextK2;
+                        std::cout << "\n\nsave these values and keys as they won\'t be "
+                                  << "saved here and you won\'t be able to access your wallet again";
+                        std::cout << "\nunencrypted wallet data will be gone until you decrypt it,"
+                                  << " are you sure you want to continue\ntype \"y\" for yes, "
+                                  << "\"n\" for no";
+                        std::string confirm;
+                        bool terminate = false;
+                        while(!terminate) {
+                            std::cin >> confirm;
+                            if(confirm == "n" or confirm == "no") {
+                                std::cout << "\nprocess terminated, wallet not encrypted.";
+                                // reset ciphertexts
+                                ciphertextW = "";
+                                ciphertextK1 = "";
+                                ciphertextK2 = "";
+                                terminate = true;
+                            }
+                            else if(confirm == "y" or confirm == "yes") {
+                                std::cout << "\nclearing unencrypted wallet data...";
+                                usedEncAlg = algorithm;
+                                walletMap.clear();
+                                std::cout << "\ncomplete\nencryption key:\t" << std::hex
+                                          << aesKeyToStr<uint8_t>(encWalletAesAlgKey,keysize);
+                                terminate = true;
+                            } else {
+                                std::cout << "invalid input\n(y) or (n)";
+                            }
+                        }
+                    }
+                }
+            }
+            else if(argc == 2 && strcmp(argv[1],"decrypt-wallet") == 0) {
+                uint32_t keysize;
+                std::string aesKeyStr;
+                if(usedEncAlg == "aes128") {
+                    keysize = 16;
+                }
+                else if(usedEncAlg == "aes192") {
+                    keysize = 24;
+                }
+                else if(usedEncAlg == "aes256") {
+                    keysize = 32;
+                }
+                std::shared_ptr<uint8_t> edkey(new uint8_t[keysize]);
+                std::string decStrWalletaddress;
+                std::string decStrWalletk1;
+                std::string decStrWalletk2;
+                std::shared_ptr<uint8_t> decWalletk1(new uint8_t[keysize]);
+                std::shared_ptr<uint8_t> decWalletk2(new uint8_t[keysize]);
+                if(walletMap.empty() && ciphertextW != "") {
+                    std::cout << "ciphertext of wallet address found and no unencrypted data."
+                              << "Decrypting a wallet address using the " << usedEncAlg
+                              << ".\nciphertext of wallet address:\t" << ciphertextW
+                              << "\n\nciphertext of first " << usedEncAlg << " key:\t"
+                              << ciphertextK1 << "\n\nciphertext of second " << usedEncAlg
+                              << " key:\t" << ciphertextK2 << "\n\ninput " << keysize
+                              << " byte " << usedEncAlg << " key:\t";
+                    std::cin >> aesKeyStr;
+                    edkey = aesKeyToSPtr<uint8_t>(aesKeyStr,keysize);
+                    std::cout << "\ndecrypting wallet data...\n";
+                    if(usedEncAlg == "aes128") {
+                        decStrWalletaddress = aes128.decrypt(ciphertextW,edkey);
+                        decStrWalletk1 = aes128.decrypt(ciphertextK1,edkey);
+                        decStrWalletk2 = aes128.decrypt(ciphertextK2,edkey);
+                    }
+                    else if(usedEncAlg == "aes192") {
+                        decStrWalletaddress = aes192.decrypt(ciphertextW,edkey);
+                        decStrWalletk1 = aes192.decrypt(ciphertextK1,edkey);
+                        decStrWalletk2 = aes192.decrypt(ciphertextK2,edkey);
+                    }
+                    else if(usedEncAlg == "aes256") {
+                        decStrWalletaddress = aes256.decrypt(ciphertextW, edkey);
+                        decStrWalletk1 = aes256.decrypt(ciphertextK1,edkey);
+                        decStrWalletk2 = aes256.decrypt(ciphertextK2,edkey);
+                    }
+                    /* delete padding caused by aes encryption, since all keys and
+                     * wallet address length is 512-bits as string which is a multiple
+                     * of aes block(16 bytes), its not necesarry to delete padding
+                     *  but is a good precation to take just in case
+                     */
+                    uint32_t keySizeBits = keysize<<3;
+                    decStrWalletaddress.erase(512,512-decStrWalletaddress.length());
+                    decStrWalletk1.erase(keySizeBits,keySizeBits-decStrWalletk1.length());
+                    decStrWalletk2.erase(keySizeBits,keySizeBits-decStrWalletk2.length());
+                    walletAddress = usrInWallet512(decStrWalletaddress);
+                    decWalletk1 = aesKeyToSPtr<uint8_t>(decStrWalletk1,keysize);
+                    decWalletk2 = aesKeyToSPtr<uint8_t>(decStrWalletk2,keysize);
+                    std::cout << "wallet components decrypted. Wallet address as plaintext:\t"
+                              << decStrWalletaddress << "\ndecrypted first " << usedEncAlg
+                              << " key as plaintext:\t" << decStrWalletk1 
+                              << "\ndecrypted second " << usedEncAlg
+                              << " key as plaintext:\t" << decStrWalletk2
+                              << "\n\nif these values are wrong, please report this "
+                              <<  "problem at https://github.com/kibnakamoto/"
+                              << "BlockchainPrototype/issues or email the issue at"
+                              << " kibnakanoto@protonmail.com";
+                    std::vector<std::shared_ptr<uint8_t>> walletKeysDec;
+                    walletKeysDec.push_back(decWalletk1);
+                    walletKeysDec.push_back(decWalletk2);
+                    walletMap.insert(itWalletMap,std::pair<std::shared_ptr<uint64_t>,
+                                     std::vector<std::shared_ptr<uint8_t>>>
+                                     (walletAddress,walletKeysDec));
+                    std::cout << "\nwallet data saved\n";
+                } else {
+                    std::cout << "\nNO ENCRYPTED WALLET FOUND\n";
+                    exit(EXIT_FAILURE);
+                }
+            }
+        }
+        
+        // choose between console UI and command line UI
+        bool uiActive = false;
         bool terminate = false;
+        
         while (uiActive) {
             while(!terminate) {
                 std::cout << "\ninput:\t";
@@ -748,16 +1074,16 @@
                         for(int c=0;c<commandDescriptions.size()-9;c++)
                             std::cout << commandDescriptions[c] << "\n";
                     }
+                    break;
                 }
-                else if(userInput.length()>5 && userInput.substr(userInput.length()-5,
-                                                                 userInput.length()) == "-help") {
-                    bool commandExists;
+                else if(userInput.length()>6 && userInput.substr(userInput.length()-6,
+                                                                 userInput.length()) == " -help") {
+                    bool commandExists = false;
                     for(int c=0;c<commandDescriptions.size()-1;c++) {
                         if(commandDescriptions[c].starts_with(userInput.substr
-                                                              (0,userInput.length()-5))) {
+                                                              (0,userInput.length()-6))) {
                             std::cout << "\n" << commandDescriptions[c];
                             commandExists = true;
-                            break;
                         }
                     }
                     if(!commandExists) {
@@ -964,8 +1290,8 @@
                                   << " are you sure you want to continue\ntype \"y\" for yes, "
                                   << "\"n\" for no";
                         std::string confirm;
-                        bool terminate = false;
-                        while(!terminate) {
+                        bool terminateEWallet = false;
+                        while(!terminateEWallet) {
                             std::cin >> confirm;
                             if(confirm == "n" or confirm == "no") {
                                 std::cout << "\nprocess terminated, wallet not encrypted.";
@@ -973,7 +1299,7 @@
                                 ciphertextW = "";
                                 ciphertextK1 = "";
                                 ciphertextK2 = "";
-                                terminate = true;
+                                terminateEWallet = true;
                             }
                             else if(confirm == "y" or confirm == "yes") {
                                 std::cout << "\nclearing unencrypted wallet data...";
@@ -981,7 +1307,7 @@
                                 walletMap.clear();
                                 std::cout << "\ncomplete\nencryption key:\t" << std::hex
                                           << aesKeyToStr<uint8_t>(encWalletAesAlgKey,keysize);
-                                terminate = true;
+                                terminateEWallet = true;
                             } else {
                                 std::cout << "invalid input\n(y) or (n)";
                             }
@@ -1067,7 +1393,7 @@
                     break;
                 }
                 // delete command or create a way to verify user
-                else if(userInput == "get p-w key") {
+                else if(userInput == "get p-w keys") {
                     std::cout << "\nsearching wallet for keys...\n";
                     if(walletMap.empty()) {
                         std::cout << "error: no wallet found";
