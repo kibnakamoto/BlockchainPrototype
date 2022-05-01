@@ -5,6 +5,8 @@
 *  Finalized: March 11, 2022
 */
 
+#ifndef AES_H
+#define AES_H
 
 #include <iostream>
 #include <stdint.h>
@@ -526,3 +528,5 @@ class AES
             }
     };
 };
+
+#endif /* AES_H_ */
