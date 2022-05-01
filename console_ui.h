@@ -1,3 +1,14 @@
+/*  Author: Taha Canturk
+ *  Github: Kibnakamoto
+ *  Repisotory: BlockchainPrototype
+ *  Start Date: May 1, 2022
+ *  Last Update: May 1, 2022
+ */
+
+
+#ifndef CONSOLE_UI_H_
+#define CONSOLE_UI_H_
+
 #include <iostream>
 #include <set>
 #include <map>
@@ -849,3 +860,5 @@ void consoleUserInterface(bool uiActive, std::vector<std::string> commandDescrip
         }
     }
 }
+
+#endif /* CONSOLE_UI_H_ */
