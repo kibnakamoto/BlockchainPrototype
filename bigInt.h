@@ -1,3 +1,11 @@
+/* Author: Taha Canturk
+*  Github: Kibnakamoto
+*   Repisotory: bigInt
+*  Start Date: Feb, 9, 2022
+*  Last Update: May 1, 2022
+*/
+
+
 #include <stdint.h>
 #include <tuple>
 #include <string.h> // for memcpy
