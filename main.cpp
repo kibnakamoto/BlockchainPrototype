@@ -1,13 +1,10 @@
-
-// future main.cpp
-/*
-* Author: Taha Canturk
-*  Github: kibnakamoto
-*   Start Date: Feb 9, 2022
-*    Finish Date: N/A
-*
-* Blockchain Version: 1.0
-*/
+/* Author: Taha Canturk
+ *  Github: kibnakamoto
+ *  Repository: BlockchainPrototype
+ *   Start Date: Feb 9, 2022
+ *    Last Update: May 1
+ *     Software Version: 1.0
+ */
 
 /* TODO:
  * convert all vector matrices into a set for uniuqe values:
@@ -29,7 +26,7 @@
     #include "MerkleTree.h"
     #include "AES.h"
     #include "block.h"
-    #include "wallet_address.h"
+    #include "wallet.h"
     #include "console_ui.h"
     // 
     
