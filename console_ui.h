@@ -28,7 +28,7 @@ struct userData
             
             // delete padding caused by encryption
             // check which length creates correct hash
-            for(int c=0;c<trnsLengths.size();c++) {
+            for(uint32_t c=0;c<trnsLengths.size();c++) {
                 plaintext.erase(trnsLengths[c],plaintext.length()-trnsLengths[c]);
                 std::shared_ptr<uint64_t> hash = sha512(plaintext);
                 for(int i=0;i<transactionhashesW.size();i++) {
@@ -64,10 +64,13 @@ void consoleUserInterface(bool uiActive,std::string userInput,
                           std::vector<std::shared_ptr<uint8_t>> &userAESmapkeys,
                           int32_t &storedCrypto,std::shared_ptr<uint64_t>
                           &secondWallet, std::vector<std::shared_ptr<uint64_t>>
-                          &transactionhashesW,std::vector<uint64_t> &trnsLengths,
+                          &transactionhashesW,std::vector<uint32_t> &trnsLengths,
                           std::vector<std::shared_ptr<uint64_t>> &mempool,
                           std::string &ciphertextW, std::string &ciphertextK1,
-                          std::string &ciphertextK2, std::string &usedEncAlg) {
+                          std::string &ciphertextK2, std::string &usedEncAlg,
+                          std::map<std::string,std::shared_ptr<uint8_t>>
+                          transactions,std::vector<std::shared_ptr<uint8_t>>
+                          AESkeysTr,std::set<std::string> &blockchain) {
     WalletAddress wallet_address = WalletAddress();
     SHA512 hash = SHA512();
     Block block = Block();
