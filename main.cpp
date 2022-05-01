@@ -553,7 +553,8 @@
                              blockchain_version, walletAddress, walletAddresses,
                              walletMap, userAESmapkeys, storedCrypto, secondWallet,
                              transactionhashesW, trnsLengths, mempool, ciphertextW,
-                             ciphertextK1, ciphertextK2, usedEncAlg);
+                             ciphertextK1, ciphertextK2, usedEncAlg,transactions,
+                             AESkeysTr,blockchain);
         
         // DEBUG
         // std::cout << commandDescriptions.size() << "\n\n" << listOfCommands.size();
