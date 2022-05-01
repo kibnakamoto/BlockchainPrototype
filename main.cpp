@@ -28,7 +28,6 @@
     #include "block.h"
     #include "wallet.h"
     #include "console_ui.h"
-    // 
     
     // global boolean for ui working on either console or terminal
     // if unix based operating system, use terminal
@@ -329,8 +328,9 @@
                 /* since newTransaction doesn't have sell in sellorbuy and both
                  * perform the same task for now
                  */
-                if(argv[1] == "sell") {
-                    argv[1] = "send";
+                if(strcmp(argv[1],"sell") == 0) {
+                    char tmp[4] = {'s','e','n','d'}; // send
+                    argv[1] = tmp;
                 }
                 auto [newWA,newKeys] = trWallet.new_transaction(secondWallet,
                                                                 walletAddress,
@@ -344,9 +344,9 @@
                 walletAddress = newWA;
                 userAESmapkeys = newKeys;
             }
-            else if((argc == 2 || argc == 3) && (strcmp(argv[1],"e-wallet-aes128") ||
-                                                 strcmp(argv[1],"e-wallet-aes192") ||
-                                                 strcmp(argv[1],"e-wallet-aes256"))) {
+            else if((argc == 2 || argc == 3) && (strcmp(argv[1],"e-wallet-aes128") == 0 ||
+                                                 strcmp(argv[1],"e-wallet-aes192") == 0 ||
+                                                 strcmp(argv[1],"e-wallet-aes256") == 0)) {
                 std::string ACmndNoKey;
                 std::string algorithm;
                 uint32_t keysize;
@@ -694,8 +694,8 @@
                     exit(EXIT_FAILURE);
                 }
             }
-            else if(argc == 2 && (strcmp(argv[1],"exit") || strcmp(argv[1],
-                                                                   "quit"))) {
+            else if(argc == 2 && (strcmp(argv[1],"exit") == 0 || strcmp(argv[1],
+                                                                   "quit") == 0)) {
                 std::cout << "\nprogram terminated";
                 exit(EXIT_FAILURE);
             }
