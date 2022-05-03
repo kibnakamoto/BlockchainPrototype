@@ -671,8 +671,8 @@ void consoleUserInterface(bool uiActive, std::vector<std::string> commandDescrip
                 std::cout << "\n\nhash:\t" << hash_sha512_str << std::endl;
                 break;
             }
-            else if(userInput == "enc-aes128-genkey" || userInput == "enc-aes192-genkey" ||
-                    userInput == "enc-aes256-genkey" || userInput == "enc-aes128"  ||
+            else if(userInput == "enc-aes128 -genkey" || userInput == "enc-aes192 -genkey" ||
+                    userInput == "enc-aes256 -genkey" || userInput == "enc-aes128"  ||
                     userInput == "enc-aes192"  || userInput == "enc-aes256" ||
                     userInput == "dec-aes128" || userInput == "dec-aes192" ||
                     userInput == "dec-aes256") {
@@ -741,9 +741,9 @@ void consoleUserInterface(bool uiActive, std::vector<std::string> commandDescrip
                     
                     std::cout << "ciphertext:\t" << ciphertext << "\n\naes"
                               << algorithmSize << " key:\t";
-                    for(int c=0;c<algorithmSize/8;c++) {
-                        std::cout << std::hex << (short)aesKeyEnc.get()[c];
-                    }
+                    std::string aesKeyEncStr = aesKeyToStr<uint8_t>(aesKeyEnc,
+                                                                    algorithmSize/8);
+                    std::cout << aesKeyEncStr;
                 } else {
                     std::string aesKeyDecStr;
                     std::shared_ptr<uint8_t> aesKeyDec(new uint8_t[algorithmSize/8]);
