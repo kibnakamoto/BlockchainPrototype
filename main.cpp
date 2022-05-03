@@ -111,7 +111,6 @@
         // mempool2.push_back(trns2.Hash());
         
         /* UI */
-        std::string newUserIn;
         std::vector<std::string> listOfCommands {"help", "-help", "help-all", "create-wa",
                                                  "buy","send", "sell", "e-wallet-aes256",
                                                  "e-wallet-aes128","e-wallet-aes192",
@@ -166,9 +165,9 @@
          "quit: will terminate and exit program",
          "burn [amount]: burn an amount of crypto(send to dead wallet address), provide amount",
          "hash-sha512 [input]: hash input with sha512",
-         "enc-aes128-genkey [input,key]: encrypt input with aes128, key is generated for you",
-         "enc-aes192-genkey [input,key]: encrypt input with aes192, key is generated for you",
-         "enc-aes256-genkey [input,key]: encrypt input with aes256, key is generated for you",
+         "enc-aes128 -genkey [input,key]: encrypt input with aes128, key is generated for you",
+         "enc-aes192 -genkey [input,key]: encrypt input with aes192, key is generated for you",
+         "enc-aes256 -genkey [input,key]: encrypt input with aes256, key is generated for you",
          "enc-aes128 [input,key]: encrypt input with aes128, use own key in hex format",
          "enc-aes192 [input,key]: encrypt input with aes192, use own key in hex format",
          "enc-aes256 [input,key]: encrypt input with aes256, use own key in hex format",
@@ -613,7 +612,7 @@
                     std::cout << "\ndecrypted transaction data:\t" << correctPlaintext;
             }
             else if(argc == 2 && strcmp(argv[1],"del-wallet") == 0) {
-                                if(walletMap.empty()) {
+                if(walletMap.empty()) {
                     std::cout << "\nno wallet found";
                     exit(EXIT_FAILURE);
                 }
@@ -698,6 +697,181 @@
                                                                    "quit") == 0)) {
                 std::cout << "\nprogram terminated";
                 exit(EXIT_FAILURE);
+            }
+            else if(argc == 2 && strcmp(argv[1],"burn") == 0) {
+                if(!walletMap.empty()) {
+                    std::string strWalletKey1;
+                    std::shared_ptr<uint8_t> walletKey1(new uint8_t[32]);
+                    std::string strWalletKey2;
+                    std::shared_ptr<uint8_t> walletKey2(new uint8_t[32]);
+                    std::vector<std::shared_ptr<uint8_t>> walletKeysVec;
+                    std::map<std::shared_ptr<uint64_t>,std::vector<std::shared_ptr
+                             <uint8_t>>> unv_wallet_map;
+                    std::map<std::shared_ptr<uint64_t>,std::vector<std::shared_ptr
+                             <uint8_t>>>::iterator unv_it_map = unv_wallet_map.begin();
+                    
+                    std::cout << "\nverify wallet data to burn crypto\ninput wallet key 1:\t";
+                    std::cin >> strWalletKey1;
+                    walletKey1 = aesKeyToSPtr<uint8_t>(strWalletKey1);
+                    std::cout << "input wallet key 2:\t";
+                    std::cin >> strWalletKey2;
+                    walletKey2 = aesKeyToSPtr<uint8_t>(strWalletKey2);
+                    
+                    // append wallet keys to walletKeysVec for verification process
+                    walletKeysVec.push_back(walletKey1);
+                    walletKeysVec.push_back(walletKey2);
+                    
+                    // verify wallet
+                    for(const auto [wa,walletKeys] : walletMap) {
+                        unv_wallet_map.insert(unv_it_map,std::pair<std::shared_ptr
+                                              <uint64_t>,std::vector<std::shared_ptr
+                                              <uint8_t>>>(wa,walletKeysVec));
+                        struct Wallet unv_wallet{wa,walletKeysVec,unv_wallet_map};
+                        unv_wallet.verifyOwnerData();
+                        wallet_address.verifyInputWallet(walletAddresses,wa);
+                        walletAddress = wa;
+                    }
+                    
+                    // create fake wallet address
+                    auto [fakeWalletAd,fakeKeys] = wallet_address.GenerateNewWalletAddress();
+                    bool walletAValid = wallet_address.verifyInputWallet(walletAddresses,
+                                                                         fakeWalletAd);
+                    
+                    // if fake wallet address exists, create new wallet address
+                    while(walletAValid) {
+                        auto [newFakeWalletAd,newFakeKeys] = wallet_address.GenerateNewWalletAddress();
+                        fakeWalletAd = newFakeWalletAd;
+                        wallet_address.verifyInputWallet(walletAddresses,fakeWalletAd);
+                    }
+                    
+                    // burn
+                    uint32_t amountBurn;
+                    std::cout << "\ninput amount to burn:\t";
+                    std::cin >> amountBurn;
+                    
+                    // get accont balance
+                    struct userData user_data {walletMap,transactions,transactionhashesW,
+                                               trnsLengths};
+                    storedCrypto = user_data.setBalance();
+                    
+                    // unv_wallet_map is now verified
+                    struct Wallet trWallet {walletAddress,walletKeysVec,unv_wallet_map};
+                    
+                    // create transaction
+                    auto [newWA,newKeys] = trWallet.new_transaction(fakeWalletAd,
+                                                                    walletAddress,
+                                                                    amountBurn,mempool,
+                                                                    "sell",
+                                                                    transactionhashesW,
+                                                                    transactions,
+                                                                    storedCrypto,
+                                                                    trnsLengths);
+                    // delete fake wallet address
+                    fakeWalletAd.reset();
+                }
+                else {
+                    std::cout << "\nno wallet address found";
+                    exit(EXIT_FAILURE);
+                }
+            }
+            else if((argc == 2 || argc == 3) && (strcmp(argv[1],"enc-aes128") == 0 ||
+                    strcmp(argv[1],"enc-aes192") == 0 || strcmp(argv[1],"enc-aes256") == 0 || 
+                    strcmp(argv[1],"dec-aes128") == 0 || strcmp(argv[1],"dec-aes192") == 0 ||
+                    strcmp(argv[1],"dec-aes256") == 0)) {
+                // find which algorithm algorithm
+                unsigned short algorithmSize;
+                bool withKey;
+                std::string key_size_str = "";
+                std::string plaintext;
+                std::string ciphertext;
+                std::string encOrDec = "";
+                std::stringstream ss;
+                for(int c=0;c<3;c++) { // encryption or decryption
+                    encOrDec += argv[1][c];
+                }
+                
+                // find algorithm size in bits
+                for(int c=7;c<=9;c++) {
+                    key_size_str += argv[1][c];
+                }
+                ss << key_size_str;
+                ss >> algorithmSize;
+                
+                if(encOrDec == "enc") {
+                    /* if user input length bigger than 10, automatic key generation is
+                     * requested
+                     */
+                    if(strcmp(argv[2],"-genkey") == 0) {
+                        withKey = true;
+                    } else {
+                        withKey = false;
+                    }
+                    std::shared_ptr<uint8_t> aesKeyEnc(new uint8_t[algorithmSize/8]);
+                    
+                    std::cout << "\nencrypting input using aes" << algorithmSize
+                              << ". input what to encrypt:\t";
+                    std::cin >> plaintext;
+                    if(!withKey) { // if key generation not requested
+                        std::string aesKeyEncStr;
+                        std::cout << "\ninput 32 byte aes" << algorithmSize
+                                  << " key as hex:\t";
+                        std::cin >> aesKeyEncStr;
+                        aesKeyEnc = aesKeyToSPtr<uint8_t>(aesKeyEncStr,algorithmSize/8);
+                        if(algorithmSize == 128) {
+                            ciphertext = aes128.encrypt(plaintext,aesKeyEnc);
+                        }
+                        else if (algorithmSize == 192) {
+                            ciphertext = aes192.encrypt(plaintext,aesKeyEnc);
+                        }
+                        else { // 256
+                            ciphertext = aes256.encrypt(plaintext,aesKeyEnc);
+                        }
+                    } else {
+                        if(algorithmSize == 128) {
+                            aesKeyEnc = generateAES128Key();
+                            ciphertext = aes128.encrypt(plaintext,aesKeyEnc);
+                        }
+                        else if(algorithmSize == 192) {
+                            aesKeyEnc = generateAES192Key();
+                            ciphertext = aes192.encrypt(plaintext,aesKeyEnc);
+                        }
+                        else { // 256
+                            aesKeyEnc = generateAES256Key();
+                            ciphertext = aes256.encrypt(plaintext,aesKeyEnc);
+                        }
+                    }
+                    
+                    std::cout << "ciphertext:\t" << ciphertext << "\n\naes"
+                              << algorithmSize << " key:\t";
+                    std::string aesKeyEncStr = aesKeyToStr<uint8_t>(aesKeyEnc,
+                                                                    algorithmSize/8);
+                    std::cout << aesKeyEncStr;
+                } else {
+                    std::string aesKeyDecStr;
+                    std::shared_ptr<uint8_t> aesKeyDec(new uint8_t[algorithmSize/8]);
+                    std::cout << "\nnote: if plaintext of the encrypted text is "
+                              << "not a multiple of 16, there will be padding with"
+                              << " zeros at the end of the decrypted ciphertext"
+                              << " because aes algorithms encrypt plaintext as"
+                              << " blocks of 16 bytes, if you know the length of"
+                              << " plaintext, delete the padding of \"0\"\'s"
+                              << "\n\ninput ciphertext:\t";
+                    std::cin >> ciphertext;
+                    std::cout << "\n\ninput aes" << algorithmSize << " key:\t";
+                    std::cin >> aesKeyDecStr;
+                    aesKeyDec = aesKeyToSPtr<uint8_t>(aesKeyDecStr,algorithmSize/8);
+    
+                    if(algorithmSize == 128) {
+                        plaintext = aes128.decrypt(ciphertext,aesKeyDec);
+                    }
+                    else if (algorithmSize == 192) {
+                        plaintext = aes192.decrypt(ciphertext,aesKeyDec);
+                    }
+                    else { // 256
+                        plaintext = aes256.decrypt(ciphertext,aesKeyDec);
+                    }
+                    std::cout << "\n\nplaintext:\t" << plaintext;
+                }
             }
         }
         
