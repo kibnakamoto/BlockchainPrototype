@@ -10,6 +10,8 @@
  * convert all vector matrices into a set for uniuqe values:
  * walletAddresses, mempool,wallet keys, transactionhashesW, etc.
  * 77 uses of vector in three files: main.cpp(55), block.h(13), MerkleTree.h(9)
+ *
+ * TODO: make get a command on else if and put if argv[2] == "something" for other parts
  */
 
 #include <iostream>
@@ -48,6 +50,8 @@
         AES::AES128 aes128;
         AES::AES192 aes192;
         AES::AES256 aes256;
+        
+        // block related declarations
         std::shared_ptr<uint64_t> merkle_root(new uint64_t[8]); // declare Merkle Root
         std::shared_ptr<uint64_t> walletAddress(new uint64_t[8]);
         std::vector<std::shared_ptr<uint64_t>> mempool; // declare mempool
@@ -55,6 +59,7 @@
         std::string blockchain_version = "1.0";
         bool blockMined = false;
         std::set<std::string> blockchain; // all blocks in the blockchain
+        std::set<std::shared_ptr<uint64_t>> blockhashes; // all block hashes
 
         /* TEST PoW MINE */
         // struct Transaction trns{sha512("sender"), sha512("receiver"), 50000};
@@ -199,6 +204,8 @@
          "get block-target [block index]: get block target hash, provide index"};
         std::cout << "for basic command list, input \"help\"\n"
                   << "for all commands, input \"help-all\"\n";
+        
+        // wallet related declarations
         std::map<std::string,std::shared_ptr<uint8_t>> transactions;
         std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>> walletMap;
         std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>>::iterator
@@ -545,8 +552,9 @@
                     exit(EXIT_FAILURE);
                 }
             }
-            else if(argc == 2 && strcmp(argv[1],"get p-w keys") == 0) {
-                                std::cout << "\nsearching wallet for keys...\n";
+            else if(argc == 4 || argc == 3 && strcmp(argv[1],"get") == 0) {
+                if(strcmp(argv[2],"p-w") == 0 && strcmp(argv[3],"keys") == 0) {
+                   std::cout << "\nsearching wallet for keys...\n";
                 if(walletMap.empty()) {
                     std::cout << "error: no wallet found";
                     exit(EXIT_FAILURE);
@@ -562,54 +570,73 @@
                 }
                 std::cout << "\n\nif you want to also see your wallet address, type \""
                           << "get wa\"";
-            }
-            else if(argc == 2 && strcmp(argv[1],"get p-trns-data") == 0) {
-                                if(transactionhashesW.empty()) {
-                    std::cout << "\nzero transactions in wallet\n";
-                    exit(EXIT_FAILURE);
                 }
-                if(walletMap.empty()) {
-                    std::cout << "\nno wallet found\n";
-                    exit(EXIT_FAILURE);
-                }
-                std::cout << "\nthere are " << transactionhashesW.size()
-                          << " transactions in your wallet\nstate index of transaction"
-                          << " (index starts from zero), if you want all transaction "
-                          << "data or you don\'t know the index, type\"get all-trns-data\":\t";
-                uint64_t index;
-                std::cin >> index;
-                std::cout << "\ntransaction hash:\t";
-                for(int c=0;c<8;c++) std::cout << std::hex
-                                               << transactionhashesW[index].get()[c];
-                std::string plaintext;
-                uint64_t trnsIndex;
-                std::string ciphertextTr;
-                std::shared_ptr<uint8_t> trnsKey;
-                std::string correctPlaintext;
-                // find ciphertext and key index of transaction encryption map
-                for(const auto [cph,ckey] : transactions) {
-                    /* delete padding caused by encryption
-                       check which length creates correct hash to find index using 
-                       single wallet mempool */
-                    plaintext = aes256.decrypt(cph,ckey);
-                    for(uint64_t c=0;c<trnsLengths.size();c++) {
-                        plaintext.erase(trnsLengths[c],plaintext.length()-trnsLengths[c]);
-                        std::shared_ptr<uint64_t> hash = sha512(plaintext);
-                        for(uint64_t i=0;i<transactionhashesW.size();i++) {
-                            for(int j=0;j<8;j++) {
-                                if(transactionhashesW[i].get()[j] == hash.get()[j]) {
-                                    trnsIndex = c; // find length of plaintext transaction data
-                                    ciphertextTr = cph;
-                                    trnsKey = ckey;
-                                    correctPlaintext = plaintext;
-                                    goto stop;
+                else if(argc == 3 && strcmp(argv[2],"p-trns-data") == 0) {
+                    if(transactionhashesW.empty()) {
+                        std::cout << "\nzero transactions in wallet\n";
+                        exit(EXIT_FAILURE);
+                    }
+                    if(walletMap.empty()) {
+                        std::cout << "\nno wallet found\n";
+                        exit(EXIT_FAILURE);
+                    }
+                    std::cout << "\nthere are " << transactionhashesW.size()
+                              << " transactions in your wallet\nstate index of transaction"
+                              << " (index starts from zero), if you want all transaction "
+                              << "data or you don\'t know the index, type\"get all-trns-data\":\t";
+                    uint64_t index;
+                    std::cin >> index;
+                    std::cout << "\ntransaction hash:\t";
+                    for(int c=0;c<8;c++) std::cout << std::hex
+                                                   << transactionhashesW[index]
+                                                      .get()[c];
+                    std::string plaintext;
+                    uint64_t trnsIndex;
+                    std::string ciphertextTr;
+                    std::shared_ptr<uint8_t> trnsKey;
+                    std::string correctPlaintext;
+                    // find ciphertext and key index of transaction encryption map
+                    for(const auto [cph,ckey] : transactions) {
+                        /* delete padding caused by encryption
+                           check which length creates correct hash to find index using 
+                           single wallet mempool */
+                        plaintext = aes256.decrypt(cph,ckey);
+                        for(uint64_t c=0;c<trnsLengths.size();c++) {
+                            plaintext.erase(trnsLengths[c],plaintext.length()-
+                                            trnsLengths[c]);
+                            std::shared_ptr<uint64_t> hash = sha512(plaintext);
+                            for(uint64_t i=0;i<transactionhashesW.size();i++) {
+                                for(int j=0;j<8;j++) {
+                                    if(transactionhashesW[i].get()[j] == 
+                                       hash.get()[j]) {
+                                        // find length of plaintext transaction data
+                                        trnsIndex = c;
+                                        ciphertextTr = cph;
+                                        trnsKey = ckey;
+                                        correctPlaintext = plaintext;
+                                        goto stop;
+                                    }
                                 }
                             }
                         }
                     }
+                    stop:
+                        std::cout << "\ndecrypted transaction data:\t" << correctPlaintext;
                 }
-                stop:
-                    std::cout << "\ndecrypted transaction data:\t" << correctPlaintext;
+                else if(argc == 3 && strcmp(argv[2],"myahr") == 0) {
+                    uint32_t accuracy;
+                    std::cout << "input accuracy of hashrate (how many seconds should"
+                              << " the calculation last?)\ninput in decimal format"
+                              << "(no floating points):\t";
+                    std::cin >> accuracy;
+                    std::cout << "\ncalculating average hashrate...";
+                    uint64_t hashrate = Blockchain::calcHashRateSha512(accuracy);
+                    std::cout << "\nyour hashrate:\t" << std::dec << hashrate;
+                }
+                // else if(argc == 3 && )
+                else if(argc == 3 && strcmp(argv[2],"block-hash") == 0) {
+                    
+                }
             }
             else if(argc == 2 && strcmp(argv[1],"del-wallet") == 0) {
                 if(walletMap.empty()) {
@@ -873,6 +900,10 @@
                     std::cout << "\n\nplaintext:\t" << plaintext;
                 }
             }
+            else {
+                std::cout << "\ncommand not found";
+            }
+
         }
         
         // console user interface
