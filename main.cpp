@@ -633,7 +633,19 @@
                     uint64_t hashrate = Blockchain::calcHashRateSha512(accuracy);
                     std::cout << "\nyour hashrate:\t" << std::dec << hashrate;
                 }
-                // else if(argc == 3 && )
+                else if(argc == 3 && strcmp(argv[2],"blockchain") == 0) {
+                    std::cout << "printing all blocks in the blockchain...";
+                    if(blockchain.empty()) {
+                        std::cout << "\nno blocks in blockchain, type "
+                                  << "\"start mine\" to start mining";
+                    } else {
+                        std::cout << "blockchain:\t";
+                        for (auto it = blockchain.begin(); it !=
+                             blockchain.end(); ++it) {
+                            std::cout << *it << std::endl << std::endl;
+                        }
+                    }
+                }
                 else if(argc == 3 && strcmp(argv[2],"block-hash") == 0) {
                     
                 }
