@@ -2,7 +2,7 @@
  *  Github: kibnakamoto
  *  Repository: BlockchainPrototype
  *   Start Date: Feb 9, 2022
- *    Last Update: May 1
+ *    Last Update: May 9
  *     Software Version: 1.0
  */
 
@@ -11,7 +11,12 @@
  * walletAddresses, mempool,wallet keys, transactionhashesW, etc.
  * 77 uses of vector in three files: main.cpp(55), block.h(13), MerkleTree.h(9)
  *
- * TODO: make get a command on else if and put if argv[2] == "something" for other parts
+ * TODO: make get a command on else if and put if argv[2] == "something" for
+         other parts(parse command line input)
+ * TODO: while printing wallet address or aes keys or anything like it in 
+         hex/dec format instead of a proper hex string, copy pasting input 
+         won't work properly which can make it complicated to copy paste it 
+         into the console/terminal/command line
  */
 
 #include <iostream>
@@ -227,8 +232,6 @@
         
         /* command line UI */
         
-        // find -help in command line
-        // std::string dashHelp = ;
         if(argc != 1 && !console_ui_activate) {
             if(argc == 2 && strcmp(argv[1], "help") == 0) {
                 for(int c=0;c<18;c++) {
@@ -244,14 +247,23 @@
                         std::cout << commandDescriptions[c] << "\n";
                 }
             }
-            else if(argc == 3 && strcmp(argv[2],"-help") == 0) {
+            else if(argc >= 3 && strcmp(argv[argc-1],"-help") == 0) {
                 bool commandExists = false;
-                std::string tmp = argv[1];
+                std::string tmp = "";
+                int commandLength;
+                for(int c=1;c<argc;c++) { // get char array input as string
+                    tmp += argv[c];
+                    if(c < argc-1) {
+                        commandLength = tmp.length();
+                    }
+                    tmp += (c<argc-1) ? " " : "";
+                }
                 for(int c=0;c<commandDescriptions.size()-1;c++) {
                     if(commandDescriptions[c].starts_with(tmp.substr
-                                                          (0,tmp.length()-6))) {
+                                                          (0,tmp.length()-6)) && 
+                       commandDescriptions[c][tmp.length()-6] ==  ':') {
                         std::cout << "\n" << commandDescriptions[c];
-                        commandExists = true; // can't use else here
+                        commandExists = true;
                     }
                 }
                 if(!commandExists) {
@@ -271,7 +283,6 @@
                                                                         sndNewAddrs));
                 std::cout << "wallet address saved on map\n";
             }
-            //////////////////////////////          USES std::cin
             else if(argc == 2 && (strcmp(argv[1], "buy") == 0 ||
                     strcmp(argv[1], "sell") == 0 || strcmp(argv[1], "send") == 0)) {
                 uint32_t amount;
@@ -778,9 +789,11 @@
                     
                     // if fake wallet address exists, create new wallet address
                     while(walletAValid) {
-                        auto [newFakeWalletAd,newFakeKeys] = wallet_address.GenerateNewWalletAddress();
+                        auto [newFakeWalletAd,newFakeKeys] = wallet_address.
+                                                             GenerateNewWalletAddress();
                         fakeWalletAd = newFakeWalletAd;
-                        wallet_address.verifyInputWallet(walletAddresses,fakeWalletAd);
+                        wallet_address.verifyInputWallet(walletAddresses,
+                                                         fakeWalletAd);
                     }
                     
                     // burn
@@ -789,12 +802,13 @@
                     std::cin >> amountBurn;
                     
                     // get accont balance
-                    struct userData user_data {walletMap,transactions,transactionhashesW,
-                                               trnsLengths};
+                    struct userData user_data {walletMap,transactions,
+                                               transactionhashesW,trnsLengths};
                     storedCrypto = user_data.setBalance();
                     
                     // unv_wallet_map is now verified
-                    struct Wallet trWallet {walletAddress,walletKeysVec,unv_wallet_map};
+                    struct Wallet trWallet {walletAddress,walletKeysVec,
+                                            unv_wallet_map};
                     
                     // create transaction
                     auto [newWA,newKeys] = trWallet.new_transaction(fakeWalletAd,
@@ -916,6 +930,10 @@
                 std::cout << "\ncommand not found";
             }
 
+        }
+        
+        if(argc >= 2) {
+            console_ui_activate = true;
         }
         
         // console user interface
