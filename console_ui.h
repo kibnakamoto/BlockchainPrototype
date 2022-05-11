@@ -2,7 +2,7 @@
  *  Github: Kibnakamoto
  *   Repisotory: BlockchainPrototype
  *    Start Date: May 1, 2022
- *     Last Update: May 1, 2022
+ *     Last Update: May 11, 2022
  */
 
 
@@ -21,7 +21,8 @@
 /* for UI */
 struct userData
 {
-    std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>> walletMap;
+    std::map<std::shared_ptr<uint64_t>, 
+             std::vector<std::shared_ptr<uint8_t>>> walletMap;
     std::map<std::string,std::shared_ptr<uint8_t>> &transactions;
     std::vector<std::shared_ptr<uint64_t>> &transactionhashesW;
     std::vector<uint32_t> &trnsLengths;
@@ -66,7 +67,7 @@ struct userData
     }
 };
 
-void consoleUserInterface(bool uiActive, std::vector<std::string> commandDescriptions,
+void consoleUserInterface(int argc, std::vector<std::string> commandDescriptions,
                           std::string blockchain_version,std::shared_ptr<uint64_t>
                           &walletAddress,std::vector<std::shared_ptr<uint64_t>>
                           &walletAddresses, std::map<std::shared_ptr<uint64_t>,
@@ -93,9 +94,13 @@ void consoleUserInterface(bool uiActive, std::vector<std::string> commandDescrip
     std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>>::
     iterator itWalletMap = walletMap.begin();
     bool terminate = false;
-    
+
+    if(argc >= 2) {
+        console_ui_activate = true;
+    }
+
     // only activated if global value in main.cpp is true
-    while (uiActive) {
+    while (console_ui_activate) {
         while(!terminate) {
             std::cout << "\ninput:\t";
             std::getline(std::cin,userInput);
@@ -131,7 +136,8 @@ void consoleUserInterface(bool uiActive, std::vector<std::string> commandDescrip
             }
             else if(userInput == "create-wa") {
                 std::cout << "\ncreating wallet address...\n";
-                auto [fstNewAddrs,sndNewAddrs] = wallet_address.GenerateNewWalletAddress("dump aes256-key");
+                auto [fstNewAddrs,sndNewAddrs] = wallet_address.
+                                                 GenerateNewWalletAddress("dump aes256-key");
                 std::cout << "wallet address created\nwallet address:\t";
                 walletAddress = fstNewAddrs;
                 std::cout << std::hex << to8_64_str(walletAddress);
@@ -812,7 +818,7 @@ void consoleUserInterface(bool uiActive, std::vector<std::string> commandDescrip
                 break;
             // if nothing, this is to avoid getting command not found at certain times
             } else if(userInput == "") {
-                
+                // do nothing
             }
             else {
                 std::cout << "\ncommand not found";
