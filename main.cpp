@@ -2,7 +2,7 @@
  *  Github: kibnakamoto
  *  Repository: BlockchainPrototype
  *   Start Date: Feb 9, 2022
- *    Last Update: May 9
+ *    Last Update: May 1
  *     Software Version: 1.0
  */
 
@@ -22,12 +22,14 @@
 #include <iostream>
 
 #if __cplusplus > 201703L // if C++ 20 or above
+    
     #include <string>
     #include <random>
     #include <time.h>
     #include <tuple>
     #include <map>
     #include <set>
+    #include "conditions.h" // global conditions across all files
     #include "bigInt.h"
     #include "sha512.h"
     #include "MerkleTree.h"
@@ -35,14 +37,6 @@
     #include "block.h"
     #include "wallet.h"
     #include "console_ui.h"
-    
-    // global boolean for ui working on either console or terminal
-    // if unix based operating system, use terminal
-    #if  defined(__unix__) || defined(__MACH__) || defined(__linux__)
-        bool console_ui_activate = false;
-    #else
-        bool console_ui_activate = true;
-    #endif
     
     int main(int argc,char** argv)
     {
@@ -272,7 +266,9 @@
             }
             else if(argc == 2 && strcmp(argv[1],"create-wa") == 0) {
                 std::cout << "\ncreating wallet address...\n";
-                auto [fstNewAddrs,sndNewAddrs] = wallet_address.GenerateNewWalletAddress("dump aes256-key");
+                auto [fstNewAddrs,
+                      sndNewAddrs] = wallet_address
+                                     .GenerateNewWalletAddress("dump aes256-key");
                 std::cout << "wallet address created\nwallet address:\t";
                 walletAddress = fstNewAddrs;
                 std::cout << std::hex << to8_64_str(walletAddress);
@@ -456,10 +452,11 @@
                         std::cout << "\n\nciphertext of key 1:\t" << ciphertextK1;
                         std::cout << "\n\nciphertext of key 2:\t" << ciphertextK2;
                         std::cout << "\n\nsave these values and keys as they won\'t be "
-                                  << "saved here and you won\'t be able to access your wallet again";
-                        std::cout << "\nunencrypted wallet data will be gone until you decrypt it,"
-                                  << " are you sure you want to continue\ntype \"y\" for yes, "
-                                  << "\"n\" for no";
+                                  << "saved here and you won\'t be able to access";
+                        std::cout << " your wallet again\nunencrypted wallet "
+                                  << "data will be gone until you decrypt it, "
+                                  << "are you sure you want to continue\ntype "
+                                  << "\"y\" for yes, \"n\" for no: ";
                         std::string confirm;
                         bool terminate = false;
                         while(!terminate) {
@@ -594,7 +591,8 @@
                     std::cout << "\nthere are " << transactionhashesW.size()
                               << " transactions in your wallet\nstate index of transaction"
                               << " (index starts from zero), if you want all transaction "
-                              << "data or you don\'t know the index, type\"get all-trns-data\":\t";
+                              << "data or you don\'t know the index, type\"get"
+                              << " all-trns-data\":\t";
                     uint64_t index;
                     std::cin >> index;
                     std::cout << "\ntransaction hash:\t";
@@ -657,8 +655,33 @@
                         }
                     }
                 }
-                else if(argc == 3 && strcmp(argv[2],"block-hash") == 0) {
+                else if(argc == 3 || argc == 4 && strcmp(argv[2],"block-hash") == 0) {
+                    uint64_t block_index;
                     
+                    // get index
+                    if(argc != 4) {
+                        std::cout << "input block index (index starts from zero): ";
+                        std::cin >> block_index;
+                    } else {
+                        block_index = strtoull(argv[3], NULL, 0);
+                    }
+                    
+                    if(blockhashes.empty()) {
+                        std::cout << "\nno blockhashes found";
+                    } else {
+                        if(blockhashes.size() < block_index) {
+                            std::cout << "\nindex bigger than blockchain size"
+                                      << " (index starts from zero)";
+                        }
+                        std::cout << "block hash:\t";
+                        for (std::_Rb_tree_const_iterator it = blockhashes.begin();
+                             it != blockhashes.end(); it++) {
+                            for(int c=0;c<8;c++) {
+                                std::cout << std::hex << *it.get()[c]
+                                          << std::endl;
+                            }
+                        }
+                    }
                 }
             }
             else if(argc == 2 && strcmp(argv[1],"del-wallet") == 0) {
@@ -851,9 +874,6 @@
                 ss >> algorithmSize;
                 
                 if(encOrDec == "enc") {
-                    /* if user input length bigger than 10, automatic key generation is
-                     * requested
-                     */
                     if(strcmp(argv[2],"-genkey") == 0) {
                         withKey = true;
                     } else {
@@ -913,7 +933,7 @@
                     std::cout << "\n\ninput aes" << algorithmSize << " key:\t";
                     std::cin >> aesKeyDecStr;
                     aesKeyDec = aesKeyToSPtr<uint8_t>(aesKeyDecStr,algorithmSize/8);
-    
+                    
                     if(algorithmSize == 128) {
                         plaintext = aes128.decrypt(ciphertext,aesKeyDec);
                     }
@@ -932,14 +952,10 @@
 
         }
         
-        if(argc >= 2) {
-            console_ui_activate = true;
-        }
-        
         // console user interface
-        consoleUserInterface(console_ui_activate, commandDescriptions,
-                             blockchain_version, walletAddress, walletAddresses,
-                             walletMap, userAESmapkeys, storedCrypto, secondWallet,
+        consoleUserInterface(argc, commandDescriptions, blockchain_version,
+                             walletAddress, walletAddresses, walletMap,
+                             userAESmapkeys, storedCrypto, secondWallet,
                              transactionhashesW, trnsLengths, mempool, ciphertextW,
                              ciphertextK1, ciphertextK2, usedEncAlg,transactions,
                              AESkeysTr,blockchain);
@@ -1040,13 +1056,13 @@
         //          }
         //     }
         // }
-        std::cout << "\nline 1483: exitted normally";
+        std::cout << "\nline 1039: exitted normally";
         return 0;
     }
 #else
     int main()
     {
-        std::cout << "user defined error: C++ version has to be C++20 or above";
+        std::cout << "error: C++ version has to be C++20 or above";
         return 1;
     }
 #endif
