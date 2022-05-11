@@ -2,7 +2,7 @@
  *  Github: kibnakamoto
  *  Repository: BlockchainPrototype
  *   Start Date: Feb 9, 2022
- *    Last Update: May 1
+ *    Last Update: May 11, 2022
  *     Software Version: 1.0
  */
 
@@ -58,7 +58,7 @@
         std::string blockchain_version = "1.0";
         bool blockMined = false;
         std::set<std::string> blockchain; // all blocks in the blockchain
-        std::set<std::shared_ptr<uint64_t>> blockhashes; // all block hashes
+        std::vector<std::shared_ptr<uint64_t>> blockhashes; // all block hashes
 
         /* TEST PoW MINE */
         // struct Transaction trns{sha512("sender"), sha512("receiver"), 50000};
@@ -674,12 +674,10 @@
                                       << " (index starts from zero)";
                         }
                         std::cout << "block hash:\t";
-                        for (std::_Rb_tree_const_iterator it = blockhashes.begin();
-                             it != blockhashes.end(); it++) {
-                            for(int c=0;c<8;c++) {
-                                std::cout << std::hex << *it.get()[c]
-                                          << std::endl;
-                            }
+                        for(int c=0;c<8;c++) {
+                            std::cout << std::hex
+                                      << blockhashes[block_index].get()[c]
+                                      << std::endl;
                         }
                     }
                 }
