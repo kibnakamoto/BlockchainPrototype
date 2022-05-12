@@ -2,7 +2,7 @@
  *  Github: kibnakamoto
  *  Repository: BlockchainPrototype
  *   Start Date: Feb 9, 2022
- *    Last Update: May 1
+ *    Last Update: May 12
  *     Software Version: 1.0
  */
 
@@ -690,12 +690,12 @@
                         index = strtoull(argv[3], NULL, 0);
                     }
                     
-                    if(blockchain.size() < index) {
+                    if(blockchain.size() == 0 && index >= blockchain.size()) {
                         std::cout << "blockchain size smaller than " << index
                                   << ".\n";
                     } else {
                         std::cout << "\nfinding block nonce...\n";
-                        std::set<std::string> blockchain::iterator itBlock;
+                        std::set<std::string>::iterator itBlock = blockchain.begin();
                         std::string block = *std::next(blockchain.begin(), index);
                         std::string str_nonce = block.substr(block.find("nonce: "),
                                                              block.find("\ndifficulty"));
