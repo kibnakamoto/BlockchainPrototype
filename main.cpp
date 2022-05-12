@@ -2,7 +2,7 @@
  *  Github: kibnakamoto
  *  Repository: BlockchainPrototype
  *   Start Date: Feb 9, 2022
- *    Last Update: May 11, 2022
+ *    Last Update: May 1
  *     Software Version: 1.0
  */
 
@@ -673,12 +673,33 @@
                             std::cout << "\nindex bigger than blockchain size"
                                       << " (index starts from zero)";
                         }
-                        std::cout << "block hash:\t";
+                        std::cout << "\nblock hash:\t";
                         for(int c=0;c<8;c++) {
                             std::cout << std::hex
                                       << blockhashes[block_index].get()[c]
                                       << std::endl;
                         }
+                    }
+                }
+                else if(argc == 3 || argc == 4 && strcmp(argv[2],"block-nonce") == 0) {
+                    uint64_t index;
+                    if(argc != 4) {
+                        std::cout << "\ninput index of block (index starts from zero):\t";
+                        std::cin >> index;
+                    } else {
+                        index = strtoull(argv[3], NULL, 0);
+                    }
+                    
+                    if(blockchain.size() < index) {
+                        std::cout << "blockchain size smaller than " << index
+                                  << ".\n";
+                    } else {
+                        std::cout << "\nfinding block nonce...\n";
+                        std::set<std::string> blockchain::iterator itBlock;
+                        std::string block = *std::next(blockchain.begin(), index);
+                        std::string str_nonce = block.substr(block.find("nonce: "),
+                                                             block.find("\ndifficulty"));
+                        std::cout << "nonce:\t" << str_nonce;
                     }
                 }
             }
@@ -947,7 +968,6 @@
             else {
                 std::cout << "\ncommand not found";
             }
-
         }
         
         // console user interface
