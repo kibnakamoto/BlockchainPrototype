@@ -412,17 +412,12 @@ class Block
                 BLOCKCHAIN_BLOCKDATA << std::hex
                                      << prevBlockHash.get()[c];
             }
-            BLOCKCHAIN_BLOCKDATA << "\ntimestamp: " << timestamp;
-            BLOCKCHAIN_BLOCKDATA << "blockchain size: "
-                                 << std::dec << blockchainSize;
-            BLOCKCHAIN_BLOCKDATA << "\nnonce: "
-                                 << std::dec << nonce;
-            BLOCKCHAIN_BLOCKDATA << "\ndifficulty: "
-                                 << difficulty;
-            BLOCKCHAIN_BLOCKDATA << "\nmerkle_root: ";
-            for(int c=0;c<8;c++) {
-                BLOCKCHAIN_BLOCKDATA << std::hex << merkle_root.get()[c];
-            }
+            BLOCKCHAIN_BLOCKDATA << "\ntimestamp: " << timestamp
+                                 << "\nblockchain size: "
+                                 << std::dec << blockchainSize
+                                 << "\nnonce: " << std::dec << nonce
+                                 << "\ndifficulty: " << difficulty;
+            BLOCKCHAIN_BLOCKDATA << "\nmerkle_root: " << to8_64_str(merkle_root);
             BLOCKCHAIN_BLOCKDATA << "\napproximate time until next block: "
                                  << nextBlockGenTime;
             BLOCKCHAIN_BLOCKDATA << "\nAverage hashrate of miners: "
