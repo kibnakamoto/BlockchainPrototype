@@ -2,7 +2,7 @@
  *  Github: kibnakamoto
  *  Repository: BlockchainPrototype
  *   Start Date: Feb 9, 2022
- *    Last Update: May 12
+ *    Last Update: May 1
  *     Software Version: 1.0
  */
 
@@ -17,6 +17,27 @@
          hex/dec format instead of a proper hex string, copy pasting input 
          won't work properly which can make it complicated to copy paste it 
          into the console/terminal/command line
+ * TODO: convert every command UI input process into its own function, this way,
+         there is no need for defining the same process 2 times for both 
+         console UI and terminal
+ * TODO: when in terminal user interface, type:     <program>  Copyright (C) <year>  <name of author>
+    This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.
+    This is free software, and you are welcome to redistribute it
+    under certain conditions; type `show c' for details.
+    define "show c" and "show c" command
+    
+    something like:
+    std::cout << "Blockchain Prototype Copyright (C) 2022 Taha Canturk\n"
+              << "This program comes with ABSOLUTELY NO WARRANTY; for details "
+              << "type \`show w\'. This is free software, and you are welcome "
+              << "to redistribute it under certain conditions; type \`show c\'"
+              << "for details.";
+    // define function for show c and show w and call it on both console UI and
+       terminal UI
+    function definition as following
+    void show_c_command() {
+        std::cout << ""
+    }
  */
 
 #include <iostream>
@@ -132,7 +153,7 @@
                                                  "get myahr", "get block-hash", 
                                                  "get block-nonce",
                                                  "get block-timestamp",
-                                                 "get block-merkle root",
+                                                 "get block-merkle-r",
                                                  "get block-difficulty", "get block-ahr",
                                                  "get nblocktime", "get blockchain-size",
                                                  "get version", "get mempool",
@@ -183,7 +204,7 @@
          "get block-hash [block index]: get block hash, provide index",
          "get block-nonce [block index]: get block nonce, provide index",
          "get block-timestamp [block index]: get block timestamp, provide index",
-         "get block-merkle root [block index]: get merkle root of block, provide index",
+         "get block-merkle-r [block index]: get merkle root of block, provide index",
          "get block-difficulty [block index]: get difficulty of block, provide index",
          "get block-ahr [block index]: get average hash rate of block miners, provide index",
          "get nblocktime: get next block generation time",
@@ -660,9 +681,27 @@
                     
                     // get index
                     if(argc != 4) {
+                        std::string index_str;
+                        std::stringstream ss;
                         std::cout << "input block index (index starts from zero): ";
-                        std::cin >> block_index;
+                        std::cin >> index_str;
+                        for(int c=0;c<index_str.length();c++) {
+                            if(!isdigit(index_str[c])) {
+                                exit(EXIT_FAILURE);
+                            }
+                        }
+                        ss << index_str;
+                        ss >> block_index;
                     } else {
+                        std::string index_str;
+                        std::stringstream ss;
+                        ss << argv[3];
+                        ss >> index_str;
+                        for(int c=0;c<index_str.length();c++) {
+                            if(!isdigit(argv[3][c])) {
+                                exit(EXIT_FAILURE);
+                            }
+                        }
                         block_index = strtoull(argv[3], NULL, 0);
                     }
                     
@@ -684,9 +723,29 @@
                 else if(argc == 3 || argc == 4 && strcmp(argv[2],"block-nonce") == 0) {
                     uint64_t index;
                     if(argc != 4) {
-                        std::cout << "\ninput index of block (index starts from zero):\t";
-                        std::cin >> index;
+                        std::string index_str;
+                        std::stringstream ss;
+                        std::cout << "\ninput index of block "
+                                  << "(index starts from zero):\t";
+                        std::cin >> index_str;
+                        for(int c=0;c<index_str.length();c++) {
+                            if(!isdigit(index_str[c])) {
+                                exit(EXIT_FAILURE);
+                            }
+                        }
+                        ss << index_str;
+                        ss >> index;
+
                     } else {
+                        std::string index_str;
+                        std::stringstream ss;
+                        ss << argv[3];
+                        ss >> index_str;
+                        for(int c=0;c<index_str.length();c++) {
+                            if(!isdigit(argv[3][c])) {
+                                exit(EXIT_FAILURE);
+                            }
+                        }
                         index = strtoull(argv[3], NULL, 0);
                     }
                     
@@ -702,7 +761,76 @@
                         std::cout << "nonce:\t" << str_nonce;
                     }
                 }
-            }
+                else if(argc == 3 || argc == 4 &&
+                        strcmp(argv[2],"block-timestamp") == 0) {
+                    uint64_t index;
+                    if(argc != 4) {
+                        std::cout << "\ninput index of block (index starts from zero):\t";
+                        std::cin >> index;
+                    } else {
+                        std::string index_str;
+                        std::stringstream ss;
+                        ss << argv[3];
+                        ss >> index_str;
+                        index = strtoull(argv[3], NULL, 0);
+                        for(int c=0;c<index_str.length();c++) {
+                            if(!isdigit(argv[3][c])) {
+                                exit(EXIT_FAILURE);
+                            }
+                        }
+                    }
+                    if(!blockchain.empty()) {
+                        std::cout << "\nfinding block timestamp...\n";
+                        std::set<std::string>::iterator itBlock = blockchain.begin();
+                        std::string block = *std::next(blockchain.begin(), index);
+                        std::string str_time = block.substr(block.find("timestamp: "),
+                                                             block.find("\nblockchain size"));
+                        std::cout << "timestamp:\t" << str_time;
+                    } else {
+                        std::cout << "\nblockchain empty\n";
+                    }
+                    
+                }
+                else if(argc == 3 || argc == 4 &&
+                        strcmp(argv[2],"block-merkle-r") == 0) {
+                    uint64_t index;
+                    std::string str_merkle_root;
+                    std::string index_str;
+                    std::stringstream ss;
+                    
+                    if(argc != 4) {
+                        std::cout << "\ninput index of block (index starts from zero):\t";
+                        std::cin >> index_str;
+                        for(int c=0;c<index_str.length();c++) {
+                            if(!isdigit(index_str[c])) {
+                                exit(EXIT_FAILURE);
+                            }
+                        }
+                        ss << index_str;
+                        ss >> index;
+                    } else {
+                        ss << argv[3];
+                        ss >> index_str;
+                        for(int c=0;c<index_str.length();c++) {
+                            if(!isdigit(argv[3][c])) {
+                                exit(EXIT_FAILURE);
+                            }
+                        }
+                        index = strtoull(argv[3], NULL, 0);
+                    }
+                    
+                    if(!blockchain.empty()) {
+                        std::cout << "\nfinding block merkle root...\n";
+                        std::set<std::string>::iterator itBlock = blockchain.begin();
+                        std::string block = *std::next(blockchain.begin(), index);
+                        str_merkle_root = block.substr(block.find("merkle_root: "),
+                                                       block.find("\napproximate time until next block"));
+                        std::cout << "merkle_root:\t" << str_merkle_root;
+                    } else {
+                        std::cout << "\nblockchain empty\n";
+                    }
+                }
+            } // argv[1] = "get"
             else if(argc == 2 && strcmp(argv[1],"del-wallet") == 0) {
                 if(walletMap.empty()) {
                     std::cout << "\nno wallet found";
