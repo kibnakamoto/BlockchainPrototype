@@ -1,3 +1,8 @@
+// Copyright (c) 2022 Taha Canturk
+// Distributed under the GPL-3.0 software license, see the accompanying
+// file COPYING or https://www.gnu.org/licenses/gpl-3.0.en.html
+
+
 #ifndef CONDITIONS_H_
 #define CONDITIONS_H_
 
@@ -10,7 +15,7 @@
     using uint64_t = unsigned long long;
 #elif !defined(INT32_MAX)
     using int32_t = int;    
-#endif
+#endif /* INT32_MAX */
 
 // global boolean for ui working on either console or terminal
 // if unix based operating system, use terminal
@@ -18,6 +23,6 @@
     bool console_ui_activate = false;
 #else
     bool console_ui_activate = true;
-#endif
+#endif /* __linux__ */
 
-#endif
+#endif /* CONDITIONS_H_ */
