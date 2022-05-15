@@ -1,17 +1,17 @@
-.SUFFIXES: .cpp .o
+.SUFFIXES: .c .o
 CXX ?= g++
 CXXFLAGS ?= -g
 EXEC ?= main
-OBJS ?= main.cpp conditions.h bigInt.h sha512.h MerkleTree.h AES.h block.h wallet.h console_ui.h
+OBJS ?= main.C conditions.h bigInt.h sha512.h MerkleTree.h AES.h block.h wallet.h console_ui.h
 
 ${EXEC}: main.o
         ${CXX} ${CXXFLAGS} -o ${EXEC} main.o
 
-.cpp.o:
+.c.o:
         ${CXX} ${CXXFLAGS} -c $<
 
 main.o: ${OBJS}
-        ${CXX} -c main.cpp
+        ${CXX} -c main.C
 
 clean:
         rm -f ${EXEC} ${OBJS}
