@@ -1,4 +1,5 @@
-/* created on May 11, 2022 */
+#ifndef CONDITIONS_H_
+#define CONDITIONS_H_
 
 // if required integer types not defined
 #if !defined(UINT8_MAX)
@@ -17,4 +18,6 @@
     bool console_ui_activate = false;
 #else
     bool console_ui_activate = true;
+#endif
+
 #endif
