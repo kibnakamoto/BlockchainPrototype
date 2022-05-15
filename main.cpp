@@ -711,11 +711,9 @@
                         if(blockhashes.size() < block_index) {
                             std::cout << "\nindex bigger than blockchain size"
                                       << " (index starts from zero)";
-                        }
-                        std::cout << "\nblock hash:\t";
-                        for(int c=0;c<8;c++) {
-                            std::cout << std::hex
-                                      << blockhashes[block_index].get()[c]
+                        } else {
+                            std::cout << "\nblock hash:\t"
+                                      << to8_64_str(blockhashes[block_index])
                                       << std::endl;
                         }
                     }
