@@ -2,7 +2,7 @@
 CXX ?= g++
 CXXFLAGS ?= -g
 EXEC ?= main
-OBJS ?= main.C conditions.h bigInt.h sha512.h MerkleTree.h AES.h block.h wallet.h console_ui.h
+OBJS ?= main.C conditions.h bigInt.h sha512.h MerkleTree.h AES.h block.h wallet.h ui.h
 
 ${EXEC}: main.o
         ${CXX} ${CXXFLAGS} -o ${EXEC} main.o
