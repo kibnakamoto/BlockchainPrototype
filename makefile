@@ -1,6 +1,6 @@
 .SUFFIXES: .c .o
 CXX ?= g++
-CXXFLAGS ?= -g
+CXXFLAGS ?= -g -std=c++20
 EXEC ?= main
 OBJS ?= main.C conditions.h bigInt.h sha512.h MerkleTree.h AES.h block.h wallet.h ui.h
 
