@@ -9,9 +9,9 @@
 // if required integer types not defined
 #if !defined(UINT8_MAX)
     using uint8_t = unsigned char;
-#if !defined(INT16_MAX)
+#elif !defined(INT16_MAX)
     using int16_t = short;
-#if !defined(UINT16_MAX)
+#elif !defined(UINT16_MAX)
     using uint16_t = unsigned short
 #elif !defined(INT32_MAX)
     using int32_t = int;
