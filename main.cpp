@@ -1,6 +1,11 @@
+// Copyright (c) 2022 Taha Canturk
+// Distributed under the GPL-3.0 software license, see the accompanying
+// file COPYING or https://www.gnu.org/licenses/gpl-3.0.en.html
+ 
+
 /* Author: Taha Canturk
  *  Github: kibnakamoto
- *  Repository: BlockchainPrototype
+ *  Project: BlockchainPrototype
  *   Start Date: Feb 9, 2022
  *    Last Update: May 1
  *     Software Version: 1.0
@@ -17,27 +22,8 @@
          hex/dec format instead of a proper hex string, copy pasting input 
          won't work properly which can make it complicated to copy paste it 
          into the console/terminal/command line
- * TODO: convert every command UI input process into its own function, this way,
-         there is no need for defining the same process 2 times for both 
-         console UI and terminal
- * TODO: when in terminal user interface, type:     <program>  Copyright (C) <year>  <name of author>
-    This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.
-    This is free software, and you are welcome to redistribute it
-    under certain conditions; type `show c' for details.
-    define "show c" and "show c" command
-    
-    something like:
-    std::cout << "Blockchain Prototype Copyright (C) 2022 Taha Canturk\n"
-              << "This program comes with ABSOLUTELY NO WARRANTY; for details "
-              << "type \`show w\'. This is free software, and you are welcome "
-              << "to redistribute it under certain conditions; type \`show c\'"
-              << "for details.";
-    // define function for show c and show w and call it on both console UI and
-       terminal UI
-    function definition as following
-    void show_c_command() {
-        std::cout << ""
-    }
+ * TODO: convert command UI input process into its own function if its also 
+         used the same way in terminal, this way
  */
 
 #include <iostream>
@@ -57,7 +43,7 @@
     #include "AES.h"
     #include "block.h"
     #include "wallet.h"
-    #include "console_ui.h"
+    #include "ui.h"
     
     int main(int argc,char** argv)
     {
@@ -136,7 +122,8 @@
         // mempool2.push_back(trns2.Hash());
         
         /* UI */
-        std::vector<std::string> listOfCommands {"help", "-help", "help-all", "create-wa",
+        std::vector<std::string> listOfCommands {"help", "-help", "help-all",
+                                                 "show w", "show c" "create-wa",
                                                  "buy","send", "sell", "e-wallet-aes256",
                                                  "e-wallet-aes128","e-wallet-aes192",
                                                  "e-wallet-aes256-genkey",
@@ -158,7 +145,7 @@
                                                  "get nblocktime", "get blockchain-size",
                                                  "get version", "get mempool",
                                                  "enc-algs", "start mine", "end mine",
-                                                 "dump-wallet512", "dump-w-aes256k", "get tr-target",
+                                                 "dump-wallet512", "get tr-target",
                                                  "get tr-hash", "get tr-ciphertext",
                                                  "get tr-timestamp", "dump all-trnsData",
                                                  "get blockchain-ahr", "get block-target"};
@@ -166,6 +153,8 @@
         {"help: show basic commands with descriptions",
          " -help: for command description, put after another command",
          "help-all: show all commands with description",
+         "show w: show warranty information about the licence",
+         "show c: show copying information about the licence",
          "create-wa: generate new wallet address",
          "buy: buy an amount, must specify amount after typing buy",
          "send: send an amount to another wallet",
@@ -213,8 +202,7 @@
          "get mempool: print verified mempool hashes in current block",
          "enc-algs: available encryption/decryption algorithms",
          "start mine: start mining", "end mine: end mining",
-         "dump-wallet512: dump 512-bit wallet address as hex",
-         "dump-w-aes256k: dump 32 byte wallet keys", // after this is not in version 1
+         "dump-wallet512: dump 512-bit wallet address as hex", // after this is not in version 1
          "get tr-target: print transaction target",
          "get tr-hash: print transaction hash",
          "get tr-ciphertext [trns index]: print transaction ciphertext",
@@ -222,8 +210,6 @@
          "dump all-trnsData: dump all transaction data in wallet",
          "get blockchain-ahr: get average hashrate over all blockchain",
          "get block-target [block index]: get block target hash, provide index"};
-        std::cout << "for basic command list, input \"help\"\n"
-                  << "for all commands, input \"help-all\"\n";
         
         // wallet related declarations
         std::map<std::string,std::shared_ptr<uint8_t>> transactions;
@@ -245,7 +231,16 @@
         // second wallet address
         std::shared_ptr<uint64_t> secondWallet(new uint64_t[8]);
         
-        /* command line UI */
+        /* terminal UI */
+        // licence disclaimer
+        std::cout << "\nBlockchain Prototype Copyright (C) 2022 Taha Canturk\n"
+                  << "This program comes with ABSOLUTELY NO WARRANTY; for details "
+                  << "type \'show w\'. This is free software, and you are welcome "
+                  << "to redistribute it under certain conditions; type \'show c\' "
+                  << "for details.\n";
+        
+        std::cout << "\nfor basic command list, input \"help\"\n"
+                  << "for all commands, input \"help-all\"\n";
         
         if(argc != 1 && !console_ui_activate) {
             if(argc == 2 && strcmp(argv[1], "help") == 0) {
@@ -1089,6 +1084,18 @@
                         plaintext = aes256.decrypt(ciphertext,aesKeyDec);
                     }
                     std::cout << "\n\nplaintext:\t" << plaintext;
+                }
+            }
+            else if(argc == 3 && strcmp(argv[1],"show") == 0) {
+                // if warranty info requested
+                if(argv[2][0] == 'w') {
+                    ui::show_w_command();
+                }
+                // if copying info requested
+                else if(argv[2][0] =='c') {
+                    ui::show_c_command();
+                } else {
+                    std::cout << "\ncommand not found, options are \"w\" and \"c\"";
                 }
             }
             else {
