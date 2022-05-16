@@ -2,7 +2,7 @@
  *  Github: Kibnakamoto
  *   Repisotory: BlockchainPrototype
  *    Start Date: May 1, 2022
- *     Last Update: May 11, 2022
+ *     Last Update: May 1, 2022
  */
 
 
@@ -66,6 +66,49 @@ struct userData
         return storedCrypto;
     }
 };
+
+// user interface package
+namespace ui
+{
+    /* licence information commands for terminal interaction */
+    // show w: warranty
+    void show_w_command() {
+        std::cout << "THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT "
+                  << "PERMITTED BY APPLICABLE LAW. EXCEPT WHEN OTHERWISE "
+                  << "STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER "
+                  << "PARTIES PROVIDE THE PROGRAM \"AS IS\" WITHOUT WARRANTY OF "
+                  << "ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT "
+                  << "NOT LIMITED TO, THE IMPLIED WARRANTIES OF "
+                  << "MERCHANTABILITY AND FITNESS FOR A PARTICULAR "
+                  << "PURPOSE. THE ENTIRE RISK AS TO THE QUALITY AND "
+                  << "PERFORMANCE OF THE PROGRAM IS WITH YOU. SHOULD THE "
+                  << "PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF ALL "
+                  << "NECESSARY SERVICING, REPAIR OR CORRECTION.\n";
+    }
+    
+    // show c: copying
+    void show_c_command() {
+        std::cout << "\nThis is a Blockchain Prototype that mimics virtual\n" 
+                  << "Copyright (C) 2022 Taha Canturk\n\n"
+                  << "This program is free software: you can redistribute "
+                  << "it and/or modify it under the terms of the GNU General "
+                  << "Public License as published by the Free Software "
+                  << "Foundation, either version 3 of the License, or (at your "
+                  << "option) any later version.\n\nThis program is "
+                  << "distributed in the hope that it will be useful, but "
+                  << "WITHOUT ANY WARRANTY; without even the implied warranty "
+                  << "of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. "
+                  << "See the GNU General Public License for more details.\n\n"
+                  << "You should have received a copy of the GNU General "
+                  << "Public License along with this program.  If not, see "
+                  << "<https://www.gnu.org/licenses/>.";
+    }
+    // internal namespace for anonymous functions
+    namespace
+    {
+        
+    } /* internal namespace */
+} /* namespace ui */
 
 void consoleUserInterface(int argc, std::vector<std::string> commandDescriptions,
                           std::string blockchain_version,std::shared_ptr<uint64_t>
@@ -819,9 +862,10 @@ void consoleUserInterface(int argc, std::vector<std::string> commandDescriptions
             // if nothing, this is to avoid getting command not found at certain times
             } else if(userInput == "") {
                 // do nothing
+                break;
             }
             else {
-                std::cout << "\ncommand not found";
+                std::cout << "command not found";
                 break;
             }
         }
