@@ -154,7 +154,7 @@ class SHA512
             /* TODO: convert to big endian so it works on all operating systems */
             
             // 8 bit array values to 64 bit array using 64 bit integer array.
-            for (int i=0; i<len/8+1; i++) {
+            for (__uint128_t i=0; i<len/8+1; i++) {
                 W[i] = (uint64_t)WordArray[i*8]<<56;
                 for (int j=1; j<=6; j++)
                     W[i] = W[i]|( (uint64_t)WordArray[i*8+j]<<(7-j)*8);
@@ -173,7 +173,7 @@ class SHA512
             }
             
             // multi-block and single block processing
-            for(int c=0;c<blockBytesLen/128;c++) {
+            for(__uint128_t c=0;c<blockBytesLen/128;c++) {
                 for(int i=0;i<16;i++)
                     TMP[i] = W[i+16*c];
                 transform(TMP);
@@ -245,9 +245,8 @@ class SHA512
              */
             alignas(uint64_t) std::shared_ptr<uint8_t> wordArray(new uint8_t[64]);
             for(int c=0;c<8;c++) {
-                for(int i=56,k=0;i>=0,k<8;i-=8,k++) {
+                for(int i=56,k=0;i>=0,k<8;i-=8,k++)
                     wordArray.get()[c*8+k] = singleHash.get()[c]>>i & 0xff;
-                }
             }
             
             // put orginized bytearray into 64-bit W array
@@ -302,4 +301,3 @@ std::string to8_64_str(std::shared_ptr<uint64_t> input) {
 
 
 #endif /* SHA512_H_ */
-
