@@ -72,7 +72,7 @@ namespace ui
 {
     /* licence information commands for terminal interaction */
     // show w: warranty
-    void show_w_command() {
+    inline void show_w_command() {
         std::cout << "THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT "
                   << "PERMITTED BY APPLICABLE LAW. EXCEPT WHEN OTHERWISE "
                   << "STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER "
@@ -87,7 +87,7 @@ namespace ui
     }
     
     // show c: copying
-    void show_c_command() {
+    inline void show_c_command() {
         std::cout << "\nThis is a Blockchain Prototype that mimics virtual\n" 
                   << "Copyright (C) 2022 Taha Canturk\n\n"
                   << "This program is free software: you can redistribute "
@@ -104,7 +104,7 @@ namespace ui
                   << "<https://www.gnu.org/licenses/>.";
     }
     // find if index is digit
-    uint64_t check_index_block(char** argv, int argc) {
+    inline uint64_t check_index_block(char** argv, int argc) {
         uint64_t index;
         std::string str_difficulty;
         std::string index_str;
