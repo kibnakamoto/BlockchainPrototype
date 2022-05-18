@@ -1,16 +1,17 @@
 /*
- * A Blockchain Prototype that mimics the functions of a blockchain. Around 3500 lines of code
+ * A Blockchain Prototype that mimics the functions of a blockchain.
+ * Around 3500 lines of code
  * Copyright (C) 2022 Taha Canturk
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *    You should have received a copy of the GNU General Public License
- *    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 /* Author: Taha Canturk
@@ -34,6 +35,7 @@
          into the console/terminal/command line
  * TODO: convert command UI input process into its own function if its also 
          used the same way in terminal, this way
+ * TODO: use -Wall compiler flag for finding unwanted implicit conversions
  */
 
 #include <iostream>
@@ -46,6 +48,14 @@
     #include <tuple>
     #include <map>
     #include <set>
+    
+    #if defined(_WIN32) || defined(_WIN64)
+        #include <windows.h> // for Sleep
+        #define OS_WINDOWS 1
+    #else
+        #include <unistd.h> // for usleep
+    #endif
+    
     #include "conditions.h" // global conditions across all files
     #include "bigInt.h"
     #include "sha512.h"
@@ -681,34 +691,8 @@
                         }
                     }
                 }
-                else if(argc == 3 || argc == 4 && strcmp(argv[2],"block-hash") == 0) {
-                    uint64_t block_index;
-                    
-                    // get index
-                    if(argc != 4) {
-                        std::string index_str;
-                        std::stringstream ss;
-                        std::cout << "input block index (index starts from zero): ";
-                        std::cin >> index_str;
-                        for(int c=0;c<index_str.length();c++) {
-                            if(!isdigit(index_str[c])) {
-                                exit(EXIT_FAILURE);
-                            }
-                        }
-                        ss << index_str;
-                        ss >> block_index;
-                    } else {
-                        std::string index_str;
-                        std::stringstream ss;
-                        ss << argv[3];
-                        ss >> index_str;
-                        for(int c=0;c<index_str.length();c++) {
-                            if(!isdigit(argv[3][c])) {
-                                exit(EXIT_FAILURE);
-                            }
-                        }
-                        block_index = strtoull(argv[3], NULL, 0);
-                    }
+                else if(strcmp(argv[2],"block-hash") == 0) {
+                    uint64_t block_index = ui::check_index_block(argv,argc);
                     
                     if(blockhashes.empty()) {
                         std::cout << "\nno blockhashes found";
@@ -723,35 +707,8 @@
                         }
                     }
                 }
-                else if(argc == 3 || argc == 4 && strcmp(argv[2],"block-nonce") == 0) {
-                    uint64_t index;
-                    if(argc != 4) {
-                        std::string index_str;
-                        std::stringstream ss;
-                        std::cout << "\ninput index of block "
-                                  << "(index starts from zero):\t";
-                        std::cin >> index_str;
-                        for(int c=0;c<index_str.length();c++) {
-                            if(!isdigit(index_str[c])) {
-                                exit(EXIT_FAILURE);
-                            }
-                        }
-                        ss << index_str;
-                        ss >> index;
-
-                    } else {
-                        std::string index_str;
-                        std::stringstream ss;
-                        ss << argv[3];
-                        ss >> index_str;
-                        for(int c=0;c<index_str.length();c++) {
-                            if(!isdigit(argv[3][c])) {
-                                exit(EXIT_FAILURE);
-                            }
-                        }
-                        index = strtoull(argv[3], NULL, 0);
-                    }
-                    
+                else if(strcmp(argv[2],"block-nonce") == 0) {
+                    uint64_t index = ui::check_index_block(argv,argc);
                     if(blockchain.size() == 0 && index >= blockchain.size()) {
                         std::cout << "blockchain size smaller than " << index
                                   << ".\n";
@@ -764,24 +721,8 @@
                         std::cout << "nonce:\t" << str_nonce;
                     }
                 }
-                else if(argc == 3 || argc == 4 &&
-                        strcmp(argv[2],"block-timestamp") == 0) {
-                    uint64_t index;
-                    if(argc != 4) {
-                        std::cout << "\ninput index of block (index starts from zero):\t";
-                        std::cin >> index;
-                    } else {
-                        std::string index_str;
-                        std::stringstream ss;
-                        ss << argv[3];
-                        ss >> index_str;
-                        index = strtoull(argv[3], NULL, 0);
-                        for(int c=0;c<index_str.length();c++) {
-                            if(!isdigit(argv[3][c])) {
-                                exit(EXIT_FAILURE);
-                            }
-                        }
-                    }
+                else if(strcmp(argv[2],"block-timestamp") == 0) {
+                    uint64_t index = ui::check_index_block(argv,argc);
                     if(!blockchain.empty()) {
                         std::cout << "\nfinding block timestamp...\n";
                         std::set<std::string>::iterator itBlock = blockchain.begin();
@@ -794,34 +735,9 @@
                     }
                     
                 }
-                else if(argc == 3 || argc == 4 &&
-                        strcmp(argv[2],"block-merkle-r") == 0) {
-                    uint64_t index;
+                else if(strcmp(argv[2],"block-merkle-r") == 0) {
+                    uint64_t index = ui::check_index_block(argv,argc);
                     std::string str_merkle_root;
-                    std::string index_str;
-                    std::stringstream ss;
-                    
-                    if(argc != 4) {
-                        std::cout << "\ninput index of block (index starts from zero):\t";
-                        std::cin >> index_str;
-                        for(int c=0;c<index_str.length();c++) {
-                            if(!isdigit(index_str[c])) {
-                                exit(EXIT_FAILURE);
-                            }
-                        }
-                        ss << index_str;
-                        ss >> index;
-                    } else {
-                        ss << argv[3];
-                        ss >> index_str;
-                        for(int c=0;c<index_str.length();c++) {
-                            if(!isdigit(argv[3][c])) {
-                                exit(EXIT_FAILURE);
-                            }
-                        }
-                        index = strtoull(argv[3], NULL, 0);
-                    }
-                    
                     if(!blockchain.empty()) {
                         std::cout << "\nfinding block merkle root...\n";
                         std::set<std::string>::iterator itBlock = blockchain.begin();
@@ -833,7 +749,77 @@
                         std::cout << "\nblockchain empty\n";
                     }
                 }
-            } // argv[1] = "get"
+                else if(strcmp(argv[2],"block-difficulty") == 0) {
+                    uint64_t index = ui::check_index_block(argv,argc);
+                    std::string str_difficulty;
+                    
+                    if(!blockchain.empty()) {
+                        std::cout << "\nfinding block difficulty...\n";
+                        std::set<std::string>::iterator itBlock = blockchain.begin();
+                        std::string block = *std::next(blockchain.begin(), index);
+                        str_difficulty = block.substr(block.find("difficulty: "),
+                                                       block.find("\nmerkle_root"));
+                        std::cout << "difficulty:\t" << str_difficulty;
+                    } else {
+                        std::cout << "\nblockchain empty\n";
+                    }
+                }
+                else if(strcmp(argv[2],"block-ahr") == 0) {
+                    uint64_t index = ui::check_index_block(argv,argc);
+                    std::string hashrate_str;
+                    if(!blockchain.empty()) {
+                        std::cout << "\nfinding block hashrate...\n";
+                        std::set<std::string>::iterator itBlock = blockchain.begin();
+                        std::string block = *std::next(blockchain.begin(), index);
+                        hashrate_str = block.substr(block.find("Average hashrate of miners: "),
+                                                       block.find("\nblockchain version"));
+                        std::cout << "hashrate:\t" << hashrate_str;
+                    } else {
+                        std::cout << "\nblockchain empty\n";
+                    }
+                }
+                else if(strcmp(argv[2],"nblocktime") == 0) {
+                    uint64_t index = ui::check_index_block(argv,argc);
+                    std::string nblocktime_str;
+                    if(!blockchain.empty()) {
+                        std::cout << "\nfinding next block generation time...\n";
+                        std::set<std::string>::iterator itBlock = blockchain.begin();
+                        std::string block = *std::next(blockchain.begin(), index);
+                        nblocktime_str = block.substr(block.find("approximate time until next block: "),
+                                                       block.find("\nAverage hashrate of miners"));
+                        std::cout << "next block gen time:\t" << nblocktime_str;
+                    } else {
+                        std::cout << "\nblockchain empty\n";
+                    }
+                }
+                else if(strcmp(argv[2],"blockchain-size") == 0) {
+                    std::cout << "blockchain size:\t" << blockchain.size();
+                }
+                else if(strcmp(argv[2],"version") == 0) {
+                    std::cout << "version of blockchain core:\t" << blockchain_version;
+                }
+                else if(strcmp(argv[2],"mempool") == 0) {
+                    std::cout << "mempool size:\t" << mempool.size() << std::endl;
+                    if(mempool.size() == 0) {
+                        std::cout << "\nmempool empty";
+                    } else {
+                        std::cout << "\ndumping mempool...\n";
+                        
+                        // delay print for user to see mempool size
+                        #ifdef OS_WINDOWS
+                            Sleep(3000); // windows sleep function
+                        #else
+                            usleep(3000000); // unix sleep function
+                        #endif
+                    }
+                    for(int i=0;i<mempool.size();i++)
+                        std::cout << std::endl << to8_64_str(mempool[i]);
+                }
+                else if(strcmp(argv[2], "enc-algs") == 0) {
+                    std::cout << "available encryption algorithms are aes128, "
+                              << "aes192, aes256(recommended).";
+                }
+            } /* argv[1] = "get" */
             else if(argc == 2 && strcmp(argv[1],"del-wallet") == 0) {
                 if(walletMap.empty()) {
                     std::cout << "\nno wallet found";
