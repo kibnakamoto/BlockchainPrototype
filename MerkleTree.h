@@ -66,8 +66,6 @@ namespace MerkleTree
         inline std::shared_ptr<uint64_t> merkleRoot(std::vector<std::shared_ptr
                                                     <uint64_t>> Mempool)
         {
-            IntTypes int_type = IntTypes();
-            SHA512 hash = SHA512();
             Node node = Node();
             
             // declare merkle root
