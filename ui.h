@@ -103,6 +103,38 @@ namespace ui
                   << "Public License along with this program.  If not, see "
                   << "<https://www.gnu.org/licenses/>.";
     }
+    // find if index is digit
+    uint64_t check_index_block(char** argv, int argc) {
+        uint64_t index;
+        std::string str_difficulty;
+        std::string index_str;
+        std::stringstream ss;
+        
+        if(argc != 4) {
+            std::cout << "\ninput index of block (index starts from zero):\t";
+            std::cin >> index_str;
+            for(int c=0;c<index_str.length();c++) {
+                if(!isdigit(index_str[c])) {
+                    exit(EXIT_FAILURE);
+                }
+            }
+            ss << index_str;
+            ss >> index;
+        } else {
+            ss << argv[3];
+            ss >> index_str;
+            for(int c=0;c<index_str.length();c++) {
+                if(!isdigit(argv[3][c])) {
+                    exit(EXIT_FAILURE);
+                }
+            }
+            ss.clear();
+            ss << argv[3];
+            ss >> index;
+        }
+        return index;
+    }
+    
     // internal namespace for anonymous functions
     namespace
     {
