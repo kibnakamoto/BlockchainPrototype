@@ -640,6 +640,8 @@
                     std::string ciphertextTr;
                     std::shared_ptr<uint8_t> trnsKey;
                     std::string correctPlaintext;
+                    std::vector<bool> trns_bool_vector;
+                    
                     // find ciphertext and key index of transaction encryption map
                     for(const auto [cph,ckey] : transactions) {
                         /* delete padding caused by encryption
@@ -654,7 +656,7 @@
                                 for(int j=0;j<8;j++) {
                                     if(transactionhashesW[i].get()[j] == 
                                        hash.get()[j]) {
-                                        // find length of plaintext transaction data
+                                        trns_bool_vector.push_back(true);
                                         trnsIndex = c;
                                         ciphertextTr = cph;
                                         trnsKey = ckey;
@@ -666,7 +668,26 @@
                         }
                     }
                     stop:
-                        std::cout << "\ndecrypted transaction data:\t" << correctPlaintext;
+                        if(std::find(trns_bool_vector.begin(),
+                           trns_bool_vector.end(), false) != trns_bool_vector.end()) {
+                            std::cout << "\nerror: transaction decryption failed."
+                                      << "\nreason: unknown, dump encrypted transaction keys?";
+                            std::string dumpOrNo;
+                            std::cin >> dumpOrNo;
+                            if(dumpOrNo == "yes" || "y") {
+                                for(const auto [cph,ckey] : transactions) {
+                                    std::cout << "\nciphertext:\t" << cph
+                                              << "\naes256 key:\t"
+                                              << aesKeyToStr<uint8_t>(ckey);
+                                }
+                            }
+                        } else {
+                            std::cout << "\ndecrypted transaction data\nplaintext:\t"
+                                      << correctPlaintext << "\ntrns index:\t"
+                                      << trnsIndex << "\nciphertext:\t"
+                                      << ciphertextTr << "\naes256 transaction key:\t"
+                                      << trnsKey;
+                        }
                 }
                 else if(argc == 3 && strcmp(argv[2],"myahr") == 0) {
                     uint32_t accuracy;
@@ -1100,12 +1121,12 @@
         }
         
         // console user interface
-        consoleUserInterface(argc, commandDescriptions, blockchain_version,
-                             walletAddress, walletAddresses, walletMap,
-                             userAESmapkeys, storedCrypto, secondWallet,
-                             transactionhashesW, trnsLengths, mempool, ciphertextW,
-                             ciphertextK1, ciphertextK2, usedEncAlg,transactions,
-                             AESkeysTr,blockchain);
+        ui::consoleUserInterface(argc, commandDescriptions, blockchain_version,
+                                 walletAddress, walletAddresses, walletMap,
+                                 userAESmapkeys, storedCrypto, secondWallet,
+                                 transactionhashesW, trnsLengths, mempool, ciphertextW,
+                                 ciphertextK1, ciphertextK2, usedEncAlg,transactions,
+                                 AESkeysTr,blockchain);
         
         // DEBUG
         // std::cout << commandDescriptions.size() << "\n\n" << listOfCommands.size();
