@@ -5,8 +5,8 @@
  *  Last Update: May 1, 2022
  */
 
-#ifndef AES_H
-#define AES_H
+#ifndef AES_H_
+#define AES_H_
 
 #include <iostream>
 #include <stdint.h>
