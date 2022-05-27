@@ -50,17 +50,17 @@
     #include <set>
     
     #if defined(_WIN32) || defined(_WIN64)
-        #include <windows.h> // for Sleep
+        #include <windows.h>
         #define OS_WINDOWS 1
     #else
-        #include <unistd.h> // for usleep
+        #include <unistd.h>
     #endif
     
     #include "conditions.h" // global conditions across all files
-    #include "bigInt.h"
+    #include "bigint.h"
     #include "sha512.h"
-    #include "MerkleTree.h"
-    #include "AES.h"
+    #include "merkletree.h"
+    #include "aes.h"
     #include "block.h"
     #include "wallet.h"
     #include "ui.h"
@@ -1121,7 +1121,7 @@
         }
         
         // console user interface
-        ui::consoleUserInterface(argc, commandDescriptions, blockchain_version,
+        ui::consoleUI(argc, commandDescriptions, blockchain_version,
                                  walletAddress, walletAddresses, walletMap,
                                  userAESmapkeys, storedCrypto, secondWallet,
                                  transactionhashesW, trnsLengths, mempool, ciphertextW,
