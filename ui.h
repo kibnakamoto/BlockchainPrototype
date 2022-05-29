@@ -151,7 +151,8 @@ namespace ui
                           transactions,std::vector<std::shared_ptr<uint8_t>>
                           AESkeysTr,std::set<std::string> &blockchain,
                           std::vector<uint32_t> &all_trns_lengths,std::map
-                          <std::string,std::shared_ptr<uint8_t>> &transactions_enc) {
+                          <std::string,std::shared_ptr<uint8_t>> &transactions_enc,
+                          std::vector<std::shared_ptr<uint64_t>> &blockhashes) {
         WalletAddress wallet_address = WalletAddress();
         SHA512 hash = SHA512();
         Block block = Block();
@@ -902,6 +903,92 @@ namespace ui
                         }
                     }
                     break;
+                }
+                else if(userInput.starts_with("get block-hash")) {
+                    uint64_t block_index;
+                    std::string block_index_str;
+                    std::stringstream ss_block;
+                    bool NaN = false;
+                    if(userInput.length() >= 16) {
+                        block_index_str = userInput.substr(15,userInput.length()-1);
+                        for(int c=0;c<block_index_str.length();c++) {
+                            if(!isdigit(block_index_str[c])) {
+                                std::cout << "NaN";
+                                NaN = true;
+                                break;
+                            }
+                        }
+                        if(NaN) {
+                            break;
+                        } else {
+                            ss_block << block_index_str;
+                            ss_block >> block_index;
+                            ss_block.clear();
+                        }
+                    } else {
+                        std::cout << "\ninput index of block (index starts from zero):\t";
+                        std::cin >> block_index_str;
+                        for(int c=0;c<block_index_str.length();c++) {
+                            if(!isdigit(block_index_str[c])) {
+                                NaN = true;
+                                break;
+                            }
+                        }
+                        if(!NaN) {
+                            ss_block << block_index_str;
+                            ss_block >> block_index;
+                            ss_block.clear();
+                        } else {
+                            std::cout << "\nNaN";
+                            break;
+                        }
+                    }
+                    if(blockhashes.empty()) {
+                        std::cout << "\nno blockhashes found";
+                    } else {
+                        if(blockhashes.size() < block_index) {
+                            std::cout << "\nindex bigger than blockchain size"
+                                      << " (index starts from zero)";
+                        } else {
+                            std::cout << "\nblock hash:\t"
+                                      << to8_64_str(blockhashes[block_index])
+                                      << std::endl;
+                        }
+                    }
+
+                }
+                else if(userInput == "get block-nonce") {
+                    
+                }
+                else if(userInput == "get block-timestamp") {
+                    
+                }
+                else if(userInput == "get block-merkle-r") {
+                    
+                }
+                else if(userInput == "get block-difficulty") {
+                    
+                }
+                else if(userInput == "get block-ahr") {
+                    
+                }
+                else if(userInput == "get nblocktime") {
+                    
+                }
+                else if(userInput == "get blockchain-size") {
+                    
+                }
+                else if(userInput == "get version") {
+                    
+                }
+                else if(userInput == "get mempool") {
+                    
+                }
+                else if(userInput == "enc-algs") {
+                    
+                }
+                else if(userInput == "start mine") {
+                    
                 }
                 else if(userInput == "dump-wallet512") {
                     if(walletMap.empty()) {
