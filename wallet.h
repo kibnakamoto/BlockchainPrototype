@@ -375,8 +375,9 @@ class Address
                        std::map<std::string, std::shared_ptr<uint8_t>>&
                        transactionsEnc, int32_t& storedCrypto, std::vector<std::
                        shared_ptr<uint8_t>> AESkeysWallet, std::vector<uint32_t>
-                       &trnsLengths, std::shared_ptr<uint64_t>
-                       walletAddress=nullptr, std::string askForPrivKey="")
+                       &trnsLengths, std::vector<uint32_t> all_trns_lengths,
+                       std::shared_ptr<uint64_t> walletAddress=nullptr,
+                       std::string askForPrivKey="")
         {
             Address address = Address();
             if(walletAddress != nullptr) {
@@ -405,6 +406,7 @@ class Address
                 struct Transaction trns{sender, receiver, amount};
                 transactionhashes.push_back(trns.Hash(sellorbuy));
                 trnsLengths.push_back(trns.length());
+                all_trns_lengths.push_back(trns.length());
                 std::shared_ptr<uint8_t> newAES_TrKey(new uint8_t[32]);
                 newAES_TrKey = generateAES256Key();
                 std::map<std::string, std::shared_ptr<uint8_t>>::iterator
@@ -414,7 +416,7 @@ class Address
                                                    newAES_TrKey));
                 mempool.push_back(transactionhashes[transactionhashes.size()-1]);
             } else {
-                std::cout << "\nERR:\tWalletAddressNotFound\n";
+                std::cout << "\nerror:\tWalletAddressNotFound\n";
                 auto [fst, snd] = WalletAddressNotFound(AESkeysWallet,
                                                         askForPrivKey);
                 walletAddress = fst;
@@ -422,7 +424,8 @@ class Address
                 std::cout << "\nNew Wallet Address Created";
                 newTransaction(sender, receiver, amount, mempool, verifyInfo,
                                sellorbuy, transactionhashes, transactionsEnc,
-                               storedCrypto, AESkeysWallet, trnsLengths, walletAddress);
+                               storedCrypto, AESkeysWallet, trnsLengths, all_trns_lengths,
+                               walletAddress);
                 std::cout << "\nTransaction complete" << std::endl << std::endl;
             }
             return {walletAddress,AESkeysWallet};
@@ -448,15 +451,16 @@ struct Wallet {
                     std::shared_ptr<uint64_t>> transactionhashes,
                     std::map<std::string, std::shared_ptr<uint8_t>>&
                     transactionsEnc, int32_t storedCrypto, std::vector<uint32_t>
-                    trnsLengths, std::string askForPrivKey="")
+                    trnsLengths, std::vector<uint32_t> all_trns_lengths,
+                    std::string askForPrivKey="")
     {
         Address address = Address();
         auto [fst,snd] = address.newTransaction(sender, receiver, amount, mempool,
                                                 verifyInfo, sellorbuy,
                                                 transactionhashes, transactionsEnc,
                                                 storedCrypto, AESkeysWallet,
-                                                trnsLengths, walletAddress,
-                                                askForPrivKey);
+                                                trnsLengths, all_trns_lengths,
+                                                walletAddress, askForPrivKey);
         return {fst,snd};
     }
     void verifyOwnerData()
