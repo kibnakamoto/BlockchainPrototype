@@ -142,46 +142,50 @@ namespace ui
         }
         return index;
     }
-    
-    inline std::pair<uint64_t, bool> get_block_index_ui(std::string userInput) {
-        uint64_t block_index;
-        std::string block_index_str;
-        std::stringstream ss_block;
-        bool NaN = false;
-        if(userInput.length() >= 16) {
-            block_index_str = userInput.substr(15,userInput.length()-1);
-            for(int c=0;c<block_index_str.length();c++) {
-                if(!isdigit(block_index_str[c])) {
-                    std::cout << "NaN\n";
-                    NaN = true;
-                    break;
+
+    // internal namespace for anonymous functions
+    namespace
+    {
+        inline std::pair<uint64_t, bool> get_block_index_ui(std::string userInput) {
+            uint64_t block_index;
+            std::string block_index_str;
+            std::stringstream ss_block;
+            bool NaN = false;
+            if(userInput.length() >= 16) {
+                block_index_str = userInput.substr(15,userInput.length()-1);
+                for(int c=0;c<block_index_str.length();c++) {
+                    if(!isdigit(block_index_str[c])) {
+                        std::cout << "NaN\n";
+                        NaN = true;
+                        break;
+                    }
                 }
-            }
-            if(!NaN) {
-                ss_block << block_index_str;
-                ss_block >> block_index;
-                ss_block.clear();
-            }
-        } else {
-            std::cout << "\ninput index of block (index starts from zero):\t";
-            std::cin >> block_index_str;
-            for(int c=0;c<block_index_str.length();c++) {
-                if(!isdigit(block_index_str[c])) {
-                    NaN = true;
-                    break;
+                if(!NaN) {
+                    ss_block << block_index_str;
+                    ss_block >> block_index;
+                    ss_block.clear();
                 }
-            }
-            if(!NaN) {
-                ss_block << block_index_str;
-                ss_block >> block_index;
-                ss_block.clear();
             } else {
-                std::cout << "\nNaN\n";
+                std::cout << "\ninput index of block (index starts from zero):\t";
+                std::cin >> block_index_str;
+                for(int c=0;c<block_index_str.length();c++) {
+                    if(!isdigit(block_index_str[c])) {
+                        NaN = true;
+                        break;
+                    }
+                }
+                if(!NaN) {
+                    ss_block << block_index_str;
+                    ss_block >> block_index;
+                    ss_block.clear();
+                } else {
+                    std::cout << "\nNaN\n";
+                }
             }
+            return {block_index,NaN};
         }
-        return {block_index,NaN};
-    }
-    
+    } /* internal namespace */
+
     inline void consoleUI(int argc, std::vector<std::string> commandDescriptions,
                           std::string blockchain_version,std::shared_ptr<uint64_t>
                           &walletAddress,std::vector<std::shared_ptr<uint64_t>>
@@ -1153,12 +1157,6 @@ namespace ui
             }
         }
     }
-    
-    // internal namespace for anonymous functions
-    namespace
-    {
-        
-    } /* internal namespace */
 } /* namespace ui */
 
 #endif /* UI_H_ */
