@@ -198,7 +198,7 @@
          "get version: get blockchain version",
          "get mempool: print verified mempool hashes in current block",
          "enc-algs: available encryption/decryption algorithms",
-         "start mine: start mining", "end mine: end mining",
+         "start mine: start mining",
          "dump-wallet512: dump 512-bit wallet address as hex", // after this is not in version 1
          "get tr-target: print transaction target",
          "get tr-hash: print transaction hash",
@@ -1106,7 +1106,7 @@
                     std::cout << "\n\nplaintext:\t" << plaintext;
                 }
             }
-            else if(argc == 4 && strcmp(argv[1],"start") == 0 &&
+            else if(argc == 3 && strcmp(argv[1],"start") == 0 &&
                     strcmp(argv[2],"mine") == 0) {
                 std::cout << "starting mining\n";
                 if(!blockMined) {
@@ -1154,9 +1154,13 @@
                             std::cout << std::endl;
                         }
                             mempool = clean_mempool;
-                            storedCrypto+=100;
-                            std::cout << "added 100 to your balance. You know own "
-                                      << storedCrypto << ".";
+                            if(!walletMap.empty()) {
+                                storedCrypto+=100;
+                                std::cout << "added 100 to your balance. You know own "
+                                          << storedCrypto << ".";
+                            } else {
+                                std::cout << "wallet map empty, cannot add";
+                            }
                     }
                 }
                 
@@ -1174,7 +1178,7 @@
                 }
             }
             else {
-                std::cout << "\ncommand not found";
+                std::cout << "\ncommand not found\n";
             }
         }
         
@@ -1184,7 +1188,8 @@
                                  userAESmapkeys, storedCrypto, secondWallet,
                                  transactionhashesW, trnsLengths, mempool, ciphertextW,
                                  ciphertextK1, ciphertextK2, usedEncAlg,transactions,
-                                 AESkeysTr,blockchain,all_trns_lengths,transactions_enc);
+                                 AESkeysTr,blockchain,all_trns_lengths,transactions_enc,
+                                 blockhashes);
         
         /* TEST walletAddress */
         // std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>> testMap;
