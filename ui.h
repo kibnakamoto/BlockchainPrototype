@@ -135,6 +135,45 @@ namespace ui
         return index;
     }
     
+    inline std::pair<uint64_t, bool> get_block_index_ui(std::string userInput) {
+        uint64_t block_index;
+        std::string block_index_str;
+        std::stringstream ss_block;
+        bool NaN = false;
+        if(userInput.length() >= 16) {
+            block_index_str = userInput.substr(15,userInput.length()-1);
+            for(int c=0;c<block_index_str.length();c++) {
+                if(!isdigit(block_index_str[c])) {
+                    std::cout << "NaN\n";
+                    NaN = true;
+                    break;
+                }
+            }
+            if(!NaN) {
+                ss_block << block_index_str;
+                ss_block >> block_index;
+                ss_block.clear();
+            }
+        } else {
+            std::cout << "\ninput index of block (index starts from zero):\t";
+            std::cin >> block_index_str;
+            for(int c=0;c<block_index_str.length();c++) {
+                if(!isdigit(block_index_str[c])) {
+                    NaN = true;
+                    break;
+                }
+            }
+            if(!NaN) {
+                ss_block << block_index_str;
+                ss_block >> block_index;
+                ss_block.clear();
+            } else {
+                std::cout << "\nNaN\n";
+            }
+        }
+        return {block_index,NaN};
+    }
+    
     inline void consoleUI(int argc, std::vector<std::string> commandDescriptions,
                           std::string blockchain_version,std::shared_ptr<uint64_t>
                           &walletAddress,std::vector<std::shared_ptr<uint64_t>>
@@ -905,44 +944,11 @@ namespace ui
                     break;
                 }
                 else if(userInput.starts_with("get block-hash")) {
-                    uint64_t block_index;
-                    std::string block_index_str;
-                    std::stringstream ss_block;
-                    bool NaN = false;
-                    if(userInput.length() >= 16) {
-                        block_index_str = userInput.substr(15,userInput.length()-1);
-                        for(int c=0;c<block_index_str.length();c++) {
-                            if(!isdigit(block_index_str[c])) {
-                                std::cout << "NaN";
-                                NaN = true;
-                                break;
-                            }
-                        }
-                        if(NaN) {
-                            break;
-                        } else {
-                            ss_block << block_index_str;
-                            ss_block >> block_index;
-                            ss_block.clear();
-                        }
-                    } else {
-                        std::cout << "\ninput index of block (index starts from zero):\t";
-                        std::cin >> block_index_str;
-                        for(int c=0;c<block_index_str.length();c++) {
-                            if(!isdigit(block_index_str[c])) {
-                                NaN = true;
-                                break;
-                            }
-                        }
-                        if(!NaN) {
-                            ss_block << block_index_str;
-                            ss_block >> block_index;
-                            ss_block.clear();
-                        } else {
-                            std::cout << "\nNaN";
-                            break;
-                        }
+                    const auto [block_index,NaN] = get_block_index_ui(userInput);
+                    if(NaN) {
+                        break;
                     }
+                    
                     if(blockhashes.empty()) {
                         std::cout << "\nno blockhashes found";
                     } else {
