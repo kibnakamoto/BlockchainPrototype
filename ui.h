@@ -18,6 +18,14 @@
 #include <time.h>
 #include <tuple>
 
+#if defined(_WIN32) || defined(_WIN64)
+    #include <windows.h>
+    #define OS_WINDOWS 1
+#else
+    #include <unistd.h>
+#endif
+
+
 /* for UI */
 struct userData
 {
@@ -944,53 +952,173 @@ namespace ui
                     break;
                 }
                 else if(userInput.starts_with("get block-hash")) {
-                    const auto [block_index,NaN] = get_block_index_ui(userInput);
+                    const auto [block_index,NaN] = ui::get_block_index_ui(userInput);
                     if(NaN) {
                         break;
-                    }
-                    
-                    if(blockhashes.empty()) {
-                        std::cout << "\nno blockhashes found";
                     } else {
-                        if(blockhashes.size() < block_index) {
-                            std::cout << "\nindex bigger than blockchain size"
-                                      << " (index starts from zero)";
+                        if(blockhashes.empty()) {
+                            std::cout << "\nno blockhashes found";
                         } else {
-                            std::cout << "\nblock hash:\t"
-                                      << to8_64_str(blockhashes[block_index])
-                                      << std::endl;
+                            if(blockhashes.size() < block_index) {
+                                std::cout << "\nindex bigger than blockchain size"
+                                          << " (index starts from zero)";
+                            } else {
+                                std::cout << "\nblock hash:\t"
+                                          << to8_64_str(blockhashes[block_index])
+                                          << std::endl;
+                            }
                         }
+                        break;
                     }
-
                 }
                 else if(userInput == "get block-nonce") {
-                    
+                    const auto [index,NaN] = ui::get_block_index_ui(userInput);
+                    if(NaN) {
+                        break;
+                    } else {
+                        if(blockchain.size() == 0 && index >= blockchain.size()) {
+                            std::cout << "blockchain size smaller than " << index
+                                      << ".\n";
+                        } else {
+                            std::cout << "\nfinding block nonce...\n";
+                            std::set<std::string>::iterator itBlock = blockchain.begin();
+                            std::string block = *std::next(blockchain.begin(), index);
+                            std::string str_nonce = block.substr(block.find("nonce: "),
+                                                                 block.find("\ndifficulty"));
+                            std::cout << "nonce:\t" << str_nonce;
+                        }
+                        break;
+                    }
                 }
                 else if(userInput == "get block-timestamp") {
-                    
+                    const auto [index,NaN] = ui::get_block_index_ui(userInput);
+                    if(NaN) {
+                        break;
+                    } else {
+                        if(!blockchain.empty()) {
+                            std::cout << "\nfinding block timestamp...\n";
+                            std::set<std::string>::iterator itBlock = blockchain.begin();
+                            std::string block = *std::next(blockchain.begin(), index);
+                            std::string str_time = block.substr(block.find("timestamp: "),
+                                                                 block.find("\nblockchain size"));
+                            std::cout << "timestamp:\t" << str_time;
+                        } else {
+                            std::cout << "\nblockchain empty\n";
+                        }
+                        break;
+                    }
                 }
                 else if(userInput == "get block-merkle-r") {
-                    
+                    const auto [index,NaN] = ui::get_block_index_ui(userInput);
+                    if(NaN) {
+                        break;
+                    } else {
+                        std::string str_merkle_root;
+                        if(!blockchain.empty()) {
+                            std::cout << "\nfinding block merkle root...\n";
+                            std::set<std::string>::iterator itBlock = blockchain.begin();
+                            std::string block = *std::next(blockchain.begin(), index);
+                            str_merkle_root = block.substr(block.find("merkle_root: "),
+                                                           block.find("\napproximate time until next block"));
+                            std::cout << "merkle_root:\t" << str_merkle_root;
+                        } else {
+                            std::cout << "\nblockchain empty\n";
+                        }
+                        break;
+                    }
                 }
                 else if(userInput == "get block-difficulty") {
-                    
+                    const auto [index,NaN] = ui::get_block_index_ui(userInput);
+                    if(NaN) {
+                        break;
+                    } else {
+                        std::string str_difficulty;
+                        if(!blockchain.empty()) {
+                            std::cout << "\nfinding block difficulty...\n";
+                            std::set<std::string>::iterator itBlock = blockchain.begin();
+                            std::string block = *std::next(blockchain.begin(), index);
+                            str_difficulty = block.substr(block.find("difficulty: "),
+                                                           block.find("\nmerkle_root"));
+                            std::cout << "difficulty:\t" << str_difficulty;
+                        } else {
+                            std::cout << "\nblockchain empty\n";
+                        }
+                        break;
+                    }
                 }
                 else if(userInput == "get block-ahr") {
-                    
+                    const auto [index,NaN] = ui::get_block_index_ui(userInput);
+                    if(NaN) {
+                        break;
+                    } else {
+                        std::string hashrate_str;
+                        if(!blockchain.empty()) {
+                            std::cout << "\nfinding block hashrate...\n";
+                            std::set<std::string>::iterator itBlock = blockchain.begin();
+                            std::string block = *std::next(blockchain.begin(), index);
+                            hashrate_str = block.substr(block.find("Average hashrate of miners: "),
+                                                           block.find("\nblockchain version"));
+                            std::cout << "hashrate:\t" << hashrate_str
+                                      << std::endl;
+                        } else {
+                            std::cout << "\nblockchain empty\n";
+                        }
+                        break;
+                    }
                 }
                 else if(userInput == "get nblocktime") {
-                    
+                    const auto [index,NaN] = ui::get_block_index_ui(userInput);
+                    if(NaN) {
+                        break;
+                    } else {
+                        std::string nblocktime_str;
+                        if(!blockchain.empty()) {
+                            std::cout << "\nfinding next block generation time...\n";
+                            std::set<std::string>::iterator itBlock = blockchain.begin();
+                            std::string block = *std::next(blockchain.begin(), index);
+                            nblocktime_str = block.substr(block.find("approximate time until next block: "),
+                                                           block.find("\nAverage hashrate of miners"));
+                            std::cout << "next block gen time:\t" << nblocktime_str
+                                      << std::endl;
+                        } else {
+                            std::cout << "\nblockchain empty\n";
+                        }
+                        break;
+                    }
                 }
                 else if(userInput == "get blockchain-size") {
-                    
+                    std::cout << "blockchain size:\t" << blockchain.size()
+                              << std::endl;
                 }
                 else if(userInput == "get version") {
-                    
+                    std::cout << "\nversion of blockchain core:\t" << blockchain_version
+                              << std::endl;
                 }
                 else if(userInput == "get mempool") {
-                    
+                                        std::cout << "mempool size:\t" << mempool.size() << std::endl;
+                    if(mempool.size() == 0) {
+                        std::cout << "\nmempool empty";
+                    } else {
+                        std::cout << "\ndumping mempool...\n";
+                        
+                        // delay print for user to see mempool size
+                        #ifdef OS_WINDOWS
+                            Sleep(3000); // windows sleep function
+                        #else
+                            usleep(3000000); // unix sleep function
+                        #endif
+                    }
+                    for(int i=0;i<mempool.size();i++)
+                        std::cout << std::endl << to8_64_str(mempool[i]);
+                    break;
                 }
                 else if(userInput == "enc-algs") {
+                    const auto [index,NaN] = ui::get_block_index_ui(userInput);
+                    if(NaN) {
+                        break;
+                    } else {
+                        
+                    }
                     
                 }
                 else if(userInput == "start mine") {
