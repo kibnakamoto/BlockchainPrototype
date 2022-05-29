@@ -149,7 +149,9 @@ namespace ui
                           std::string &ciphertextK2, std::string &usedEncAlg,
                           std::map<std::string,std::shared_ptr<uint8_t>>
                           transactions,std::vector<std::shared_ptr<uint8_t>>
-                          AESkeysTr,std::set<std::string> &blockchain) {
+                          AESkeysTr,std::set<std::string> &blockchain,
+                          std::vector<uint32_t> &all_trns_lengths,std::map
+                          <std::string,std::shared_ptr<uint8_t>> &transactions_enc) {
         WalletAddress wallet_address = WalletAddress();
         SHA512 hash = SHA512();
         Block block = Block();
@@ -161,6 +163,8 @@ namespace ui
         std::string userInput;
         std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>>::
         iterator itWalletMap = walletMap.begin();
+        std::map<std::string, std::shared_ptr<uint8_t>>::iterator
+        it_trns_enc = transactions_enc.begin();
         bool terminate = false;
     
         if(argc >= 2) {
@@ -289,7 +293,21 @@ namespace ui
                                                                     transactions, 
                                                                     storedCrypto,
                                                                     trnsLengths,
+                                                                    all_trns_lengths,
                                                                     "dump aes256-key");
+
+                    // append transactions of single wallet to all transactions
+                    // ciphertexts in blockchain
+                    for(const auto [ciphertxt,trns_keys] : transactions) {
+                        // add transaction ciphertext and keys if its not already in
+                        // transactions_enc
+                        if(transactions_enc.find(ciphertxt) == transactions_enc.end()) {
+                            transactions_enc.insert(it_trns_enc,std::pair<std::string,
+                                                    std::shared_ptr<uint8_t>>(ciphertxt,
+                                                                              trns_keys));
+                        }
+                    }
+                    
                     walletAddress = newWA;
                     userAESmapkeys = newKeys;
                     break;
@@ -727,7 +745,21 @@ namespace ui
                                                                         transactionhashesW,
                                                                         transactions,
                                                                         storedCrypto,
-                                                                        trnsLengths);
+                                                                        trnsLengths,
+                                                                        all_trns_lengths);
+                        
+                    // append transactions of single wallet to all transactions
+                    // ciphertexts in blockchain
+                    for(const auto [ciphertxt,trns_keys] : transactions) {
+                        // add transaction ciphertext and keys if its not already in
+                        // transactions_enc
+                        if(transactions_enc.find(ciphertxt) == transactions_enc.end()) {
+                            transactions_enc.insert(it_trns_enc,std::pair<std::string,
+                                                    std::shared_ptr<uint8_t>>(ciphertxt,
+                                                                              trns_keys));
+                        }
+                    }
+                        
                         // delete fake wallet address
                         fakeWalletAd.reset();
                     }
