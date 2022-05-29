@@ -86,7 +86,11 @@
         bool blockMined = false;
         std::set<std::string> blockchain; // all blocks in the blockchain
         std::vector<std::shared_ptr<uint64_t>> blockhashes; // all block hashes
-
+        std::vector<std::shared_ptr<uint64_t>> &unsafe_mempool = mempool;
+        std::map<std::string, std::shared_ptr<uint8_t>> transactions_enc;
+        std::map<std::string, std::shared_ptr<uint8_t>>::iterator
+        it_trns_enc = transactions_enc.begin();
+        std::vector<uint32_t> all_trns_lengths;
         /* TEST PoW MINE */
         // struct Transaction trns{sha512("sender"), sha512("receiver"), 50000};
         // struct Transaction trns1{sha512("sener"), sha512("receiver"), 54000};
@@ -142,33 +146,6 @@
         // mempool2.push_back(trns2.Hash());
         
         /* UI */
-        std::vector<std::string> listOfCommands {"help", "-help", "help-all",
-                                                 "show w", "show c" "create-wa",
-                                                 "buy","send", "sell", "e-wallet-aes256",
-                                                 "e-wallet-aes128","e-wallet-aes192",
-                                                 "e-wallet-aes256-genkey",
-                                                 "e-wallet-aes192-genkey",
-                                                 "e-wallet-aes128-genkey",
-                                                 "decrypt-wallet", "get p-w keys"
-                                                 "get p-trns-data",
-                                                 "del-wallet","exit","quit"
-                                                 "burn", "hash-sha512","enc-aes128-genkey",
-                                                 "enc-aes192-genkey","enc-aes256-genkey",
-                                                 "enc-aes128", "enc-aes192",
-                                                 "enc-aes256","dec-aes128", "dec-aes192",
-                                                 "dec-aes256","get blockchain",
-                                                 "get myahr", "get block-hash", 
-                                                 "get block-nonce",
-                                                 "get block-timestamp",
-                                                 "get block-merkle-r",
-                                                 "get block-difficulty", "get block-ahr",
-                                                 "get nblocktime", "get blockchain-size",
-                                                 "get version", "get mempool",
-                                                 "enc-algs", "start mine", "end mine",
-                                                 "dump-wallet512", "get tr-target",
-                                                 "get tr-hash", "get tr-ciphertext",
-                                                 "get tr-timestamp", "dump all-trnsData",
-                                                 "get blockchain-ahr", "get block-target"};
         std::vector<std::string> commandDescriptions
         {"help: show basic commands with descriptions",
          " -help: for command description, put after another command",
@@ -386,10 +363,23 @@
                                                                 amount,mempool,
                                                                 argv[1],
                                                                 transactionhashesW,
-                                                                transactions, 
+                                                                transactions,
                                                                 storedCrypto,
                                                                 trnsLengths,
+                                                                all_trns_lengths,
                                                                 "dump aes256-key");
+                
+                // append transactions of single wallet to all transactions
+                // ciphertexts in blockchain
+                for(const auto [ciphertxt,trns_keys] : transactions) {
+                    // add transaction ciphertext and keys if its not already in
+                    // transactions_enc
+                    if(transactions_enc.find(ciphertxt) == transactions_enc.end()) {
+                        transactions_enc.insert(it_trns_enc,std::pair<std::string,
+                                                std::shared_ptr<uint8_t>>(ciphertxt,
+                                                                          trns_keys));
+                    }
+                }
                 walletAddress = newWA;
                 userAESmapkeys = newKeys;
             }
@@ -998,7 +988,20 @@
                                                                     transactionhashesW,
                                                                     transactions,
                                                                     storedCrypto,
-                                                                    trnsLengths);
+                                                                    trnsLengths,
+                                                                    all_trns_lengths);
+                    // append transactions of single wallet to all transactions
+                    // ciphertexts in blockchain
+                    for(const auto [ciphertxt,trns_keys] : transactions) {
+                        // add transaction ciphertext and keys if its not already in
+                        // transactions_enc
+                        if(transactions_enc.find(ciphertxt) == transactions_enc.end()) {
+                            transactions_enc.insert(it_trns_enc,std::pair<std::string,
+                                                    std::shared_ptr<uint8_t>>(ciphertxt,
+                                                                              trns_keys));
+                        }
+                    }
+                    
                     // delete fake wallet address
                     fakeWalletAd.reset();
                 }
@@ -1103,6 +1106,61 @@
                     std::cout << "\n\nplaintext:\t" << plaintext;
                 }
             }
+            else if(argc == 4 && strcmp(argv[1],"start") == 0 &&
+                    strcmp(argv[2],"mine") == 0) {
+                std::cout << "starting mining\n";
+                if(!blockMined) {
+                    std::tuple<std::shared_ptr<uint64_t>,std::string,uint32_t,uint64_t, 
+                          double,std::shared_ptr<uint64_t>, double, double>
+                    unverified_block_data = block.data(unsafe_mempool);
+                    uint32_t blockchainSize;
+                    uint64_t nonce;
+                    std::shared_ptr<uint64_t> prevBlockHash(new uint64_t[8]);
+                    std::string timestamp;
+                    double difficulty, nextBlockGenTime, avHashrate;
+                    std::tie(prevBlockHash, timestamp, blockchainSize, nonce, difficulty,
+                             merkle_root,nextBlockGenTime, avHashrate) = unverified_block_data;
+                    auto [isblockmined,clean_mempool] = ProofofWork.mineBlock(transactions_enc,
+                                                                              nonce, difficulty,
+                                                                              mempool,
+                                                                              merkle_root,
+                                                                              all_trns_lengths);
+                    std::cout << "\nmempool cleaned";
+                    blockMined = isblockmined;
+                    
+                    if(blockMined) {
+                        std::cout << "\nblock mined successfully";
+                        std::cout << "\nrepresenting correct block in blockhain...\n\n";
+                        std::string current_block = block.data_str(prevBlockHash,
+                                                                   timestamp,
+                                                                   blockchainSize,
+                                                                   nonce,difficulty,
+                                                                   nextBlockGenTime,
+                                                                   avHashrate,
+                                                                   clean_mempool,
+                                                                   blockchain_version);
+                        std::cout << current_block;
+                        blockchain.insert(current_block);
+                        std::cout << "\n\nblock added to blockchain";
+                        /* wrong mempool cannot have less than correct mempool since wrong
+                         * mempool has new false transaction, if there is a modified 
+                         * transaction hash, it won't work, therefore needs further updates.
+                         * More functionality will be added in further versions
+                         */
+                        std::cout << "\n\nclean mempool: \n";
+                        for(int i=0;i<clean_mempool.size();i++) {
+                            for(int c=0;c<8;c++)
+                                std::cout << std::hex << clean_mempool[i].get()[c];
+                            std::cout << std::endl;
+                        }
+                            mempool = clean_mempool;
+                            storedCrypto+=100;
+                            std::cout << "added 100 to your balance. You know own "
+                                      << storedCrypto << ".";
+                    }
+                }
+                
+            }
             else if(argc == 3 && strcmp(argv[1],"show") == 0) {
                 // if warranty info requested
                 if(argv[2][0] == 'w') {
@@ -1126,11 +1184,8 @@
                                  userAESmapkeys, storedCrypto, secondWallet,
                                  transactionhashesW, trnsLengths, mempool, ciphertextW,
                                  ciphertextK1, ciphertextK2, usedEncAlg,transactions,
-                                 AESkeysTr,blockchain);
+                                 AESkeysTr,blockchain,all_trns_lengths,transactions_enc);
         
-        // DEBUG
-        // std::cout << commandDescriptions.size() << "\n\n" << listOfCommands.size();
-        std::cout << "\n\nline 339, main.cpp:\t";
         /* TEST walletAddress */
         // std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>> testMap;
         // std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>>::iterator
@@ -1171,59 +1226,6 @@
         // walletAddress = Fst;
         // receiverAESmap = Snd;
         /* TEST walletAddress DONE */
-        
-        // if(blockMined == false) {
-        //     std::vector<uint64_t> trnsLength;
-        //     /* TEST PoW MINE */
-        //     trnsLength.push_back(trns.length());
-        //     trnsLength.push_back(trns1.length());
-        //     trnsLength.push_back(trns2.length());
-        //     trnsLength.push_back(trns3.length());
-        //     trnsLength.push_back(trns4.length());
-        //     trnsLength.push_back(trns.length());
-        //     trnsLength.push_back(trns1.length());
-        //     trnsLength.push_back(trns2.length());
-        //     trnsLength.push_back(trns1.length());
-        //     trnsLength.push_back(trns2.length());
-        //     /* TEST PoW MINE */
-        //     std::tuple<std::shared_ptr<uint64_t>,std::string,uint32_t,uint64_t, 
-        //           double,std::shared_ptr<uint64_t>, double, double>
-        //     unverified_block_data = block.data(mempool2);
-        //     uint32_t blockchainSize;
-        //     uint64_t nonce;
-        //     std::shared_ptr<uint64_t> prevBlockHash(new uint64_t[8]);
-        //     std::string timestamp;
-        //     double difficulty, nextBlockGenTime, avHashrate;
-        //     std::tie(prevBlockHash, timestamp, blockchainSize, nonce, difficulty,
-        //              merkle_root,nextBlockGenTime, avHashrate) = unverified_block_data;
-        //     auto [isblockmined,clean_mempool] = ProofofWork.mineBlock(transactionsEnc,
-        //                                                               nonce, difficulty,
-        //                                                               mempool,
-        //                                                               merkle_root,
-        //                                                               trnsLength);
-        //     std::cout << "\nmempool cleaned";
-        //     blockMined = isblockmined;
-            
-        //     if(blockMined) {
-        //         std::cout << "\nblock mined successfully";
-        //         std::cout << "\nrepresenting correct block in blockhain...\n\n";
-        //         std::cout << block.data_str(prevBlockHash,timestamp,blockchainSize,
-        //                                     nonce,difficulty,nextBlockGenTime,
-        //                                     avHashrate,clean_mempool,blockchain_version);
-        //         std::cout << "\n\nblock added to blockchain";
-        //         /* wrong mempool cannot have less than correct mempool since wrong
-        //          * mempool has new false transaction, if there is a modified 
-        //          * transaction hash, it won't work, therefore needs further updates.
-        //          * More functionality will be added in further versions
-        //          */
-        //          std::cout << "\n\nclean mempool: \n";
-        //          for(int i=0;i<clean_mempool.size();i++) {
-        //              for(int c=0;c<8;c++)
-        //                 std::cout << std::hex << clean_mempool[i].get()[c];
-        //             std::cout << std::endl;
-        //          }
-        //     }
-        // }
         std::cout << "\nline 1039: exitted normally";
         return 0;
     }
