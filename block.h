@@ -2,7 +2,7 @@
 * Author: Taha Canturk
 *  Github: kibnakamoto
 *   Start Date: Feb 9, 2022
-*    Finish Date: Apr 15, 2022
+*    Finish Date: May 29, 2022
 *
 */
 
@@ -132,7 +132,7 @@ class PoW
              * version 1 is debugged. Or just get rid of target transaction hash
              */
             for(int c=0;c<8;c++) {
-                while(target.get()[c] > pow(2,62)) { // define target hash
+                while(target.get()[c] > pow(2,56)) { // define target hash
                     target.get()[c] = sha512(encryptedTr +
                                              std::to_string(newNonce)).get()[c];
                     newNonce++;
@@ -283,7 +283,7 @@ class Block
              * time with 2^56 = 1-2 minutes.
              */
             for(int c=0;c<8;c++) {
-                while(target.get()[c] >= pow(2,54)) {
+                while(target.get()[c] >= pow(2,48)) {
                     target.get()[c] = sha512(merkle_root_str +
                                              std::to_string(newNonce+difficulty)).get()[c];
                     newNonce++;
