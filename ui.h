@@ -203,7 +203,9 @@ namespace ui
                           AESkeysTr,std::set<std::string> &blockchain,
                           std::vector<uint32_t> &all_trns_lengths,std::map
                           <std::string,std::shared_ptr<uint8_t>> &transactions_enc,
-                          std::vector<std::shared_ptr<uint64_t>> &blockhashes) {
+                          std::vector<std::shared_ptr<uint64_t>> &blockhashes,
+                          bool &block_mined, std::vector<std::shared_ptr<uint64_t>>
+                          &unsafe_mempool, std::shared_ptr<uint64_t> &merkle_root) {
         WalletAddress wallet_address = WalletAddress();
         SHA512 hash = SHA512();
         Block block = Block();
@@ -1126,7 +1128,61 @@ namespace ui
                     
                 }
                 else if(userInput == "start mine") {
-                    
+                    std::cout << "\nstarting mining\n";
+                    if(!block_mined) {
+                        std::tuple<std::shared_ptr<uint64_t>,std::string,uint32_t,uint64_t, 
+                              double,std::shared_ptr<uint64_t>, double, double>
+                        unverified_block_data = block.data(unsafe_mempool);
+                        uint32_t blockchainSize;
+                        uint64_t nonce;
+                        std::shared_ptr<uint64_t> prevBlockHash(new uint64_t[8]);
+                        std::string timestamp;
+                        double difficulty, nextBlockGenTime, avHashrate;
+                        std::tie(prevBlockHash, timestamp, blockchainSize, nonce, difficulty,
+                                 merkle_root,nextBlockGenTime, avHashrate) = unverified_block_data;
+                        auto [isblockmined,clean_mempool] = ProofofWork.mineBlock(transactions_enc,
+                                                                                  nonce, difficulty,
+                                                                                  mempool,
+                                                                                  merkle_root,
+                                                                                  all_trns_lengths);
+                        std::cout << "\nmempool cleaned";
+                        block_mined = isblockmined;
+                        
+                        if(block_mined) {
+                            std::cout << "\nblock mined successfully";
+                            std::cout << "\nrepresenting correct block in blockhain...\n\n";
+                            std::string current_block = block.data_str(prevBlockHash,
+                                                                       timestamp,
+                                                                       blockchainSize,
+                                                                       nonce,difficulty,
+                                                                       nextBlockGenTime,
+                                                                       avHashrate,
+                                                                       clean_mempool,
+                                                                       blockchain_version);
+                            std::cout << current_block;
+                            blockchain.insert(current_block);
+                            std::cout << "\n\nblock added to blockchain";
+                            /* wrong mempool cannot have less than correct mempool since wrong
+                             * mempool has new false transaction, if there is a modified 
+                             * transaction hash, it won't work, therefore needs further updates.
+                             * More functionality will be added in further versions
+                             */
+                            std::cout << "\n\nclean mempool: \n";
+                            for(int i=0;i<clean_mempool.size();i++) {
+                                for(int c=0;c<8;c++)
+                                    std::cout << std::hex << clean_mempool[i].get()[c];
+                                std::cout << std::endl;
+                            }
+                                mempool = clean_mempool;
+                                if(!walletMap.empty()) {
+                                    storedCrypto+=100;
+                                    std::cout << "added 100 to your balance. You know own "
+                                              << storedCrypto << ".";
+                                } else {
+                                    std::cout << "wallet map empty, cannot add";
+                                }
+                        }
+                    }
                 }
                 else if(userInput == "dump-wallet512") {
                     if(walletMap.empty()) {
@@ -1147,9 +1203,7 @@ namespace ui
                 } else if(userInput == "show w") {
                     ui::show_w_command();
                     break;
-                } else if(userInput == "") {
-                    break;
-                }
+                } else if(userInput == "") { break; }
                 else {
                     std::cout << "command not found\n";
                     break;
