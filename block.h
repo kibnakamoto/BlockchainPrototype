@@ -199,7 +199,7 @@ class PoW
             for(int c=0;c<8;c++) {
                 std::cout << std::hex << merkle_root.get()[c];
             }
-
+            
             if(merkle_validity == false) {
                 std::cout << "\nmerkle_root: false";
                 std::cout << "\nfalse merkle_root: ";
