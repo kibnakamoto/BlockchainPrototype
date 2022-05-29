@@ -175,7 +175,7 @@ namespace ui
         // only activated if global value in main.cpp is true
         while (console_ui_activate) {
             while(!terminate) {
-                std::cout << "\ninput:\t";
+                std::cout << "input:\t";
                 std::getline(std::cin,userInput);
                 if(userInput == "help") {
                     for(int c=0;c<18;c++)
@@ -1009,13 +1009,11 @@ namespace ui
                 } else if(userInput == "show w") {
                     ui::show_w_command();
                     break;
-                // if nothing, this is to avoid getting command not found at certain times
                 } else if(userInput == "") {
-                    // do nothing
                     break;
                 }
                 else {
-                    std::cout << "command not found";
+                    std::cout << "command not found\n";
                     break;
                 }
             }
