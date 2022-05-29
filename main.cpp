@@ -13,7 +13,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+// 4404 lines
 /* Author: Taha Canturk
  *  Github: kibnakamoto
  *  Project: BlockchainPrototype
@@ -744,7 +744,6 @@
                     } else {
                         std::cout << "\nblockchain empty\n";
                     }
-                    
                 }
                 else if(strcmp(argv[2],"block-merkle-r") == 0) {
                     uint64_t index = ui::check_index_block(argv,argc);
@@ -1163,7 +1162,6 @@
                             }
                     }
                 }
-                
             }
             else if(argc == 3 && strcmp(argv[1],"show") == 0) {
                 // if warranty info requested
@@ -1189,7 +1187,7 @@
                                  transactionhashesW, trnsLengths, mempool, ciphertextW,
                                  ciphertextK1, ciphertextK2, usedEncAlg,transactions,
                                  AESkeysTr,blockchain,all_trns_lengths,transactions_enc,
-                                 blockhashes);
+                                 blockhashes, blockMined, unsafe_mempool, merkle_root);
         
         /* TEST walletAddress */
         // std::map<std::shared_ptr<uint64_t>, std::vector<std::shared_ptr<uint8_t>>> testMap;
