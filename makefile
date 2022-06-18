@@ -1,25 +1,26 @@
 .SUFFIXES: .cpp .o
 CXX ?= g++
-CXXFLAGS ?= -g -std=c++20 -Wall # remove -Wall in complete version so no unnecesarry warnings
+CXXFLAGS ?= -g -std=c++20 -Wall # cxx flags for both clang and gcc
 EXEC ?= main.cpp
-OBJS ?=  main.cpp conditions.h bigInt.h sha512.h MerkleTree.h AES.h block.h wallet.h ui.h
+OBJS ?=  main.cpp conditions.h bigint.h sha512.h merkletree.h aes.h block.h wallet.h ui.h
+BINS ?= main.o
 
-
+# TODO: make -Wall optional with sub command
 # IMPORTANT:
-echo "make run ARGS="command-name"" for running code with arguement
+# echo "make run ARGS="command-name" for running code with arguement"
 
-${EXEC}: main.cpp
-        ${CXX} ${CXXFLAGS} -o ${EXEC} main.o
-
-.cpp.o:
-        ${CXX} ${CXXFLAGS} -c $<
+main: ${BINS}
+	${CXX} ${CXXFLAGS} -o main ${BINS}
 
 main.o: ${OBJS}
-        ${CXX} -c main.cpp
+	${CXX} ${CXXFLAGS} -c ${EXEC}
+
+.cpp.o:
+	${CXX} ${CXXFLAGS} -c $<
 
 clean:
-        rm -f main.o
+	rm -rf ${BINS} main
 
 run: ${EXEC}
-        clang++ -std=c++20 ${EXEC} -o main
-        ./main ${ARGS}
+	clang++ ${CXXFLAGS} ${EXEC} -o main
+	./main ${ARGS}
