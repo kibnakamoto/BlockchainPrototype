@@ -143,7 +143,7 @@ namespace ui
         return index;
     }
 
-    // internal namespace for anonymous functions
+    // internal package for anonymous functions
     namespace
     {
         inline std::pair<uint64_t, bool> get_block_index_ui(std::string userInput) {
@@ -1101,7 +1101,7 @@ namespace ui
                               << std::endl;
                 }
                 else if(userInput == "get mempool") {
-                                        std::cout << "mempool size:\t" << mempool.size() << std::endl;
+                    std::cout << "mempool size:\t" << mempool.size() << std::endl;
                     if(mempool.size() == 0) {
                         std::cout << "\nmempool empty";
                     } else {
@@ -1119,14 +1119,8 @@ namespace ui
                     break;
                 }
                 else if(userInput == "enc-algs") {
-                    const auto [index,NaN] = ui::get_block_index_ui(userInput);
-                    if(NaN) {
-                        break;
-                    } else {
-                        
-                    }
-                    
-                }
+			        std::cout << "\nAES128\tAES192\tAES256" << std::endl;
+ 		        }
                 else if(userInput == "start mine") {
                     std::cout << "\nstarting mining\n";
                     if(!block_mined) {
@@ -1203,7 +1197,9 @@ namespace ui
                 } else if(userInput == "show w") {
                     ui::show_w_command();
                     break;
-                } else if(userInput == "") { break; }
+                } else if(userInput == "") {
+                    break;
+                }
                 else {
                     std::cout << "command not found\n";
                     break;
