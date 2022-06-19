@@ -1,6 +1,6 @@
 /*
  * A Blockchain Prototype that mimics the functions of a blockchain.
- * Around 3500 lines of code
+ * Around 4500 lines of code
  * Copyright (C) 2022 Taha Canturk
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
  *  Github: kibnakamoto
  *  Project: BlockchainPrototype
  *   Start Date: Feb 9, 2022
- *    Last Update: May 1
+ *    Last Update: June 19
  *     Software Version: 1.0
  */
 
@@ -29,13 +29,13 @@
  *
  * TODO: make get a command on else if and put if argv[2] == "something" for
          other parts(parse command line input)
- * TODO: while printing wallet address or aes keys or anything like it in 
-         hex/dec format instead of a proper hex string, copy pasting input 
-         won't work properly which can make it complicated to copy paste it 
-         into the console/terminal/command line
- * TODO: convert command UI input process into its own function if its also 
+* TODO: convert command UI input process into its own function if its also 
          used the same way in terminal, this way
- * TODO: use -Wall compiler flag for finding unwanted implicit conversions
+
+ * NOTE: while printing wallet address or aes keys or anything like it in 
+        hex/dec format instead of a proper hex string, copy pasting input 
+        won't work properly which can make it complicated to copy paste it 
+        into the console/terminal/command line
  */
 
 #include <iostream>
@@ -67,8 +67,6 @@
     
     int main(int argc,char** argv)
     {
-        /* need string hash values while comparing hashes */
-        IntTypes int_type = IntTypes();
         WalletAddress wallet_address = WalletAddress();
         SHA512 hash = SHA512();
         Block block = Block();
