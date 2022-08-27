@@ -240,7 +240,7 @@
         if(argc != 1 && !console_ui_activate) {
             if(argc == 2 && strcmp(argv[1], "help") == 0) {
                 for(int c=0;c<18;c++) {
-                    std::cout << commandDescriptions[c];
+                    std::cout << commandDescriptions[c] << std::endl;
                 }
             }
             else if(argc == 2 && strcmp(argv[1],"help-all") == 0) {

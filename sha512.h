@@ -200,7 +200,7 @@ class SHA512
                 W[c] = 0x00;
             }
             
-            alignas(uint8_t) std::shared_ptr<uint8_t> wordArray(new uint8_t[128]);
+            std::shared_ptr<uint8_t> wordArray(new uint8_t[128]);
             wordArray = int_type.arr64ToCharArr(hash1, hash2);
             
             // 8 bit array values to 64 bit array using 64 bit integer array
